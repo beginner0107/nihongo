@@ -1,5 +1,6 @@
 package com.nihongo.conversation.data.repository
 
+import com.nihongo.conversation.core.difficulty.DifficultyManager
 import com.nihongo.conversation.core.util.Result
 import com.nihongo.conversation.data.local.*
 import com.nihongo.conversation.data.remote.GeminiApiService
@@ -15,7 +16,8 @@ class ConversationRepository @Inject constructor(
     private val scenarioDao: ScenarioDao,
     private val conversationDao: ConversationDao,
     private val messageDao: MessageDao,
-    private val geminiApi: GeminiApiService
+    private val geminiApi: GeminiApiService,
+    private val difficultyManager: DifficultyManager
 ) {
     // User operations
     fun getUser(userId: Long): Flow<User?> = userDao.getUserById(userId)
@@ -65,11 +67,16 @@ class ConversationRepository @Inject constructor(
                 systemPrompt = systemPrompt
             )
 
-            // Save AI message
+            // Analyze vocabulary complexity
+            val complexity = difficultyManager.analyzeVocabularyComplexity(aiResponse)
+            val complexityScore = difficultyManager.getComplexityScore(complexity)
+
+            // Save AI message with complexity score
             val aiMsg = Message(
                 conversationId = conversationId,
                 content = aiResponse,
-                isUser = false
+                isUser = false,
+                complexityScore = complexityScore
             )
             messageDao.insertMessage(aiMsg)
 

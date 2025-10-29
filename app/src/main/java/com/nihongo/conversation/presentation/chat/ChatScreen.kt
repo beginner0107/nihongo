@@ -276,6 +276,14 @@ fun MessageBubble(
                         MaterialTheme.colorScheme.onSecondaryContainer
                     }
                 )
+
+                // Show difficulty indicator for AI messages
+                if (!message.isUser && message.complexityScore > 0) {
+                    CompactDifficultyIndicator(
+                        complexityScore = message.complexityScore
+                    )
+                }
+
                 Text(
                     text = timeFormatter.format(java.util.Date(message.timestamp)),
                     style = MaterialTheme.typography.labelSmall,

@@ -2,6 +2,8 @@ package com.nihongo.conversation.presentation.chat
 
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
+import com.nihongo.conversation.core.difficulty.DifficultyLevel
+import com.nihongo.conversation.core.difficulty.DifficultyManager
 import com.nihongo.conversation.core.util.Result
 import com.nihongo.conversation.core.voice.VoiceEvent
 import com.nihongo.conversation.core.voice.VoiceManager
@@ -38,7 +40,8 @@ class ChatViewModel @Inject constructor(
     private val repository: ConversationRepository,
     private val voiceManager: VoiceManager,
     private val settingsDataStore: SettingsDataStore,
-    private val profileRepository: ProfileRepository
+    private val profileRepository: ProfileRepository,
+    private val difficultyManager: DifficultyManager
 ) : ViewModel() {
 
     private val _uiState = MutableStateFlow(ChatUiState())
@@ -113,7 +116,14 @@ class ChatViewModel @Inject constructor(
 
             // Get personalized prompt prefix
             val personalizedPrefix = profileRepository.getPersonalizedPromptPrefix()
-            val enhancedPrompt = scenario.systemPrompt + personalizedPrefix
+
+            // Get difficulty-specific guidelines
+            val user = _uiState.value.user
+            val difficultyLevel = DifficultyLevel.fromInt(user?.level ?: 1)
+            val difficultyPrompt = difficultyManager.getDifficultyPrompt(difficultyLevel)
+
+            // Combine all prompts
+            val enhancedPrompt = scenario.systemPrompt + personalizedPrefix + difficultyPrompt
 
             repository.sendMessage(
                 conversationId = currentConversationId,
