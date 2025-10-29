@@ -27,7 +27,6 @@ import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.input.ImeAction
 import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
@@ -45,6 +44,7 @@ fun ChatScreen(
     val uiState by viewModel.uiState.collectAsState()
     val voiceState by viewModel.voiceState.collectAsState()
     val listState = rememberLazyListState()
+    val snackbarHostState = remember { SnackbarHostState() }
 
     // Permission handling
     var hasRecordPermission by remember { mutableStateOf(false) }
@@ -65,6 +65,17 @@ fun ChatScreen(
         }
     }
 
+    // Show toast when new chat starts
+    LaunchedEffect(uiState.showNewChatToast) {
+        if (uiState.showNewChatToast) {
+            snackbarHostState.showSnackbar(
+                message = "新しいチャットを開始しました",
+                duration = SnackbarDuration.Short
+            )
+            viewModel.dismissNewChatToast()
+        }
+    }
+
     Scaffold(
         topBar = {
             TopAppBar(
@@ -78,6 +89,15 @@ fun ChatScreen(
                     }
                 },
                 actions = {
+                    // Show "New Chat" button only if there are messages
+                    if (uiState.messages.isNotEmpty()) {
+                        IconButton(onClick = { viewModel.startNewChat() }) {
+                            Icon(
+                                imageVector = Icons.Default.Refresh,
+                                contentDescription = "新しいチャット"
+                            )
+                        }
+                    }
                     // Show "End Chat" button only if there are messages
                     if (uiState.messages.isNotEmpty()) {
                         IconButton(onClick = { viewModel.showEndChatDialog() }) {
@@ -105,6 +125,9 @@ fun ChatScreen(
                     }
                 }
             )
+        },
+        snackbarHost = {
+            SnackbarHost(hostState = snackbarHostState)
         }
     ) { padding ->
         Column(

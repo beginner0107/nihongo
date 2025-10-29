@@ -40,7 +40,8 @@ data class ChatUiState(
     val translations: Map<Long, String> = emptyMap(), // messageId -> Korean translation
     val expandedTranslations: Set<Long> = emptySet(), // messageIds with translation expanded
     val grammarCache: Map<String, GrammarExplanation> = emptyMap(), // text -> cached grammar
-    val showEndChatDialog: Boolean = false // Show confirmation dialog for ending chat
+    val showEndChatDialog: Boolean = false, // Show confirmation dialog for ending chat
+    val showNewChatToast: Boolean = false // Show toast when new chat starts
 )
 
 @HiltViewModel
@@ -375,6 +376,35 @@ class ChatViewModel @Inject constructor(
                 }
             }
         }
+    }
+
+    fun startNewChat() {
+        viewModelScope.launch {
+            // Complete current conversation if exists
+            currentConversationId?.let { conversationId ->
+                repository.completeConversation(conversationId)
+            }
+
+            // Create new conversation immediately
+            currentConversationId = repository.getOrCreateConversation(currentUserId, currentScenarioId)
+
+            // Clear state and show toast
+            _uiState.update {
+                it.copy(
+                    messages = emptyList(),
+                    inputText = "",
+                    error = null,
+                    translations = emptyMap(),
+                    expandedTranslations = emptySet(),
+                    grammarCache = emptyMap(), // Clear grammar cache too
+                    showNewChatToast = true
+                )
+            }
+        }
+    }
+
+    fun dismissNewChatToast() {
+        _uiState.update { it.copy(showNewChatToast = false) }
     }
 
     override fun onCleared() {
