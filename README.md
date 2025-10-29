@@ -192,6 +192,119 @@ OutlinedTextField(
 - LazyColumn 컨텐츠 패딩: 16dp
 - 자동 스크롤: 새 메시지 추가 시 애니메이션 스크롤
 
+## 🆕 최근 업데이트 (2025-10) - TTS 및 텍스트 정제
+
+### TTS (Text-to-Speech) 시스템 대폭 개선
+
+**문제 해결**:
+- ✅ **"TTS未初期化" 에러 완전 해결**: 비동기 초기화 문제 수정
+- ✅ **마크다운 기호 제거**: AI 응답에서 `**텍스트**`, `*이탤릭*` 자동 제거
+- ✅ **후리가나 자동 제거**: `お席（せき）` → `お席` 으로 정제
+- ✅ **에러 메시지 개선**: 구체적인 해결 방법 제시
+
+**새로운 기능**:
+1. **Pending Queue 시스템**
+   - TTS가 준비되기 전 음성 요청을 큐에 저장
+   - 초기화 완료 시 자동으로 재생
+   - 앱 시작 직후 AI 응답도 정상 재생
+
+2. **일본어 음성 데이터 감지**
+   - 디바이스에 일본어 TTS 데이터가 없으면 자동 감지
+   - 설치 방법을 포함한 친절한 에러 메시지 표시
+   - `설정 > 언어 및 입력 > 음성 출력 > 일본어 다운로드`
+
+3. **텍스트 자동 정제**
+   ```kotlin
+   // AI 응답 예시 (자동 정제됨):
+   // Before: "**冷たい（つめたい）**飲み物（のみもの）"
+   // After:  "冷たい飲み物"
+   ```
+
+4. **Thread-Safe 처리**
+   - 동시성 문제 해결로 안정성 향상
+   - 멀티스레드 환경에서도 안전한 TTS 동작
+
+**시스템 프롬프트 업데이트**:
+- 모든 시나리오에 텍스트 포맷 규칙 추가
+- AI가 마크다운과 후리가나를 사용하지 않도록 명시적 지시
+- 3단계 난이도 레벨 모두 적용
+
+### 빌드 설정 개선
+
+**메모리 설정** (`gradle.properties`):
+```properties
+# OutOfMemoryError 방지
+org.gradle.jvmargs=-Xmx4096m -XX:MaxMetaspaceSize=512m
+org.gradle.daemon=true
+org.gradle.parallel=true
+```
+
+**의존성 업데이트** (`app/build.gradle.kts`):
+```kotlin
+// Material Icons 라이브러리
+implementation("androidx.compose.material:material-icons-core:1.7.4")
+implementation("androidx.compose.material:material-icons-extended:1.7.4")
+```
+
+## 🐛 문제 해결 가이드
+
+### TTS가 작동하지 않을 때
+
+**증상**: 음성이 재생되지 않거나 에러 메시지 표시
+
+**해결 방법**:
+1. **앱 완전 재설치** (데이터베이스 초기화)
+   ```bash
+   adb uninstall com.nihongo.conversation
+   # Android Studio에서 다시 실행
+   ```
+
+2. **일본어 음성 데이터 설치 확인**
+   - 디바이스 설정 → 언어 및 입력
+   - 음성 출력 → TTS 엔진 설정
+   - 일본어 음성 데이터 다운로드
+
+3. **볼륨 확인**
+   - 미디어 볼륨이 켜져 있는지 확인
+   - 무음 모드 해제
+
+4. **자동 음성 재생 설정**
+   - 설정 화면에서 "자동 읽기" 토글 확인
+   - 오른쪽 상단 스피커 아이콘 확인
+
+### AI가 이상한 기호를 표시할 때
+
+**증상**: `**텍스트**` 또는 `（ふりがな）` 표시
+
+**원인**: 데이터베이스에 저장된 이전 시스템 프롬프트 사용 중
+
+**해결 방법**:
+```bash
+# 앱 재설치로 새 프롬프트 적용
+adb uninstall com.nihongo.conversation
+# Android Studio에서 다시 실행
+```
+
+재설치 후 자동으로:
+- ✅ 새로운 시스템 프롬프트 적용
+- ✅ AI 응답 텍스트 정제 기능 활성화
+- ✅ TTS 후리가나 제거 기능 활성화
+
+### 시나리오 내용 확인
+
+**"電話での会話" 시나리오**:
+- 이 시나리오는 **레스토랑/살롱 예약 전화 연습**용입니다
+- AI가 "레스토랑입니다"라고 응답하는 것이 정상입니다
+- 사용자는 전화로 예약하는 역할을 연습합니다
+
+**시나리오 구성**:
+1. レストランでの注文 - 레스토랑에서 직접 주문
+2. 買い物 - 쇼핑
+3. ホテルでのチェックイン - 호텔 체크인
+4. 友達を作る - 친구 만들기
+5. **電話での会話** - 전화로 예약하기 (레스토랑/살롱)
+6. 病院で - 병원 방문
+
 ## 🔧 개발 가이드
 
 ### Claude Code CLI 사용법
@@ -397,17 +510,26 @@ android {
 
 ## 🔑 핵심 구현 포인트
 
-### 1. Gemini API 통합
+### 1. Gemini API 통합 + 텍스트 정제
 ```kotlin
 // GeminiApiService.kt
 val generativeModel = GenerativeModel(
-    modelName = "gemini-2.5-flash-latest",
+    modelName = "gemini-2.5-flash",
     apiKey = BuildConfig.GEMINI_API_KEY
 )
 
 // 대화 히스토리를 포함한 컨텍스트 전달
 val chat = generativeModel.startChat(history = conversationHistory)
 val response = chat.sendMessage(userMessage)
+
+// 🆕 응답 텍스트 자동 정제
+private fun cleanResponseText(text: String): String {
+    return text
+        .replace(Regex("\\*\\*([^*]+)\\*\\*"), "$1")  // **굵게** 제거
+        .replace(Regex("(?<!\\*)\\*([^*]+)\\*(?!\\*)"), "$1")  // *기울임* 제거
+        .replace(Regex("（[^）]*）"), "")  // （후리가나） 제거
+        .replace(Regex("\\([^)]*\\)"), "")  // (furigana) 제거
+}
 ```
 
 ### 2. 리액티브 Settings 동기화
@@ -428,11 +550,48 @@ private fun observeSettings() {
 }
 ```
 
-### 3. 음성 인식/재생 상태 관리
+### 3. 음성 인식/재생 상태 관리 + TTS 개선
 ```kotlin
 // VoiceManager.kt - StateFlow 기반 상태 관리
 private val _state = MutableStateFlow<VoiceState>(VoiceState.Idle)
 val state: StateFlow<VoiceState> = _state.asStateFlow()
+
+// 🆕 Pending Queue 시스템 (비동기 초기화 문제 해결)
+private val pendingSpeechQueue = mutableListOf<PendingSpeech>()
+
+fun speak(text: String, speed: Float = 1.0f) {
+    // 후리가나 자동 제거
+    val cleanText = text.replace(Regex("（[^）]*）|\\([^)]*\\)"), "").trim()
+
+    if (!isTtsInitialized) {
+        // TTS 준비 전 - 큐에 저장
+        synchronized(pendingSpeechQueue) {
+            pendingSpeechQueue.add(PendingSpeech(cleanText, utteranceId, speed))
+        }
+        return
+    }
+
+    // TTS 준비 완료 - 즉시 재생
+    textToSpeech?.speak(cleanText, TextToSpeech.QUEUE_FLUSH, null, utteranceId)
+}
+
+// 초기화 완료 시 큐 처리
+private fun initializeTts() {
+    textToSpeech = TextToSpeech(context) { status ->
+        if (status == TextToSpeech.SUCCESS) {
+            // 일본어 설정 및 준비 완료
+            isTtsInitialized = true
+
+            // 🆕 대기 중인 음성 재생
+            synchronized(pendingSpeechQueue) {
+                pendingSpeechQueue.forEach { pending ->
+                    textToSpeech?.speak(pending.text, ...)
+                }
+                pendingSpeechQueue.clear()
+            }
+        }
+    }
+}
 
 // UI에서 상태 구독
 val voiceState by viewModel.voiceState.collectAsState()
