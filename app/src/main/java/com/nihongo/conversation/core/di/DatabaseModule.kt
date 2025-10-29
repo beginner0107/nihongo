@@ -26,7 +26,8 @@ object DatabaseModule {
         )
             .addMigrations(
                 NihongoDatabase.MIGRATION_1_2,
-                NihongoDatabase.MIGRATION_2_3
+                NihongoDatabase.MIGRATION_2_3,
+                NihongoDatabase.MIGRATION_3_4
             )
             .build()
     }

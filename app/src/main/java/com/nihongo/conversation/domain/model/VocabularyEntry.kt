@@ -18,7 +18,13 @@ import androidx.room.PrimaryKey
             onDelete = ForeignKey.CASCADE
         )
     ],
-    indices = [Index("userId"), Index("word")]
+    indices = [
+        Index("userId"),
+        Index("word"),
+        Index("nextReviewAt"),
+        Index(value = ["userId", "nextReviewAt"], name = "idx_vocab_user_review"),
+        Index(value = ["userId", "isMastered"], name = "idx_vocab_user_mastered")
+    ]
 )
 data class VocabularyEntry(
     @PrimaryKey(autoGenerate = true)

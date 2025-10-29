@@ -5,6 +5,7 @@ import androidx.room.RoomDatabase
 import androidx.room.migration.Migration
 import androidx.sqlite.db.SupportSQLiteDatabase
 import com.nihongo.conversation.domain.model.Conversation
+import com.nihongo.conversation.domain.model.ConversationStats
 import com.nihongo.conversation.domain.model.Message
 import com.nihongo.conversation.domain.model.ReviewHistory
 import com.nihongo.conversation.domain.model.Scenario
@@ -20,7 +21,10 @@ import com.nihongo.conversation.domain.model.VocabularyEntry
         VocabularyEntry::class,
         ReviewHistory::class
     ],
-    version = 3,
+    views = [
+        ConversationStats::class
+    ],
+    version = 4,
     exportSchema = false
 )
 abstract class NihongoDatabase : RoomDatabase() {
@@ -82,6 +86,50 @@ abstract class NihongoDatabase : RoomDatabase() {
                 // Create indices for review_history
                 database.execSQL("CREATE INDEX IF NOT EXISTS index_review_history_vocabularyId ON review_history(vocabularyId)")
                 database.execSQL("CREATE INDEX IF NOT EXISTS index_review_history_reviewedAt ON review_history(reviewedAt)")
+            }
+        }
+
+        val MIGRATION_3_4 = object : Migration(3, 4) {
+            override fun migrate(database: SupportSQLiteDatabase) {
+                // Add performance optimization indices
+
+                // Conversations table indices
+                database.execSQL("CREATE INDEX IF NOT EXISTS index_conversations_userId ON conversations(userId)")
+                database.execSQL("CREATE INDEX IF NOT EXISTS index_conversations_scenarioId ON conversations(scenarioId)")
+                database.execSQL("CREATE INDEX IF NOT EXISTS index_conversations_isCompleted ON conversations(isCompleted)")
+                database.execSQL("CREATE INDEX IF NOT EXISTS idx_conv_user_scenario_status ON conversations(userId, scenarioId, isCompleted)")
+                database.execSQL("CREATE INDEX IF NOT EXISTS idx_conv_updated ON conversations(updatedAt)")
+
+                // Messages table indices
+                database.execSQL("CREATE INDEX IF NOT EXISTS index_messages_conversationId ON messages(conversationId)")
+                database.execSQL("CREATE INDEX IF NOT EXISTS idx_msg_conv_time ON messages(conversationId, timestamp)")
+                database.execSQL("CREATE INDEX IF NOT EXISTS idx_msg_timestamp ON messages(timestamp)")
+
+                // Vocabulary entries additional indices
+                database.execSQL("CREATE INDEX IF NOT EXISTS index_vocabulary_entries_nextReviewAt ON vocabulary_entries(nextReviewAt)")
+                database.execSQL("CREATE INDEX IF NOT EXISTS idx_vocab_user_review ON vocabulary_entries(userId, nextReviewAt)")
+                database.execSQL("CREATE INDEX IF NOT EXISTS idx_vocab_user_mastered ON vocabulary_entries(userId, isMastered)")
+
+                // Create database view for conversation statistics
+                database.execSQL("""
+                    CREATE VIEW IF NOT EXISTS conversation_stats AS
+                    SELECT
+                        c.id as conversationId,
+                        c.userId,
+                        c.scenarioId,
+                        c.createdAt,
+                        c.updatedAt,
+                        c.isCompleted,
+                        COUNT(m.id) as messageCount,
+                        SUM(CASE WHEN m.isUser = 1 THEN 1 ELSE 0 END) as userMessageCount,
+                        SUM(CASE WHEN m.isUser = 0 THEN 1 ELSE 0 END) as aiMessageCount,
+                        MAX(m.timestamp) as lastMessageTime,
+                        AVG(m.complexityScore) as avgComplexity,
+                        (c.updatedAt - c.createdAt) as duration
+                    FROM conversations c
+                    LEFT JOIN messages m ON c.id = m.conversationId
+                    GROUP BY c.id
+                """)
             }
         }
     }

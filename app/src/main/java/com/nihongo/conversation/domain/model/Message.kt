@@ -2,6 +2,7 @@ package com.nihongo.conversation.domain.model
 
 import androidx.room.Entity
 import androidx.room.ForeignKey
+import androidx.room.Index
 import androidx.room.PrimaryKey
 
 @Entity(
@@ -13,6 +14,11 @@ import androidx.room.PrimaryKey
             childColumns = ["conversationId"],
             onDelete = ForeignKey.CASCADE
         )
+    ],
+    indices = [
+        Index("conversationId"),
+        Index(value = ["conversationId", "timestamp"], name = "idx_msg_conv_time"),
+        Index(value = ["timestamp"], name = "idx_msg_timestamp")
     ]
 )
 data class Message(
