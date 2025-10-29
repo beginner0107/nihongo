@@ -14,10 +14,19 @@ import java.text.SimpleDateFormat
 import java.util.*
 import javax.inject.Inject
 
+data class ConversationStats(
+    val totalMessages: Int,
+    val userMessages: Int,
+    val aiMessages: Int,
+    val totalWords: Int,
+    val duration: Long // in milliseconds
+)
+
 data class ConversationWithDetails(
     val conversation: Conversation,
     val messages: List<Message>,
     val scenario: Scenario?,
+    val stats: ConversationStats,
     val isExpanded: Boolean = false
 )
 
@@ -53,14 +62,18 @@ class ReviewViewModel @Inject constructor(
             _uiState.update { it.copy(isLoading = true, error = null) }
 
             try {
-                repository.getUserConversations(userId).collect { conversations ->
+                // Load only completed conversations
+                repository.getCompletedConversations(userId).collect { conversations ->
                     val conversationDetails = conversations.map { conversation ->
                         val messages = repository.getMessages(conversation.id).first()
                         val scenario = repository.getScenario(conversation.scenarioId).first()
+                        val stats = calculateStats(conversation, messages)
+
                         ConversationWithDetails(
                             conversation = conversation,
                             messages = messages,
                             scenario = scenario,
+                            stats = stats,
                             isExpanded = _uiState.value.expandedConversationIds.contains(conversation.id)
                         )
                     }
@@ -84,25 +97,44 @@ class ReviewViewModel @Inject constructor(
         }
     }
 
+    private fun calculateStats(conversation: Conversation, messages: List<Message>): ConversationStats {
+        val userMessages = messages.count { it.isUser }
+        val aiMessages = messages.count { !it.isUser }
+        val totalWords = messages.sumOf { message ->
+            // Count Japanese characters and words
+            message.content.replace(Regex("[\\s\\p{Punct}]+"), " ").split(" ").size
+        }
+        val duration = conversation.updatedAt - conversation.createdAt
+
+        return ConversationStats(
+            totalMessages = messages.size,
+            userMessages = userMessages,
+            aiMessages = aiMessages,
+            totalWords = totalWords,
+            duration = duration
+        )
+    }
+
     private fun groupConversationsByDate(conversations: List<ConversationWithDetails>): List<ConversationGroup> {
         val dateFormat = SimpleDateFormat("yyyy-MM-dd", Locale.getDefault())
         val headerFormat = SimpleDateFormat("yyyy년 MM월 dd일 (E)", Locale.KOREAN)
 
+        // Group by completion date (updatedAt) instead of creation date
         val grouped = conversations.groupBy { conversation ->
-            dateFormat.format(Date(conversation.conversation.createdAt))
+            dateFormat.format(Date(conversation.conversation.updatedAt))
         }.map { (dateKey, convos) ->
             val date = dateFormat.parse(dateKey) ?: Date()
             val header = when {
-                isToday(date) -> "오늘"
-                isYesterday(date) -> "어제"
-                else -> headerFormat.format(date)
+                isToday(date) -> "오늘 완료"
+                isYesterday(date) -> "어제 완료"
+                else -> headerFormat.format(date) + " 완료"
             }
             ConversationGroup(
                 dateHeader = header,
-                conversations = convos.sortedByDescending { it.conversation.createdAt }
+                conversations = convos.sortedByDescending { it.conversation.updatedAt }
             )
         }.sortedByDescending { group ->
-            group.conversations.firstOrNull()?.conversation?.createdAt ?: 0L
+            group.conversations.firstOrNull()?.conversation?.updatedAt ?: 0L
         }
 
         return grouped

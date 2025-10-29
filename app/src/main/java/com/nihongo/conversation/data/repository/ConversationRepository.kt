@@ -36,6 +36,9 @@ class ConversationRepository @Inject constructor(
     fun getUserConversations(userId: Long): Flow<List<Conversation>> =
         conversationDao.getConversationsByUser(userId)
 
+    fun getCompletedConversations(userId: Long): Flow<List<Conversation>> =
+        conversationDao.getCompletedConversationsByUser(userId)
+
     suspend fun createConversation(conversation: Conversation): Long =
         conversationDao.insertConversation(conversation)
 

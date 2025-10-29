@@ -12,6 +12,9 @@ interface ConversationDao {
     @Query("SELECT * FROM conversations WHERE userId = :userId ORDER BY updatedAt DESC")
     fun getConversationsByUser(userId: Long): Flow<List<Conversation>>
 
+    @Query("SELECT * FROM conversations WHERE userId = :userId AND isCompleted = 1 ORDER BY updatedAt DESC")
+    fun getCompletedConversationsByUser(userId: Long): Flow<List<Conversation>>
+
     @Query("SELECT * FROM conversations WHERE userId = :userId AND scenarioId = :scenarioId AND isCompleted = 0 ORDER BY updatedAt DESC LIMIT 1")
     suspend fun getLatestActiveConversationByUserAndScenario(userId: Long, scenarioId: Long): Conversation?
 
