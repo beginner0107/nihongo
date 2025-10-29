@@ -11,6 +11,7 @@ import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.filled.Lightbulb
 import androidx.compose.material.icons.filled.VolumeOff
 import androidx.compose.material.icons.filled.VolumeUp
@@ -29,6 +30,7 @@ import com.nihongo.conversation.domain.model.Message
 fun ChatScreen(
     userId: Long,
     scenarioId: Long,
+    onBackClick: () -> Unit = {},
     viewModel: ChatViewModel = hiltViewModel()
 ) {
     val uiState by viewModel.uiState.collectAsState()
@@ -58,6 +60,14 @@ fun ChatScreen(
         topBar = {
             TopAppBar(
                 title = { Text(uiState.scenario?.title ?: "Chat") },
+                navigationIcon = {
+                    IconButton(onClick = onBackClick) {
+                        Icon(
+                            imageVector = Icons.AutoMirrored.Filled.ArrowBack,
+                            contentDescription = "戻る"
+                        )
+                    }
+                },
                 actions = {
                     IconButton(onClick = { viewModel.toggleAutoSpeak() }) {
                         Icon(
