@@ -15,6 +15,8 @@ import com.nihongo.conversation.domain.model.Conversation
 import com.nihongo.conversation.domain.model.GrammarExplanation
 import com.nihongo.conversation.domain.model.Hint
 import com.nihongo.conversation.domain.model.Message
+import com.nihongo.conversation.domain.model.PronunciationResult
+import com.nihongo.conversation.domain.model.PronunciationScorer
 import com.nihongo.conversation.domain.model.Scenario
 import com.nihongo.conversation.domain.model.User
 import dagger.hilt.android.lifecycle.HiltViewModel
@@ -41,7 +43,11 @@ data class ChatUiState(
     val expandedTranslations: Set<Long> = emptySet(), // messageIds with translation expanded
     val grammarCache: Map<String, GrammarExplanation> = emptyMap(), // text -> cached grammar
     val showEndChatDialog: Boolean = false, // Show confirmation dialog for ending chat
-    val showNewChatToast: Boolean = false // Show toast when new chat starts
+    val showNewChatToast: Boolean = false, // Show toast when new chat starts
+    val showPronunciationSheet: Boolean = false, // Show pronunciation practice sheet
+    val pronunciationTargetText: String? = null, // Text to practice
+    val pronunciationResult: PronunciationResult? = null, // Result of pronunciation attempt
+    val isPronunciationRecording: Boolean = false // Whether currently recording pronunciation
 )
 
 @HiltViewModel
@@ -189,7 +195,12 @@ class ChatViewModel @Inject constructor(
             voiceManager.events.collect { event ->
                 when (event) {
                     is VoiceEvent.RecognitionResult -> {
-                        _uiState.update { it.copy(inputText = event.text) }
+                        // Check if in pronunciation practice mode
+                        if (_uiState.value.isPronunciationRecording) {
+                            checkPronunciation(event.text)
+                        } else {
+                            _uiState.update { it.copy(inputText = event.text) }
+                        }
                     }
                     is VoiceEvent.Error -> {
                         _uiState.update { it.copy(error = event.message) }
@@ -405,6 +416,65 @@ class ChatViewModel @Inject constructor(
 
     fun dismissNewChatToast() {
         _uiState.update { it.copy(showNewChatToast = false) }
+    }
+
+    // Pronunciation Practice Functions
+    fun startPronunciationPractice(text: String) {
+        _uiState.update {
+            it.copy(
+                showPronunciationSheet = true,
+                pronunciationTargetText = text,
+                pronunciationResult = null,
+                isPronunciationRecording = false
+            )
+        }
+    }
+
+    fun startPronunciationRecording() {
+        _uiState.update { it.copy(isPronunciationRecording = true) }
+        voiceManager.startListening()
+    }
+
+    fun stopPronunciationRecording() {
+        voiceManager.stopListening()
+        _uiState.update { it.copy(isPronunciationRecording = false) }
+    }
+
+    fun checkPronunciation(recognizedText: String) {
+        val targetText = _uiState.value.pronunciationTargetText ?: return
+
+        val result = PronunciationScorer.calculateScore(
+            expected = targetText,
+            recognized = recognizedText
+        )
+
+        _uiState.update {
+            it.copy(
+                pronunciationResult = result,
+                isPronunciationRecording = false
+            )
+        }
+    }
+
+    fun retryPronunciation() {
+        _uiState.update {
+            it.copy(
+                pronunciationResult = null,
+                isPronunciationRecording = false
+            )
+        }
+    }
+
+    fun dismissPronunciationSheet() {
+        _uiState.update {
+            it.copy(
+                showPronunciationSheet = false,
+                pronunciationTargetText = null,
+                pronunciationResult = null,
+                isPronunciationRecording = false
+            )
+        }
+        voiceManager.stopListening()
     }
 
     override fun onCleared() {

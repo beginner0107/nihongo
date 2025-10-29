@@ -167,6 +167,9 @@ fun ChatScreen(
                             } else null,
                             onRequestTranslation = if (!message.isUser) {
                                 { viewModel.requestTranslation(message.id, message.content) }
+                            } else null,
+                            onPracticePronunciation = if (!message.isUser) {
+                                { viewModel.startPronunciationPractice(message.content) }
                             } else null
                         )
                     }
@@ -303,6 +306,22 @@ fun ChatScreen(
                 }
             )
         }
+
+        // Pronunciation Practice Sheet
+        uiState.pronunciationTargetText?.let { targetText ->
+            if (uiState.showPronunciationSheet) {
+                PronunciationPracticeSheet(
+                    targetText = targetText,
+                    result = uiState.pronunciationResult,
+                    isRecording = uiState.isPronunciationRecording,
+                    onStartRecording = viewModel::startPronunciationRecording,
+                    onStopRecording = viewModel::stopPronunciationRecording,
+                    onRetry = viewModel::retryPronunciation,
+                    onSpeak = viewModel::speakMessage,
+                    onDismiss = viewModel::dismissPronunciationSheet
+                )
+            }
+        }
     }
 }
 
@@ -315,7 +334,8 @@ fun MessageBubble(
     isTranslationExpanded: Boolean = false,
     translation: String? = null,
     onToggleTranslation: (() -> Unit)? = null,
-    onRequestTranslation: (() -> Unit)? = null
+    onRequestTranslation: (() -> Unit)? = null,
+    onPracticePronunciation: (() -> Unit)? = null
 ) {
     val timeFormatter = remember {
         java.text.SimpleDateFormat("HH:mm", java.util.Locale.getDefault())
@@ -402,6 +422,26 @@ fun MessageBubble(
                                 text = "번역 중...",
                                 style = MaterialTheme.typography.bodySmall,
                                 color = MaterialTheme.colorScheme.onSecondaryContainer.copy(alpha = 0.5f)
+                            )
+                        }
+                    }
+
+                    // Pronunciation practice button
+                    if (onPracticePronunciation != null) {
+                        TextButton(
+                            onClick = onPracticePronunciation,
+                            contentPadding = PaddingValues(horizontal = 8.dp, vertical = 2.dp),
+                            modifier = Modifier.height(28.dp)
+                        ) {
+                            Icon(
+                                imageVector = Icons.Default.RecordVoiceOver,
+                                contentDescription = "発音練習",
+                                modifier = Modifier.size(16.dp)
+                            )
+                            Spacer(modifier = Modifier.width(4.dp))
+                            Text(
+                                text = "発音練習",
+                                style = MaterialTheme.typography.labelSmall
                             )
                         }
                     }
