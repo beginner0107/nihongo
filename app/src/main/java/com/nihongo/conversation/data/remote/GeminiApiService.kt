@@ -30,10 +30,27 @@ class GeminiApiService @Inject constructor() {
                 history = buildHistory(conversationHistory, systemPrompt)
             )
             val response = chat.sendMessage(message)
-            response.text ?: "エラーが発生しました"
+            val rawText = response.text ?: "エラーが発生しました"
+            cleanResponseText(rawText)
         } catch (e: Exception) {
             throw Exception("Failed to get response from Gemini: ${e.message}")
         }
+    }
+
+    /**
+     * Clean AI response text by removing markdown formatting and furigana
+     */
+    private fun cleanResponseText(text: String): String {
+        return text
+            // Remove markdown bold (**text** or __text__)
+            .replace(Regex("\\*\\*([^*]+)\\*\\*"), "$1")
+            .replace(Regex("__([^_]+)__"), "$1")
+            // Remove markdown italic (*text* or _text_)
+            .replace(Regex("(?<!\\*)\\*([^*]+)\\*(?!\\*)"), "$1")
+            .replace(Regex("(?<!_)_([^_]+)_(?!_)"), "$1")
+            // Remove furigana in parentheses (both full-width and half-width)
+            .replace(Regex("（[^）]*）"), "")
+            .replace(Regex("\\([^)]*\\)"), "")
     }
 
     suspend fun generateHints(

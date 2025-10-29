@@ -44,37 +44,81 @@ class VoiceManager @Inject constructor(
     private var speechRecognizer: SpeechRecognizer? = null
     private var textToSpeech: TextToSpeech? = null
     private var isTtsInitialized = false
+    private val pendingSpeechQueue = mutableListOf<PendingSpeech>()
+    private var initializationAttempted = false
+
+    private data class PendingSpeech(val text: String, val utteranceId: String, val speed: Float)
 
     init {
         initializeTts()
     }
 
     private fun initializeTts() {
-        textToSpeech = TextToSpeech(context) { status ->
-            if (status == TextToSpeech.SUCCESS) {
-                textToSpeech?.language = Locale.JAPANESE
-                isTtsInitialized = true
+        if (initializationAttempted) return
+        initializationAttempted = true
 
-                textToSpeech?.setOnUtteranceProgressListener(object : UtteranceProgressListener() {
-                    override fun onStart(utteranceId: String?) {
-                        _state.value = VoiceState.Speaking
-                    }
+        try {
+            textToSpeech = TextToSpeech(context) { status ->
+                when (status) {
+                    TextToSpeech.SUCCESS -> {
+                        val tts = textToSpeech
+                        if (tts == null) {
+                            _events.trySend(VoiceEvent.Error("TTS初期化エラー"))
+                            return@TextToSpeech
+                        }
 
-                    override fun onDone(utteranceId: String?) {
-                        _state.value = VoiceState.Idle
-                        utteranceId?.let {
-                            _events.trySend(VoiceEvent.SpeakingComplete(it))
+                        val langResult = tts.setLanguage(Locale.JAPANESE)
+                        when (langResult) {
+                            TextToSpeech.LANG_MISSING_DATA -> {
+                                _events.trySend(VoiceEvent.Error("日本語音声データがありません。デバイス設定でダウンロードしてください。"))
+                                return@TextToSpeech
+                            }
+                            TextToSpeech.LANG_NOT_SUPPORTED -> {
+                                _events.trySend(VoiceEvent.Error("日本語音声がサポートされていません"))
+                                return@TextToSpeech
+                            }
+                        }
+
+                        tts.setOnUtteranceProgressListener(object : UtteranceProgressListener() {
+                            override fun onStart(utteranceId: String?) {
+                                _state.value = VoiceState.Speaking
+                            }
+
+                            override fun onDone(utteranceId: String?) {
+                                _state.value = VoiceState.Idle
+                                utteranceId?.let {
+                                    _events.trySend(VoiceEvent.SpeakingComplete(it))
+                                }
+                            }
+
+                            override fun onError(utteranceId: String?) {
+                                _state.value = VoiceState.Idle
+                                _events.trySend(VoiceEvent.Error("音声出力エラー"))
+                            }
+                        })
+
+                        // Mark as initialized
+                        isTtsInitialized = true
+
+                        // Process pending queue
+                        synchronized(pendingSpeechQueue) {
+                            if (pendingSpeechQueue.isNotEmpty()) {
+                                pendingSpeechQueue.forEachIndexed { index, pending ->
+                                    tts.setSpeechRate(pending.speed)
+                                    val queueMode = if (index == 0) TextToSpeech.QUEUE_FLUSH else TextToSpeech.QUEUE_ADD
+                                    tts.speak(pending.text, queueMode, null, pending.utteranceId)
+                                }
+                                pendingSpeechQueue.clear()
+                            }
                         }
                     }
-
-                    override fun onError(utteranceId: String?) {
-                        _state.value = VoiceState.Idle
-                        _events.trySend(VoiceEvent.Error("音声出力エラー"))
+                    else -> {
+                        _events.trySend(VoiceEvent.Error("TTS初期化失敗。デバイスの音声設定を確認してください。"))
                     }
-                })
-            } else {
-                _events.trySend(VoiceEvent.Error("TTS初期化失敗"))
+                }
             }
+        } catch (e: Exception) {
+            _events.trySend(VoiceEvent.Error("TTS初期化エラー: ${e.message}"))
         }
     }
 
@@ -153,14 +197,40 @@ class VoiceManager @Inject constructor(
     }
 
     fun speak(text: String, utteranceId: String = "tts_${System.currentTimeMillis()}", speed: Float = 1.0f) {
-        if (!isTtsInitialized) {
-            _events.trySend(VoiceEvent.Error("TTS未初期化"))
+        if (text.isBlank()) return
+
+        // Remove pronunciation guides in parentheses (e.g., "お席（せき）" -> "お席")
+        val cleanText = text.replace(Regex("（[^）]*）|\\([^)]*\\)"), "").trim()
+        if (cleanText.isEmpty()) {
+            _events.trySend(VoiceEvent.Error("テキストが空です"))
             return
         }
 
-        // Set speech rate (0.5 to 2.0)
-        textToSpeech?.setSpeechRate(speed)
-        textToSpeech?.speak(text, TextToSpeech.QUEUE_FLUSH, null, utteranceId)
+        val tts = textToSpeech
+        if (tts == null || !isTtsInitialized) {
+            // Queue speech request for later
+            synchronized(pendingSpeechQueue) {
+                pendingSpeechQueue.add(PendingSpeech(cleanText, utteranceId, speed))
+            }
+            return
+        }
+
+        // Speak immediately if initialized
+        try {
+            tts.setSpeechRate(speed.coerceIn(0.5f, 2.0f))
+            val result = tts.speak(cleanText, TextToSpeech.QUEUE_FLUSH, null, utteranceId)
+
+            when (result) {
+                TextToSpeech.ERROR -> {
+                    _events.trySend(VoiceEvent.Error("音声再生エラー。音量を確認してください。"))
+                }
+                TextToSpeech.SUCCESS -> {
+                    // Success - state will be updated by listener
+                }
+            }
+        } catch (e: Exception) {
+            _events.trySend(VoiceEvent.Error("TTSエラー: ${e.message}"))
+        }
     }
 
     fun setSpeechSpeed(speed: Float) {

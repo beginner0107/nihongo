@@ -79,6 +79,13 @@ Language Guidelines:
    - Use simple, encouraging responses
    - Break complex ideas into multiple simple sentences
 
+6. TEXT FORMATTING - CRITICAL:
+   - NEVER use markdown formatting (**, __, *, _)
+   - NEVER use furigana or pronunciation guides in parentheses: 禁止 お席（せき）
+   - NEVER use English translations in parentheses: 禁止 飲み物(drink)
+   - Write Japanese text ONLY, with no annotations
+   - Use simple kanji that beginners can understand
+
 EXAMPLES:
 ❌ BAD (too complex): "そのレストランはとても人気があるので、予約した方がいいと思います。"
 ✅ GOOD (appropriate): "そのレストランは人気です。予約をしてください。"
@@ -122,6 +129,11 @@ Language Guidelines:
    - Use both formal and informal expressions as appropriate
    - Include filler words (あの、えっと、そうですね)
    - Provide nuanced responses
+
+6. TEXT FORMATTING - CRITICAL:
+   - NEVER use markdown formatting (**, __, *, _)
+   - NEVER use furigana or pronunciation guides in parentheses
+   - Write pure Japanese text without any annotations
 
 EXAMPLES:
 ❌ BAD (too simple): "レストランは人気です。予約をしてください。"
@@ -168,6 +180,11 @@ Language Guidelines:
    - Nuanced and indirect communication
    - Show cultural awareness
    - Literary or poetic expressions when suitable
+
+6. TEXT FORMATTING - CRITICAL:
+   - NEVER use markdown formatting (**, __, *, _)
+   - NEVER use furigana or pronunciation guides in parentheses
+   - Write pure Japanese text without any annotations
 
 EXAMPLES:
 ❌ BAD (too simple): "そのレストランは人気があるので、予約した方がいいと思いますよ。"
