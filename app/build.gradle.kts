@@ -1,3 +1,5 @@
+import java.util.Properties
+
 plugins {
     id("com.android.application")
     id("org.jetbrains.kotlin.android")
@@ -22,12 +24,16 @@ android {
         }
 
         // Load API key from local.properties
-        val properties = org.jetbrains.kotlin.konan.properties.Properties()
+        val properties = Properties()
         val localPropertiesFile = rootProject.file("local.properties")
         if (localPropertiesFile.exists()) {
-            properties.load(localPropertiesFile.inputStream())
+            localPropertiesFile.inputStream().use { properties.load(it) }
         }
-        buildConfigField("String", "GEMINI_API_KEY", "\"${properties.getProperty("GEMINI_API_KEY", "")}\"")
+        buildConfigField(
+            "String",
+            "GEMINI_API_KEY",
+            "\"${properties.getProperty("GEMINI_API_KEY", "")}\""
+        )
     }
 
     buildTypes {
@@ -55,7 +61,8 @@ android {
     }
 
     composeOptions {
-        kotlinCompilerExtensionVersion = "1.5.4"
+        // Align with Compose 1.7.x
+        kotlinCompilerExtensionVersion = "1.5.14"
     }
 
     packaging {
@@ -77,6 +84,7 @@ dependencies {
     implementation("androidx.compose.ui:ui-tooling-preview")
     implementation("androidx.compose.material3:material3")
     implementation("androidx.compose.material:material-icons-core:1.7.4")
+    implementation("androidx.compose.material:material-icons-extended:1.7.4")
     implementation("androidx.activity:activity-compose:1.8.2")
     implementation("androidx.lifecycle:lifecycle-runtime-compose:2.7.0")
     implementation("androidx.navigation:navigation-compose:2.7.6")

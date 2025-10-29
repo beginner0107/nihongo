@@ -211,6 +211,9 @@ fun PieChart(
     val total = data.sumOf { it.second }.toFloat()
     if (total == 0f) return
 
+    // Read MaterialTheme outside of draw scope
+    val fallbackColor = MaterialTheme.colorScheme.primary
+
     Box(
         modifier = modifier,
         contentAlignment = Alignment.Center
@@ -226,7 +229,7 @@ fun PieChart(
 
             data.forEachIndexed { index, (_, value) ->
                 val sweepAngle = (value / total) * 360f
-                val color = colors.getOrElse(index) { MaterialTheme.colorScheme.primary }
+                val color = colors.getOrElse(index) { fallbackColor }
 
                 drawArc(
                     color = color,
