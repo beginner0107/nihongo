@@ -152,13 +152,19 @@ class VoiceManager @Inject constructor(
         _state.value = VoiceState.Idle
     }
 
-    fun speak(text: String, utteranceId: String = "tts_${System.currentTimeMillis()}") {
+    fun speak(text: String, utteranceId: String = "tts_${System.currentTimeMillis()}", speed: Float = 1.0f) {
         if (!isTtsInitialized) {
             _events.trySend(VoiceEvent.Error("TTS未初期化"))
             return
         }
 
+        // Set speech rate (0.5 to 2.0)
+        textToSpeech?.setSpeechRate(speed)
         textToSpeech?.speak(text, TextToSpeech.QUEUE_FLUSH, null, utteranceId)
+    }
+
+    fun setSpeechSpeed(speed: Float) {
+        textToSpeech?.setSpeechRate(speed)
     }
 
     fun stopSpeaking() {

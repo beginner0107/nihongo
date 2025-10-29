@@ -9,9 +9,11 @@ import androidx.navigation.compose.rememberNavController
 import androidx.navigation.navArgument
 import com.nihongo.conversation.presentation.chat.ChatScreen
 import com.nihongo.conversation.presentation.scenario.ScenarioListScreen
+import com.nihongo.conversation.presentation.settings.SettingsScreen
 
 sealed class Screen(val route: String) {
     data object ScenarioList : Screen("scenarios")
+    data object Settings : Screen("settings")
 
     data object Chat : Screen("chat/{userId}/{scenarioId}") {
         fun createRoute(userId: Long, scenarioId: Long) = "chat/$userId/$scenarioId"
@@ -30,7 +32,16 @@ fun NihongoNavHost(
             ScenarioListScreen(
                 onScenarioSelected = { scenarioId ->
                     navController.navigate(Screen.Chat.createRoute(1L, scenarioId))
+                },
+                onSettingsClick = {
+                    navController.navigate(Screen.Settings.route)
                 }
+            )
+        }
+
+        composable(route = Screen.Settings.route) {
+            SettingsScreen(
+                onBackClick = { navController.popBackStack() }
             )
         }
 

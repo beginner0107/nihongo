@@ -22,6 +22,7 @@ import com.nihongo.conversation.domain.model.Scenario
 @Composable
 fun ScenarioListScreen(
     onScenarioSelected: (Long) -> Unit,
+    onSettingsClick: () -> Unit = {},
     viewModel: ScenarioViewModel = hiltViewModel()
 ) {
     val uiState by viewModel.uiState.collectAsState()
@@ -39,6 +40,14 @@ fun ScenarioListScreen(
                             text = "学習したいシーンを選んでください",
                             style = MaterialTheme.typography.bodySmall,
                             color = MaterialTheme.colorScheme.onSurfaceVariant
+                        )
+                    }
+                },
+                actions = {
+                    IconButton(onClick = onSettingsClick) {
+                        Icon(
+                            imageVector = Icons.Default.Settings,
+                            contentDescription = "設定"
                         )
                     }
                 }

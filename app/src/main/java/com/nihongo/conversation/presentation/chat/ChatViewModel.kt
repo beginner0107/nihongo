@@ -6,6 +6,7 @@ import com.nihongo.conversation.core.util.Result
 import com.nihongo.conversation.core.voice.VoiceEvent
 import com.nihongo.conversation.core.voice.VoiceManager
 import com.nihongo.conversation.core.voice.VoiceState
+import com.nihongo.conversation.data.local.SettingsDataStore
 import com.nihongo.conversation.data.repository.ConversationRepository
 import com.nihongo.conversation.domain.model.Conversation
 import com.nihongo.conversation.domain.model.Hint
@@ -23,6 +24,7 @@ data class ChatUiState(
     val error: String? = null,
     val scenario: Scenario? = null,
     val autoSpeak: Boolean = true,
+    val speechSpeed: Float = 1.0f,
     val hints: List<Hint> = emptyList(),
     val isLoadingHints: Boolean = false,
     val showHintDialog: Boolean = false
@@ -31,7 +33,8 @@ data class ChatUiState(
 @HiltViewModel
 class ChatViewModel @Inject constructor(
     private val repository: ConversationRepository,
-    private val voiceManager: VoiceManager
+    private val voiceManager: VoiceManager,
+    private val settingsDataStore: SettingsDataStore
 ) : ViewModel() {
 
     private val _uiState = MutableStateFlow(ChatUiState())
@@ -43,6 +46,21 @@ class ChatViewModel @Inject constructor(
 
     init {
         observeVoiceEvents()
+        observeSettings()
+    }
+
+    private fun observeSettings() {
+        viewModelScope.launch {
+            settingsDataStore.userSettings.collect { settings ->
+                _uiState.update {
+                    it.copy(
+                        autoSpeak = settings.autoSpeak,
+                        speechSpeed = settings.speechSpeed
+                    )
+                }
+                voiceManager.setSpeechSpeed(settings.speechSpeed)
+            }
+        }
     }
 
     fun initConversation(userId: Long, scenarioId: Long) {
@@ -94,7 +112,7 @@ class ChatViewModel @Inject constructor(
                         _uiState.update { it.copy(isLoading = false) }
                         // Auto-speak AI response
                         if (_uiState.value.autoSpeak) {
-                            voiceManager.speak(result.data.content)
+                            voiceManager.speak(result.data.content, speed = _uiState.value.speechSpeed)
                         }
                     }
                     is Result.Error -> {
@@ -137,11 +155,13 @@ class ChatViewModel @Inject constructor(
     }
 
     fun speakMessage(text: String) {
-        voiceManager.speak(text)
+        voiceManager.speak(text, speed = _uiState.value.speechSpeed)
     }
 
     fun toggleAutoSpeak() {
-        _uiState.update { it.copy(autoSpeak = !it.autoSpeak) }
+        viewModelScope.launch {
+            settingsDataStore.updateAutoSpeak(!_uiState.value.autoSpeak)
+        }
     }
 
     fun requestHints() {
