@@ -1,0 +1,39 @@
+<?xml version="1.0" encoding="utf-8"?>
+<vector xmlns:android="http://schemas.android.com/apk/res/android"
+    android:width="108dp"
+    android:height="108dp"
+    android:viewportWidth="108"
+    android:viewportHeight="108">
+    <!-- Safe zone: 72x72dp centered (18dp margin from 108dp) -->
+    <group
+        android:translateX="54"
+        android:translateY="54">
+        <!-- White circle background for better contrast -->
+        <path
+            android:fillColor="#FFFFFF"
+            android:pathData="M0,0 m-28,0 a28,28 0,1,1 56,0 a28,28 0,1,1 -56,0"/>
+        <!-- Japanese character 日 (sun/day) -->
+        <group
+            android:scaleX="0.8"
+            android:scaleY="0.8">
+            <!-- Outer rectangle -->
+            <path
+                android:fillColor="#2196F3"
+                android:strokeWidth="3"
+                android:strokeColor="#2196F3"
+                android:pathData="M-15,-20 L15,-20 L15,20 L-15,20 Z"/>
+            <!-- Inner vertical line -->
+            <path
+                android:fillColor="#FFFFFF"
+                android:strokeWidth="3"
+                android:strokeColor="#FFFFFF"
+                android:pathData="M-12,-17 L12,-17 L12,17 L-12,17 Z"/>
+            <!-- Middle horizontal line -->
+            <path
+                android:fillColor="#2196F3"
+                android:strokeWidth="3"
+                android:strokeColor="#2196F3"
+                android:pathData="M-12,-2 L12,-2 L12,2 L-12,2 Z"/>
+        </group>
+    </group>
+</vector>

@@ -12,6 +12,7 @@ import com.nihongo.conversation.data.local.SettingsDataStore
 import com.nihongo.conversation.data.repository.ConversationRepository
 import com.nihongo.conversation.data.repository.ProfileRepository
 import com.nihongo.conversation.domain.model.Conversation
+import com.nihongo.conversation.domain.model.GrammarExplanation
 import com.nihongo.conversation.domain.model.Hint
 import com.nihongo.conversation.domain.model.Message
 import com.nihongo.conversation.domain.model.Scenario

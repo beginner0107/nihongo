@@ -303,8 +303,6 @@ class StatsRepository @Inject constructor(
         }
 
         val diffInMillis = calendar2.timeInMillis - calendar1.timeInMillis
-        return (diffInMillis / (1000 * 60 * 60 * 24)).toInt().absoluteValue
+        return kotlin.math.abs((diffInMillis / (1000 * 60 * 60 * 24)).toInt())
     }
-
-    private fun Int.absoluteValue(): Int = if (this < 0) -this else this
 }

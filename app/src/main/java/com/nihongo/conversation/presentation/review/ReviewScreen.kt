@@ -449,7 +449,3 @@ fun DifficultyBadge(difficulty: Int) {
         )
     }
 }
-
-private fun remember(calculation: () -> SimpleDateFormat): SimpleDateFormat {
-    return androidx.compose.runtime.remember { calculation() }
-}
