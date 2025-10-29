@@ -10,6 +10,7 @@ import androidx.compose.animation.fadeOut
 import androidx.compose.animation.slideInVertically
 import androidx.compose.animation.slideOutVertically
 import androidx.compose.foundation.clickable
+import androidx.compose.foundation.combinedClickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
@@ -128,7 +129,8 @@ fun ChatScreen(
                             message = message,
                             onSpeakMessage = if (!message.isUser) {
                                 { viewModel.speakMessage(message.content) }
-                            } else null
+                            } else null,
+                            onLongPress = { viewModel.requestGrammarExplanation(message.content) }
                         )
                     }
                 }
@@ -226,13 +228,23 @@ fun ChatScreen(
                 onUseHint = viewModel::useHint
             )
         }
+
+        // Grammar Bottom Sheet
+        if (uiState.showGrammarSheet) {
+            GrammarBottomSheet(
+                grammarExplanation = uiState.grammarExplanation,
+                isLoading = uiState.isLoadingGrammar,
+                onDismiss = viewModel::dismissGrammarSheet
+            )
+        }
     }
 }
 
 @Composable
 fun MessageBubble(
     message: Message,
-    onSpeakMessage: (() -> Unit)? = null
+    onSpeakMessage: (() -> Unit)? = null,
+    onLongPress: () -> Unit = {}
 ) {
     val timeFormatter = remember {
         java.text.SimpleDateFormat("HH:mm", java.util.Locale.getDefault())
@@ -257,10 +269,9 @@ fun MessageBubble(
             tonalElevation = 1.dp,
             modifier = Modifier
                 .widthIn(max = 280.dp)
-                .then(
-                    if (onSpeakMessage != null) {
-                        Modifier.clickable { onSpeakMessage() }
-                    } else Modifier
+                .combinedClickable(
+                    onClick = { onSpeakMessage?.invoke() },
+                    onLongClick = onLongPress
                 )
         ) {
             Column(

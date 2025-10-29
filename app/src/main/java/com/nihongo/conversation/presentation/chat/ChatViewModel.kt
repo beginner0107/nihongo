@@ -32,7 +32,10 @@ data class ChatUiState(
     val speechSpeed: Float = 1.0f,
     val hints: List<Hint> = emptyList(),
     val isLoadingHints: Boolean = false,
-    val showHintDialog: Boolean = false
+    val showHintDialog: Boolean = false,
+    val grammarExplanation: GrammarExplanation? = null,
+    val isLoadingGrammar: Boolean = false,
+    val showGrammarSheet: Boolean = false
 )
 
 @HiltViewModel
@@ -226,6 +229,50 @@ class ChatViewModel @Inject constructor(
             it.copy(
                 inputText = hint.japanese,
                 showHintDialog = false
+            )
+        }
+    }
+
+    fun requestGrammarExplanation(sentence: String) {
+        viewModelScope.launch {
+            _uiState.update {
+                it.copy(
+                    isLoadingGrammar = true,
+                    showGrammarSheet = true,
+                    grammarExplanation = null
+                )
+            }
+
+            try {
+                val user = _uiState.value.user
+                val grammarExplanation = repository.explainGrammar(
+                    sentence = sentence,
+                    conversationHistory = _uiState.value.messages,
+                    userLevel = user?.level ?: 1
+                )
+
+                _uiState.update {
+                    it.copy(
+                        grammarExplanation = grammarExplanation,
+                        isLoadingGrammar = false
+                    )
+                }
+            } catch (e: Exception) {
+                _uiState.update {
+                    it.copy(
+                        isLoadingGrammar = false,
+                        error = "문법 분석을 가져오는데 실패했습니다"
+                    )
+                }
+            }
+        }
+    }
+
+    fun dismissGrammarSheet() {
+        _uiState.update {
+            it.copy(
+                showGrammarSheet = false,
+                grammarExplanation = null
             )
         }
     }

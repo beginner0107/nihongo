@@ -97,4 +97,18 @@ class ConversationRepository @Inject constructor(
 
         return geminiApi.generateHints(context, userLevel)
     }
+
+    suspend fun explainGrammar(
+        sentence: String,
+        conversationHistory: List<Message>,
+        userLevel: Int
+    ): GrammarExplanation {
+        // Extract relevant examples from conversation
+        val examples = conversationHistory
+            .filter { !it.isUser }
+            .map { it.content }
+            .takeLast(5)
+
+        return geminiApi.explainGrammar(sentence, examples, userLevel)
+    }
 }
