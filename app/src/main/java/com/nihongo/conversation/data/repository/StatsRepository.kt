@@ -1,5 +1,6 @@
 package com.nihongo.conversation.data.repository
 
+import com.nihongo.conversation.core.session.UserSessionManager
 import com.nihongo.conversation.data.local.ConversationDao
 import com.nihongo.conversation.data.local.MessageDao
 import com.nihongo.conversation.data.local.ScenarioDao
@@ -43,14 +44,15 @@ data class WeeklyStats(
 class StatsRepository @Inject constructor(
     private val conversationDao: ConversationDao,
     private val messageDao: MessageDao,
-    private val scenarioDao: ScenarioDao
+    private val scenarioDao: ScenarioDao,
+    private val userSessionManager: UserSessionManager
 ) {
-    private val userId = 1L // TODO: Get from user session
-
     /**
      * Calculate daily statistics for a date range
      */
     suspend fun getDailyStats(startDate: Date, endDate: Date): List<DailyStats> {
+        // Get current user ID from session
+        val userId = userSessionManager.getCurrentUserIdSync() ?: 1L
         val conversations = conversationDao.getConversationsByUser(userId).first()
         val calendar = Calendar.getInstance()
 
@@ -152,6 +154,8 @@ class StatsRepository @Inject constructor(
      * Calculate scenario completion rates
      */
     suspend fun getScenarioProgress(): List<ScenarioProgress> {
+        // Get current user ID from session
+        val userId = userSessionManager.getCurrentUserIdSync() ?: 1L
         val scenarios = scenarioDao.getAllScenarios().first()
         val conversations = conversationDao.getConversationsByUser(userId).first()
 
@@ -177,6 +181,8 @@ class StatsRepository @Inject constructor(
      * Calculate study streak (consecutive days)
      */
     suspend fun getStudyStreak(): StudyStreak {
+        // Get current user ID from session
+        val userId = userSessionManager.getCurrentUserIdSync() ?: 1L
         val conversations = conversationDao.getConversationsByUser(userId).first()
         if (conversations.isEmpty()) {
             return StudyStreak(0, 0, null)
@@ -247,6 +253,8 @@ class StatsRepository @Inject constructor(
      * Get total statistics (all time)
      */
     suspend fun getTotalStats(): Triple<Int, Int, Int> {
+        // Get current user ID from session
+        val userId = userSessionManager.getCurrentUserIdSync() ?: 1L
         val conversations = conversationDao.getConversationsByUser(userId).first()
         var totalMessages = 0
         var totalMinutes = 0

@@ -13,8 +13,10 @@ import com.nihongo.conversation.presentation.review.ReviewScreen
 import com.nihongo.conversation.presentation.scenario.ScenarioListScreen
 import com.nihongo.conversation.presentation.settings.SettingsScreen
 import com.nihongo.conversation.presentation.stats.StatsScreen
+import com.nihongo.conversation.presentation.user.UserSelectionScreen
 
 sealed class Screen(val route: String) {
+    data object UserSelection : Screen("user_selection")
     data object ScenarioList : Screen("scenarios")
     data object Settings : Screen("settings")
     data object Review : Screen("review")
@@ -32,8 +34,19 @@ fun NihongoNavHost(
 ) {
     NavHost(
         navController = navController,
-        startDestination = Screen.ScenarioList.route
+        startDestination = Screen.UserSelection.route
     ) {
+        composable(route = Screen.UserSelection.route) {
+            UserSelectionScreen(
+                onUserSelected = {
+                    navController.navigate(Screen.ScenarioList.route) {
+                        // Remove user selection from back stack
+                        popUpTo(Screen.UserSelection.route) { inclusive = true }
+                    }
+                }
+            )
+        }
+
         composable(route = Screen.ScenarioList.route) {
             ScenarioListScreen(
                 onScenarioSelected = { scenarioId ->

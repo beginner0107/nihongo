@@ -2,6 +2,7 @@ package com.nihongo.conversation.presentation.history
 
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
+import com.nihongo.conversation.core.session.UserSessionManager
 import com.nihongo.conversation.data.repository.ConversationRepository
 import com.nihongo.conversation.domain.model.Conversation
 import com.nihongo.conversation.domain.model.Message
@@ -42,13 +43,12 @@ data class ConversationHistoryUiState(
 
 @HiltViewModel
 class ConversationHistoryViewModel @Inject constructor(
-    private val repository: ConversationRepository
+    private val repository: ConversationRepository,
+    private val userSessionManager: UserSessionManager
 ) : ViewModel() {
 
     private val _uiState = MutableStateFlow(ConversationHistoryUiState())
     val uiState: StateFlow<ConversationHistoryUiState> = _uiState.asStateFlow()
-
-    private val userId = 1L // TODO: Get from user session
 
     init {
         loadConversations()
@@ -60,6 +60,9 @@ class ConversationHistoryViewModel @Inject constructor(
             _uiState.update { it.copy(isLoading = true, error = null) }
 
             try {
+                // Get current user ID from session
+                val userId = userSessionManager.getCurrentUserIdSync() ?: 1L
+
                 repository.getUserConversations(userId).collect { conversations ->
                     val conversationItems = conversations.map { conversation ->
                         val messages = repository.getMessages(conversation.id).first()

@@ -5,6 +5,7 @@ import androidx.lifecycle.viewModelScope
 import com.nihongo.conversation.core.difficulty.DifficultyLevel
 import com.nihongo.conversation.core.difficulty.DifficultyManager
 import com.nihongo.conversation.core.memory.MemoryManager
+import com.nihongo.conversation.core.session.UserSessionManager
 import com.nihongo.conversation.core.util.ImmutableList
 import com.nihongo.conversation.core.util.ImmutableMap
 import com.nihongo.conversation.core.util.ImmutableSet
@@ -80,7 +81,8 @@ class ChatViewModel @Inject constructor(
     private val settingsDataStore: SettingsDataStore,
     private val profileRepository: ProfileRepository,
     private val difficultyManager: DifficultyManager,
-    private val memoryManager: MemoryManager
+    private val memoryManager: MemoryManager,
+    private val userSessionManager: UserSessionManager
 ) : ViewModel() {
 
     private val _uiState = MutableStateFlow(ChatUiState())
@@ -299,9 +301,12 @@ class ChatViewModel @Inject constructor(
             _uiState.update { it.copy(isLoadingHints = true, showHintDialog = true) }
 
             try {
+                // Get user level from session
+                val userLevel = userSessionManager.getCurrentUserLevelSync()
+
                 val hints = repository.getHints(
                     conversationHistory = _uiState.value.messages.items,
-                    userLevel = 1 // TODO: Get from user profile
+                    userLevel = userLevel
                 )
                 _uiState.update {
                     it.copy(

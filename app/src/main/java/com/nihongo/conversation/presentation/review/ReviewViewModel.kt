@@ -2,6 +2,7 @@ package com.nihongo.conversation.presentation.review
 
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
+import com.nihongo.conversation.core.session.UserSessionManager
 import com.nihongo.conversation.core.voice.VoiceManager
 import com.nihongo.conversation.data.repository.ConversationRepository
 import com.nihongo.conversation.domain.model.Conversation
@@ -45,13 +46,12 @@ data class ReviewUiState(
 @HiltViewModel
 class ReviewViewModel @Inject constructor(
     private val repository: ConversationRepository,
-    private val voiceManager: VoiceManager
+    private val voiceManager: VoiceManager,
+    private val userSessionManager: UserSessionManager
 ) : ViewModel() {
 
     private val _uiState = MutableStateFlow(ReviewUiState())
     val uiState: StateFlow<ReviewUiState> = _uiState.asStateFlow()
-
-    private val userId = 1L // TODO: Get from user session
 
     init {
         loadConversations()
@@ -62,6 +62,9 @@ class ReviewViewModel @Inject constructor(
             _uiState.update { it.copy(isLoading = true, error = null) }
 
             try {
+                // Get current user ID from session
+                val userId = userSessionManager.getCurrentUserIdSync() ?: 1L
+
                 // Load only completed conversations
                 repository.getCompletedConversations(userId).collect { conversations ->
                     val conversationDetails = conversations.map { conversation ->
