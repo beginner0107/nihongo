@@ -111,25 +111,25 @@ abstract class NihongoDatabase : RoomDatabase() {
                 database.execSQL("CREATE INDEX IF NOT EXISTS idx_vocab_user_mastered ON vocabulary_entries(userId, isMastered)")
 
                 // Create database view for conversation statistics
+                // Note: Must match exact SQL from @DatabaseView annotation including backticks
                 database.execSQL("""
-                    CREATE VIEW IF NOT EXISTS conversation_stats AS
-                    SELECT
-                        c.id as conversationId,
-                        c.userId,
-                        c.scenarioId,
-                        c.createdAt,
-                        c.updatedAt,
-                        c.isCompleted,
-                        COUNT(m.id) as messageCount,
-                        SUM(CASE WHEN m.isUser = 1 THEN 1 ELSE 0 END) as userMessageCount,
-                        SUM(CASE WHEN m.isUser = 0 THEN 1 ELSE 0 END) as aiMessageCount,
-                        MAX(m.timestamp) as lastMessageTime,
-                        AVG(m.complexityScore) as avgComplexity,
-                        (c.updatedAt - c.createdAt) as duration
-                    FROM conversations c
-                    LEFT JOIN messages m ON c.id = m.conversationId
-                    GROUP BY c.id
-                """)
+                    CREATE VIEW `conversation_stats` AS SELECT
+                            c.id as conversationId,
+                            c.userId,
+                            c.scenarioId,
+                            c.createdAt,
+                            c.updatedAt,
+                            c.isCompleted,
+                            COUNT(m.id) as messageCount,
+                            SUM(CASE WHEN m.isUser = 1 THEN 1 ELSE 0 END) as userMessageCount,
+                            SUM(CASE WHEN m.isUser = 0 THEN 1 ELSE 0 END) as aiMessageCount,
+                            MAX(m.timestamp) as lastMessageTime,
+                            AVG(m.complexityScore) as avgComplexity,
+                            (c.updatedAt - c.createdAt) as duration
+                        FROM conversations c
+                        LEFT JOIN messages m ON c.id = m.conversationId
+                        GROUP BY c.id
+                """.trimIndent())
             }
         }
     }
