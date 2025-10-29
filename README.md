@@ -14,6 +14,8 @@ AI 기반 일본어 회화 학습을 위한 개인용 Android 애플리케이션
 - 🎭 **6가지 시나리오**: 레스토랑, 쇼핑, 호텔, 친구 만들기, 전화 대화, 병원 (초급/중급/상급)
 - 🎙️ **음성 지원**: STT로 일본어 음성 인식, TTS로 AI 응답 자동 재생
 - ⚙️ **설정 시스템**: 난이도 조절 (1-3), 음성 속도 (0.5x-2.0x), 자동 읽기, 로마자 표시
+- 📊 **학습 통계**: 일일/주간/월간 진도, 연속 학습일 추적, 시나리오별 진행률, 차트 시각화
+- 🔥 **복습 모드**: 과거 대화 재생, 날짜별 그룹화, 중요 문구 추출, 메시지 재생
 - ✨ **세련된 UI**: Material 3 디자인, 타이핑 인디케이터, 부드러운 애니메이션, 메시지 타임스탬프
 
 ## 🚀 빠른 시작
@@ -101,6 +103,23 @@ app/
 - 🔊 **자동 읽기 토글**: AI 응답 자동 음성 재생 on/off
 - 🌐 **로마자 표시 토글**: 힌트 로마자 표시 제어
 - 💾 **자동 저장**: DataStore로 모든 설정 영구 저장
+
+### 복습 화면 (ReviewScreen)
+- 📅 **날짜별 그룹**: 오늘/어제/특정 날짜로 대화 그룹화
+- 🎭 **시나리오 표시**: 난이도 배지와 시나리오 정보
+- 📖 **확장 가능 카드**: 탭으로 전체 대화 보기
+- 🔊 **메시지 재생**: AI 메시지 TTS 재생
+- ⭐ **중요 문구**: 자동 추출된 핵심 일본어 표현 (최대 5개)
+- ✨ **부드러운 애니메이션**: 확장/축소 전환 효과
+
+### 통계 화면 (StatsScreen)
+- 🔥 **연속 학습일**: 현재 연속 기록과 최고 기록 표시
+- 📊 **막대 차트**: 일일 학습 시간 (분 단위)
+- 📈 **선 차트**: 일일 메시지 수 추세
+- 🥧 **파이 차트**: 시나리오별 완료율 분포
+- 📅 **주간/월간 뷰**: 필터 칩으로 기간 선택
+- 💯 **총계 통계**: 전체 대화 수, 메시지 수, 학습 시간
+- 🎨 **Canvas API 차트**: 커스텀 그래픽 시각화
 
 ## ✨ 최신 업데이트 (ChatScreen Polish)
 
@@ -215,13 +234,19 @@ android {
 - [x] 음성 속도 제어 (0.5x-2.0x)
 - [x] ChatScreen UX 폴리싱 (애니메이션, 타이핑 인디케이터)
 
-### 🚧 Phase 3: 고급 기능 (계획)
-- [ ] 복습 모드 (저장된 대화 재생)
-- [ ] 학습 통계 (일일/주간 진도)
+### 🚧 Phase 3: 고급 기능 (진행중)
+- [x] 복습 모드 (저장된 대화 재생, 날짜 그룹화, 중요 문구)
+- [x] 학습 통계 (연속 학습일, 차트, 주간/월간 뷰)
 - [ ] 사용자 프로필 시스템
 - [ ] 난이도별 AI 응답 조정
 - [ ] 문법 설명 기능
 - [ ] 발음 평가 (STT 정확도 분석)
+
+### 📅 Phase 4: 추가 기능 (계획)
+- [ ] 플래시카드 생성 (중요 문구에서)
+- [ ] 퀴즈 모드
+- [ ] 목표 설정 및 알림
+- [ ] 소셜 공유 기능
 
 ## 🧪 테스트
 
@@ -262,6 +287,11 @@ android {
 - **ConversationRepository.kt**: 통합 데이터 관리
   - Room DB + Gemini API 통합
   - Flow 기반 리액티브 데이터
+- **StatsRepository.kt**: 학습 통계 계산
+  - 일일/주간/월간 통계
+  - 연속 학습일 추적
+  - 시나리오별 진행률
+  - 학습 시간 추정
 
 ### Presentation Layer
 #### Chat (`presentation/chat/`)
@@ -287,9 +317,33 @@ android {
   - 섹션별 레이아웃 (Material 3)
 - **SettingsViewModel.kt**: 설정 상태 관리 (DataStore 연동)
 
+#### Review (`presentation/review/`)
+- **ReviewScreen.kt**: 복습 모드 UI (480+ lines)
+  - 날짜별 대화 그룹화
+  - 확장 가능 대화 카드
+  - 중요 문구 추출 및 재생
+- **ReviewViewModel.kt**: 복습 상태 관리
+  - 대화 로딩 및 그룹화
+  - 중요 문구 추출 로직
+  - TTS 재생 제어
+
+#### Stats (`presentation/stats/`)
+- **StatsScreen.kt**: 통계 대시보드 UI (450+ lines)
+  - 연속 학습일 카드
+  - 총계 통계 (회화/메시지/시간)
+  - 주간/월간 뷰 토글
+- **StatsViewModel.kt**: 통계 상태 관리
+  - StatsRepository 연동
+  - 기간별 데이터 필터링
+- **Charts.kt**: 차트 컴포넌트 (320+ lines)
+  - BarChart (막대 차트)
+  - LineChart (선 차트)
+  - PieChart (파이 차트)
+  - ChartLegend, StatCard
+
 #### Navigation (`presentation/navigation/`)
 - **NihongoNavHost.kt**: Navigation Compose 라우팅
-  - ScenarioList (시작) → Chat / Settings
+  - ScenarioList (시작) → Chat / Settings / Stats / Review
 - **Screen.kt**: 라우트 정의
 
 ### Core Layer (`core/`)
@@ -313,7 +367,7 @@ android {
 - Hilt Application 진입점
 - DataInitializer로 기본 시나리오 삽입
 
-**총 파일 수**: 30+ Kotlin 파일
+**총 파일 수**: 40+ Kotlin 파일 (Review 모드 +2, Stats 대시보드 +4, 기존 30+)
 
 ## 🔑 핵심 구현 포인트
 

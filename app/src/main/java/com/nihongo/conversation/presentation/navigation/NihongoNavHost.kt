@@ -11,11 +11,13 @@ import com.nihongo.conversation.presentation.chat.ChatScreen
 import com.nihongo.conversation.presentation.review.ReviewScreen
 import com.nihongo.conversation.presentation.scenario.ScenarioListScreen
 import com.nihongo.conversation.presentation.settings.SettingsScreen
+import com.nihongo.conversation.presentation.stats.StatsScreen
 
 sealed class Screen(val route: String) {
     data object ScenarioList : Screen("scenarios")
     data object Settings : Screen("settings")
     data object Review : Screen("review")
+    data object Stats : Screen("stats")
 
     data object Chat : Screen("chat/{userId}/{scenarioId}") {
         fun createRoute(userId: Long, scenarioId: Long) = "chat/$userId/$scenarioId"
@@ -37,6 +39,9 @@ fun NihongoNavHost(
                 },
                 onSettingsClick = {
                     navController.navigate(Screen.Settings.route)
+                },
+                onStatsClick = {
+                    navController.navigate(Screen.Stats.route)
                 }
             )
         }
@@ -49,6 +54,12 @@ fun NihongoNavHost(
 
         composable(route = Screen.Review.route) {
             ReviewScreen(
+                onBackClick = { navController.popBackStack() }
+            )
+        }
+
+        composable(route = Screen.Stats.route) {
+            StatsScreen(
                 onBackClick = { navController.popBackStack() }
             )
         }

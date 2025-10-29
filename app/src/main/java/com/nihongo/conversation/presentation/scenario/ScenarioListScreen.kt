@@ -23,6 +23,7 @@ import com.nihongo.conversation.domain.model.Scenario
 fun ScenarioListScreen(
     onScenarioSelected: (Long) -> Unit,
     onSettingsClick: () -> Unit = {},
+    onStatsClick: () -> Unit = {},
     viewModel: ScenarioViewModel = hiltViewModel()
 ) {
     val uiState by viewModel.uiState.collectAsState()
@@ -44,6 +45,12 @@ fun ScenarioListScreen(
                     }
                 },
                 actions = {
+                    IconButton(onClick = onStatsClick) {
+                        Icon(
+                            imageVector = Icons.Default.BarChart,
+                            contentDescription = "統計"
+                        )
+                    }
                     IconButton(onClick = onSettingsClick) {
                         Icon(
                             imageVector = Icons.Default.Settings,
