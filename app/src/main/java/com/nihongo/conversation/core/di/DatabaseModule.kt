@@ -24,7 +24,10 @@ object DatabaseModule {
             NihongoDatabase::class.java,
             "nihongo_database"
         )
-            .addMigrations(NihongoDatabase.MIGRATION_1_2)
+            .addMigrations(
+                NihongoDatabase.MIGRATION_1_2,
+                NihongoDatabase.MIGRATION_2_3
+            )
             .build()
     }
 
@@ -40,4 +43,7 @@ object DatabaseModule {
 
     @Provides
     fun provideMessageDao(database: NihongoDatabase): MessageDao = database.messageDao()
+
+    @Provides
+    fun provideVocabularyDao(database: NihongoDatabase): VocabularyDao = database.vocabularyDao()
 }
