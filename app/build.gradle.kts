@@ -38,11 +38,19 @@ android {
 
     buildTypes {
         release {
-            isMinifyEnabled = false
+            // Enable R8 code shrinking, obfuscation, and optimization
+            isMinifyEnabled = true
+            // Enable resource shrinking to remove unused resources
+            isShrinkResources = true
             proguardFiles(
                 getDefaultProguardFile("proguard-android-optimize.txt"),
                 "proguard-rules.pro"
             )
+        }
+        debug {
+            // Enable minification in debug for testing, but keep debugging info
+            isMinifyEnabled = false
+            isShrinkResources = false
         }
     }
 

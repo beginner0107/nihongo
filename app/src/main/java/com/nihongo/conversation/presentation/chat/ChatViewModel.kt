@@ -4,6 +4,7 @@ import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.nihongo.conversation.core.difficulty.DifficultyLevel
 import com.nihongo.conversation.core.difficulty.DifficultyManager
+import com.nihongo.conversation.core.memory.MemoryManager
 import com.nihongo.conversation.core.util.ImmutableList
 import com.nihongo.conversation.core.util.ImmutableMap
 import com.nihongo.conversation.core.util.ImmutableSet
@@ -26,6 +27,7 @@ import com.nihongo.conversation.domain.model.PronunciationScorer
 import com.nihongo.conversation.domain.model.Scenario
 import com.nihongo.conversation.domain.model.User
 import dagger.hilt.android.lifecycle.HiltViewModel
+import kotlinx.coroutines.Job
 import kotlinx.coroutines.flow.*
 import kotlinx.coroutines.launch
 import javax.inject.Inject
@@ -77,7 +79,8 @@ class ChatViewModel @Inject constructor(
     private val voiceManager: VoiceManager,
     private val settingsDataStore: SettingsDataStore,
     private val profileRepository: ProfileRepository,
-    private val difficultyManager: DifficultyManager
+    private val difficultyManager: DifficultyManager,
+    private val memoryManager: MemoryManager
 ) : ViewModel() {
 
     private val _uiState = MutableStateFlow(ChatUiState())
@@ -89,6 +92,15 @@ class ChatViewModel @Inject constructor(
     private var currentUserId: Long = 0
     private var currentScenarioId: Long = 0
 
+    // Job references for proper cancellation in onCleared()
+    private var settingsFlowJob: Job? = null
+    private var profileFlowJob: Job? = null
+    private var voiceEventsJob: Job? = null
+    private var messagesFlowJob: Job? = null
+
+    // Memory config based on device capabilities
+    private val memoryConfig = memoryManager.getMemoryConfig()
+
     init {
         observeVoiceEvents()
         observeSettings()
@@ -96,7 +108,7 @@ class ChatViewModel @Inject constructor(
     }
 
     private fun observeSettings() {
-        viewModelScope.launch {
+        settingsFlowJob = viewModelScope.launch {
             settingsDataStore.userSettings.collect { settings ->
                 _uiState.update {
                     it.copy(
@@ -110,7 +122,7 @@ class ChatViewModel @Inject constructor(
     }
 
     private fun observeUserProfile() {
-        viewModelScope.launch {
+        profileFlowJob = viewModelScope.launch {
             profileRepository.getCurrentUser().collect { user ->
                 _uiState.update { it.copy(user = user) }
             }
@@ -119,6 +131,22 @@ class ChatViewModel @Inject constructor(
 
     fun initConversation(userId: Long, scenarioId: Long) {
         viewModelScope.launch {
+            // Cancel previous message flow if exists
+            messagesFlowJob?.cancel()
+
+            // Clear caches when switching scenarios to free memory
+            val isScenarioSwitch = currentScenarioId != 0L && currentScenarioId != scenarioId
+            if (isScenarioSwitch) {
+                _uiState.update {
+                    it.copy(
+                        grammarCache = ImmutableMap.empty(),
+                        translations = ImmutableMap.empty(),
+                        expandedTranslations = ImmutableSet.empty(),
+                        hints = ImmutableList.empty()
+                    )
+                }
+            }
+
             // Store user and scenario IDs
             currentUserId = userId
             currentScenarioId = scenarioId
@@ -134,11 +162,19 @@ class ChatViewModel @Inject constructor(
                     // Resume existing conversation
                     currentConversationId = existingConversationId
 
-                    // Load messages
-                    repository.getMessages(existingConversationId)
-                        .collect { messages ->
-                            _uiState.update { it.copy(messages = messages.toImmutableList()) }
-                        }
+                    // Load messages with memory limit
+                    messagesFlowJob = viewModelScope.launch {
+                        repository.getMessages(existingConversationId)
+                            .collect { messages ->
+                                // Limit message history based on device memory
+                                val limitedMessages = if (messages.size > memoryConfig.maxMessageHistory) {
+                                    messages.takeLast(memoryConfig.maxMessageHistory)
+                                } else {
+                                    messages
+                                }
+                                _uiState.update { it.copy(messages = limitedMessages.toImmutableList()) }
+                            }
+                    }
                 } else {
                     // No existing conversation - will be created on first message
                     _uiState.update { it.copy(messages = ImmutableList.empty()) }
@@ -218,7 +254,7 @@ class ChatViewModel @Inject constructor(
     }
 
     private fun observeVoiceEvents() {
-        viewModelScope.launch {
+        voiceEventsJob = viewModelScope.launch {
             voiceManager.events.collect { event ->
                 when (event) {
                     is VoiceEvent.RecognitionResult -> {
@@ -329,10 +365,20 @@ class ChatViewModel @Inject constructor(
                 )
 
                 _uiState.update {
+                    // Limit grammar cache size based on memory config
+                    val currentCache = it.grammarCache.items
+                    val newCache = if (currentCache.size >= memoryConfig.maxCacheSize) {
+                        // Remove oldest entry (first entry) when cache is full
+                        currentCache.entries.drop(1).associate { entry -> entry.key to entry.value } +
+                                (sentence to grammarExplanation)
+                    } else {
+                        currentCache + (sentence to grammarExplanation)
+                    }
+
                     it.copy(
                         grammarExplanation = grammarExplanation,
                         isLoadingGrammar = false,
-                        grammarCache = (it.grammarCache.items + (sentence to grammarExplanation)).toImmutableMap()
+                        grammarCache = newCache.toImmutableMap()
                     )
                 }
             } catch (e: Exception) {
@@ -506,6 +552,25 @@ class ChatViewModel @Inject constructor(
 
     override fun onCleared() {
         super.onCleared()
+
+        // Cancel all active coroutine jobs to prevent memory leaks
+        settingsFlowJob?.cancel()
+        profileFlowJob?.cancel()
+        voiceEventsJob?.cancel()
+        messagesFlowJob?.cancel()
+
+        // Clear all caches to free memory
+        _uiState.update {
+            it.copy(
+                messages = ImmutableList.empty(),
+                grammarCache = ImmutableMap.empty(),
+                translations = ImmutableMap.empty(),
+                expandedTranslations = ImmutableSet.empty(),
+                hints = ImmutableList.empty()
+            )
+        }
+
+        // Release voice manager resources
         voiceManager.release()
     }
 }
