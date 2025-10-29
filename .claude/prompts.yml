@@ -1,0 +1,77 @@
+# .claude/prompts.yml
+# 재사용 가능한 프롬프트 템플릿
+
+templates:
+  create_feature:
+    prompt: |
+      Create {feature_name} with:
+      - Location: {package_path}
+      - Pattern: {architecture_pattern}
+      - Tests: {include_tests}
+      Only show new code, use // ... for existing
+      
+  fix_bug:
+    prompt: |
+      Fix bug in {file_name}:
+      Error: {error_message}
+      Line: {line_number}
+      Show only the fix with 2 lines context
+      
+  optimize:
+    prompt: |
+      Optimize {component}:
+      Current issue: {performance_issue}
+      Target metric: {target}
+      Show diff format only
+      
+  implement_ui:
+    prompt: |
+      Implement {screen_name} screen:
+      - Components: {ui_components}
+      - State: {state_management}
+      - Style: Material3
+      Compose only, no XML
+      
+  api_integration:
+    prompt: |
+      Integrate {api_name}:
+      - Endpoint: {endpoint}
+      - Method: {http_method}
+      - Auth: {auth_type}
+      Use Retrofit, include error handling
+
+aliases:
+  # 단축 명령어
+  cf: create_feature
+  fb: fix_bug  
+  opt: optimize
+  ui: implement_ui
+  api: api_integration
+
+snippets:
+  # 자주 사용하는 코드 조각
+  viewmodel_base: |
+    class {Name}ViewModel @Inject constructor(
+        private val repository: {Name}Repository
+    ) : ViewModel() {
+        private val _uiState = MutableStateFlow({Name}UiState())
+        val uiState = _uiState.asStateFlow()
+    }
+    
+  composable_base: |
+    @Composable
+    fun {Name}Screen(
+        viewModel: {Name}ViewModel = hiltViewModel(),
+        navController: NavController
+    ) {
+        val uiState by viewModel.uiState.collectAsState()
+        // Implementation
+    }
+    
+  repository_base: |
+    class {Name}Repository @Inject constructor(
+        private val api: ApiService,
+        private val dao: {Name}Dao
+    ) {
+        suspend fun get{Name}(): Flow<Result<{Model}>>
+    }
