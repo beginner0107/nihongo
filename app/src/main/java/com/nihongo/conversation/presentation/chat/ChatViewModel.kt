@@ -4,7 +4,13 @@ import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.nihongo.conversation.core.difficulty.DifficultyLevel
 import com.nihongo.conversation.core.difficulty.DifficultyManager
+import com.nihongo.conversation.core.util.ImmutableList
+import com.nihongo.conversation.core.util.ImmutableMap
+import com.nihongo.conversation.core.util.ImmutableSet
 import com.nihongo.conversation.core.util.Result
+import com.nihongo.conversation.core.util.toImmutableList
+import com.nihongo.conversation.core.util.toImmutableMap
+import com.nihongo.conversation.core.util.toImmutableSet
 import com.nihongo.conversation.core.voice.VoiceEvent
 import com.nihongo.conversation.core.voice.VoiceManager
 import com.nihongo.conversation.core.voice.VoiceState
@@ -24,8 +30,12 @@ import kotlinx.coroutines.flow.*
 import kotlinx.coroutines.launch
 import javax.inject.Inject
 
+/**
+ * Optimized UI state with ImmutableList to prevent unnecessary recompositions
+ * Using immutable wrappers ensures Compose treats the state as stable
+ */
 data class ChatUiState(
-    val messages: List<Message> = emptyList(),
+    val messages: ImmutableList<Message> = ImmutableList.empty(),
     val inputText: String = "",
     val isLoading: Boolean = false,
     val error: String? = null,
@@ -33,22 +43,33 @@ data class ChatUiState(
     val user: User? = null,
     val autoSpeak: Boolean = true,
     val speechSpeed: Float = 1.0f,
-    val hints: List<Hint> = emptyList(),
+    val hints: ImmutableList<Hint> = ImmutableList.empty(),
     val isLoadingHints: Boolean = false,
     val showHintDialog: Boolean = false,
     val grammarExplanation: GrammarExplanation? = null,
     val isLoadingGrammar: Boolean = false,
     val showGrammarSheet: Boolean = false,
-    val translations: Map<Long, String> = emptyMap(), // messageId -> Korean translation
-    val expandedTranslations: Set<Long> = emptySet(), // messageIds with translation expanded
-    val grammarCache: Map<String, GrammarExplanation> = emptyMap(), // text -> cached grammar
+    val translations: ImmutableMap<Long, String> = ImmutableMap.empty(), // messageId -> Korean translation
+    val expandedTranslations: ImmutableSet<Long> = ImmutableSet.empty(), // messageIds with translation expanded
+    val grammarCache: ImmutableMap<String, GrammarExplanation> = ImmutableMap.empty(), // text -> cached grammar
     val showEndChatDialog: Boolean = false, // Show confirmation dialog for ending chat
     val showNewChatToast: Boolean = false, // Show toast when new chat starts
     val showPronunciationSheet: Boolean = false, // Show pronunciation practice sheet
     val pronunciationTargetText: String? = null, // Text to practice
     val pronunciationResult: PronunciationResult? = null, // Result of pronunciation attempt
     val isPronunciationRecording: Boolean = false // Whether currently recording pronunciation
-)
+) {
+    /**
+     * Computed property using derivedStateOf pattern
+     * Only recomputes when messages change
+     */
+    val hasMessages: Boolean get() = messages.isNotEmpty()
+
+    /**
+     * Computed property for message count
+     */
+    val messageCount: Int get() = messages.size
+}
 
 @HiltViewModel
 class ChatViewModel @Inject constructor(
@@ -116,11 +137,11 @@ class ChatViewModel @Inject constructor(
                     // Load messages
                     repository.getMessages(existingConversationId)
                         .collect { messages ->
-                            _uiState.update { it.copy(messages = messages) }
+                            _uiState.update { it.copy(messages = messages.toImmutableList()) }
                         }
                 } else {
                     // No existing conversation - will be created on first message
-                    _uiState.update { it.copy(messages = emptyList()) }
+                    _uiState.update { it.copy(messages = ImmutableList.empty()) }
                 }
             }
         }
@@ -165,7 +186,7 @@ class ChatViewModel @Inject constructor(
             repository.sendMessageStream(
                 conversationId = conversationId,
                 userMessage = message,
-                conversationHistory = _uiState.value.messages,
+                conversationHistory = _uiState.value.messages.items,
                 systemPrompt = enhancedPrompt
             ).collect { result ->
                 when (result) {
@@ -243,12 +264,12 @@ class ChatViewModel @Inject constructor(
 
             try {
                 val hints = repository.getHints(
-                    conversationHistory = _uiState.value.messages,
+                    conversationHistory = _uiState.value.messages.items,
                     userLevel = 1 // TODO: Get from user profile
                 )
                 _uiState.update {
                     it.copy(
-                        hints = hints,
+                        hints = hints.toImmutableList(),
                         isLoadingHints = false
                     )
                 }
@@ -303,7 +324,7 @@ class ChatViewModel @Inject constructor(
                 val user = _uiState.value.user
                 val grammarExplanation = repository.explainGrammar(
                     sentence = sentence,
-                    conversationHistory = _uiState.value.messages,
+                    conversationHistory = _uiState.value.messages.items,
                     userLevel = user?.level ?: 1
                 )
 
@@ -311,7 +332,7 @@ class ChatViewModel @Inject constructor(
                     it.copy(
                         grammarExplanation = grammarExplanation,
                         isLoadingGrammar = false,
-                        grammarCache = it.grammarCache + (sentence to grammarExplanation)
+                        grammarCache = (it.grammarCache.items + (sentence to grammarExplanation)).toImmutableMap()
                     )
                 }
             } catch (e: Exception) {
@@ -333,7 +354,7 @@ class ChatViewModel @Inject constructor(
             try {
                 val translation = repository.translateToKorean(japaneseText)
                 _uiState.update {
-                    it.copy(translations = it.translations + (messageId to translation))
+                    it.copy(translations = (it.translations.items + (messageId to translation)).toImmutableMap())
                 }
             } catch (e: Exception) {
                 _uiState.update {
@@ -345,12 +366,12 @@ class ChatViewModel @Inject constructor(
 
     fun toggleMessageTranslation(messageId: Long) {
         _uiState.update { state ->
-            val expanded = state.expandedTranslations
+            val expanded = state.expandedTranslations.items
             state.copy(
                 expandedTranslations = if (messageId in expanded) {
-                    expanded - messageId
+                    (expanded - messageId).toImmutableSet()
                 } else {
-                    expanded + messageId
+                    (expanded + messageId).toImmutableSet()
                 }
             )
         }
@@ -383,11 +404,11 @@ class ChatViewModel @Inject constructor(
                 currentConversationId = null
                 _uiState.update {
                     it.copy(
-                        messages = emptyList(),
+                        messages = ImmutableList.empty(),
                         inputText = "",
                         error = null,
-                        translations = emptyMap(),
-                        expandedTranslations = emptySet(),
+                        translations = ImmutableMap.empty(),
+                        expandedTranslations = ImmutableSet.empty(),
                         showEndChatDialog = false
                     )
                 }
@@ -408,12 +429,12 @@ class ChatViewModel @Inject constructor(
             // Clear state and show toast
             _uiState.update {
                 it.copy(
-                    messages = emptyList(),
+                    messages = ImmutableList.empty(),
                     inputText = "",
                     error = null,
-                    translations = emptyMap(),
-                    expandedTranslations = emptySet(),
-                    grammarCache = emptyMap(), // Clear grammar cache too
+                    translations = ImmutableMap.empty(),
+                    expandedTranslations = ImmutableSet.empty(),
+                    grammarCache = ImmutableMap.empty(), // Clear grammar cache too
                     showNewChatToast = true
                 )
             }

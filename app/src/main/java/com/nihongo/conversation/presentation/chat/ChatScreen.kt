@@ -135,6 +135,10 @@ fun ChatScreen(
                 .fillMaxSize()
                 .padding(padding)
         ) {
+            // Remember optimized animations
+            val messageEnterTransition = ChatAnimations.rememberMessageEnterTransition()
+            val messageExitTransition = ChatAnimations.rememberMessageExitTransition()
+
             LazyColumn(
                 modifier = Modifier
                     .weight(1f)
@@ -149,10 +153,8 @@ fun ChatScreen(
                 ) { message ->
                     AnimatedVisibility(
                         visible = true,
-                        enter = slideInVertically(
-                            initialOffsetY = { it / 2 }
-                        ) + fadeIn(),
-                        exit = slideOutVertically() + fadeOut()
+                        enter = messageEnterTransition,
+                        exit = messageExitTransition
                     ) {
                         MessageBubble(
                             message = message,
