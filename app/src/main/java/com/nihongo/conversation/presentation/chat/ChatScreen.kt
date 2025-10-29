@@ -4,14 +4,22 @@ import android.Manifest
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.background
+import androidx.compose.animation.AnimatedVisibility
+import androidx.compose.animation.fadeIn
+import androidx.compose.animation.fadeOut
+import androidx.compose.animation.slideInVertically
+import androidx.compose.animation.slideOutVertically
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.foundation.text.KeyboardActions
+import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
+import androidx.compose.material.icons.filled.ErrorOutline
 import androidx.compose.material.icons.filled.Lightbulb
 import androidx.compose.material.icons.filled.VolumeOff
 import androidx.compose.material.icons.filled.VolumeUp
@@ -21,6 +29,7 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.text.input.ImeAction
 import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
 import com.nihongo.conversation.domain.model.Message
@@ -94,40 +103,91 @@ fun ChatScreen(
                     .fillMaxWidth(),
                 state = listState,
                 contentPadding = PaddingValues(16.dp),
-                verticalArrangement = Arrangement.spacedBy(8.dp)
+                verticalArrangement = Arrangement.spacedBy(12.dp)
             ) {
-                items(uiState.messages) { message ->
-                    MessageBubble(
-                        message = message,
-                        onSpeakMessage = if (!message.isUser) {
-                            { viewModel.speakMessage(message.content) }
-                        } else null
-                    )
+                items(
+                    items = uiState.messages,
+                    key = { it.id }
+                ) { message ->
+                    AnimatedVisibility(
+                        visible = true,
+                        enter = slideInVertically(
+                            initialOffsetY = { it / 2 }
+                        ) + fadeIn(),
+                        exit = slideOutVertically() + fadeOut()
+                    ) {
+                        MessageBubble(
+                            message = message,
+                            onSpeakMessage = if (!message.isUser) {
+                                { viewModel.speakMessage(message.content) }
+                            } else null
+                        )
+                    }
                 }
 
                 if (uiState.isLoading) {
-                    item {
-                        CircularProgressIndicator(
-                            modifier = Modifier
-                                .padding(8.dp)
-                                .size(24.dp)
-                        )
+                    item(key = "typing_indicator") {
+                        Row(
+                            modifier = Modifier.fillMaxWidth(),
+                            horizontalArrangement = Arrangement.Start
+                        ) {
+                            Surface(
+                                shape = RoundedCornerShape(12.dp),
+                                color = MaterialTheme.colorScheme.secondaryContainer,
+                                modifier = Modifier.widthIn(max = 100.dp)
+                            ) {
+                                TypingIndicator()
+                            }
+                        }
                     }
                 }
             }
 
             // Voice state indicator
-            VoiceStateIndicator(
-                voiceState = voiceState,
-                modifier = Modifier.padding(8.dp)
-            )
-
-            uiState.error?.let { error ->
-                Text(
-                    text = error,
-                    color = MaterialTheme.colorScheme.error,
-                    modifier = Modifier.padding(8.dp)
+            AnimatedVisibility(
+                visible = voiceState !is com.nihongo.conversation.core.voice.VoiceState.Idle,
+                enter = fadeIn() + slideInVertically(),
+                exit = fadeOut() + slideOutVertically()
+            ) {
+                VoiceStateIndicator(
+                    voiceState = voiceState,
+                    modifier = Modifier.padding(horizontal = 16.dp, vertical = 8.dp)
                 )
+            }
+
+            // Error display
+            AnimatedVisibility(
+                visible = uiState.error != null,
+                enter = fadeIn() + slideInVertically(),
+                exit = fadeOut() + slideOutVertically()
+            ) {
+                uiState.error?.let { error ->
+                    Surface(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .padding(horizontal = 16.dp, vertical = 8.dp),
+                        color = MaterialTheme.colorScheme.errorContainer,
+                        shape = MaterialTheme.shapes.medium
+                    ) {
+                        Row(
+                            modifier = Modifier.padding(12.dp),
+                            horizontalArrangement = Arrangement.spacedBy(8.dp),
+                            verticalAlignment = Alignment.CenterVertically
+                        ) {
+                            Icon(
+                                imageVector = Icons.Default.ErrorOutline,
+                                contentDescription = null,
+                                tint = MaterialTheme.colorScheme.error,
+                                modifier = Modifier.size(20.dp)
+                            )
+                            Text(
+                                text = error,
+                                color = MaterialTheme.colorScheme.onErrorContainer,
+                                style = MaterialTheme.typography.bodySmall
+                            )
+                        }
+                    }
+                }
             }
 
             MessageInput(
@@ -166,21 +226,27 @@ fun MessageBubble(
     message: Message,
     onSpeakMessage: (() -> Unit)? = null
 ) {
-    Row(
+    val timeFormatter = remember {
+        java.text.SimpleDateFormat("HH:mm", java.util.Locale.getDefault())
+    }
+
+    Column(
         modifier = Modifier.fillMaxWidth(),
-        horizontalArrangement = if (message.isUser) {
-            Arrangement.End
-        } else {
-            Arrangement.Start
-        }
+        horizontalAlignment = if (message.isUser) Alignment.End else Alignment.Start
     ) {
         Surface(
-            shape = RoundedCornerShape(12.dp),
+            shape = RoundedCornerShape(
+                topStart = 16.dp,
+                topEnd = 16.dp,
+                bottomStart = if (message.isUser) 16.dp else 4.dp,
+                bottomEnd = if (message.isUser) 4.dp else 16.dp
+            ),
             color = if (message.isUser) {
                 MaterialTheme.colorScheme.primaryContainer
             } else {
                 MaterialTheme.colorScheme.secondaryContainer
             },
+            tonalElevation = 1.dp,
             modifier = Modifier
                 .widthIn(max = 280.dp)
                 .then(
@@ -189,11 +255,29 @@ fun MessageBubble(
                     } else Modifier
                 )
         ) {
-            Text(
-                text = message.content,
+            Column(
                 modifier = Modifier.padding(12.dp),
-                style = MaterialTheme.typography.bodyMedium
-            )
+                verticalArrangement = Arrangement.spacedBy(4.dp)
+            ) {
+                Text(
+                    text = message.content,
+                    style = MaterialTheme.typography.bodyMedium,
+                    color = if (message.isUser) {
+                        MaterialTheme.colorScheme.onPrimaryContainer
+                    } else {
+                        MaterialTheme.colorScheme.onSecondaryContainer
+                    }
+                )
+                Text(
+                    text = timeFormatter.format(java.util.Date(message.timestamp)),
+                    style = MaterialTheme.typography.labelSmall,
+                    color = if (message.isUser) {
+                        MaterialTheme.colorScheme.onPrimaryContainer.copy(alpha = 0.6f)
+                    } else {
+                        MaterialTheme.colorScheme.onSecondaryContainer.copy(alpha = 0.6f)
+                    }
+                )
+            }
         }
     }
 }
@@ -233,7 +317,15 @@ fun MessageInput(
                 modifier = Modifier.weight(1f),
                 placeholder = { Text("メッセージを入力...") },
                 enabled = enabled,
-                maxLines = 4
+                maxLines = 4,
+                keyboardOptions = KeyboardOptions(imeAction = ImeAction.Send),
+                keyboardActions = KeyboardActions(
+                    onSend = {
+                        if (text.isNotBlank()) {
+                            onSend()
+                        }
+                    }
+                )
             )
 
             // Send button
