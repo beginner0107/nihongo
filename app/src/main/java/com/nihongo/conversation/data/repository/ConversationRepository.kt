@@ -145,6 +145,82 @@ class ConversationRepository @Inject constructor(
         }
     }
 
+    /**
+     * Send message with streaming response for instant feel
+     * Emits partial messages as they arrive from Gemini API
+     */
+    suspend fun sendMessageStream(
+        conversationId: Long,
+        userMessage: String,
+        conversationHistory: List<Message>,
+        systemPrompt: String
+    ): Flow<Result<Message>> = flow {
+        emit(Result.Loading)
+
+        try {
+            // Save user message
+            val userMsg = Message(
+                conversationId = conversationId,
+                content = userMessage,
+                isUser = true
+            )
+            messageDao.insertMessage(userMsg)
+
+            // Prepare history for API
+            val history = conversationHistory.map { it.content to it.isUser }
+
+            // Stream AI response
+            val fullResponse = StringBuilder()
+            var messageId: Long = 0
+
+            geminiApi.sendMessageStream(
+                message = userMessage,
+                conversationHistory = history,
+                systemPrompt = systemPrompt
+            ).collect { chunk ->
+                fullResponse.append(chunk)
+
+                // Create partial message with current content
+                val partialMsg = Message(
+                    id = messageId,
+                    conversationId = conversationId,
+                    content = fullResponse.toString(),
+                    isUser = false,
+                    complexityScore = 0 // Will be calculated at end
+                )
+
+                // Save to DB on first chunk
+                if (messageId == 0L) {
+                    messageId = messageDao.insertMessage(partialMsg)
+                } else {
+                    // Update existing message
+                    messageDao.updateMessage(partialMsg.copy(id = messageId))
+                }
+
+                // Emit partial result for UI
+                emit(Result.Success(partialMsg.copy(id = messageId)))
+            }
+
+            // Calculate final complexity score
+            val finalResponse = fullResponse.toString()
+            val complexity = difficultyManager.analyzeVocabularyComplexity(finalResponse)
+            val complexityScore = difficultyManager.getComplexityScore(complexity)
+
+            // Update message with final complexity score
+            val finalMsg = Message(
+                id = messageId,
+                conversationId = conversationId,
+                content = finalResponse,
+                isUser = false,
+                complexityScore = complexityScore
+            )
+            messageDao.updateMessage(finalMsg)
+
+        } catch (e: Exception) {
+            emit(Result.Error(e))
+        }
+    }
+
     suspend fun getHints(
         conversationHistory: List<Message>,
         userLevel: Int

@@ -7,17 +7,37 @@ import com.nihongo.conversation.domain.model.GrammarComponent
 import com.nihongo.conversation.domain.model.GrammarExplanation
 import com.nihongo.conversation.domain.model.GrammarType
 import com.nihongo.conversation.domain.model.Hint
+import kotlinx.coroutines.flow.Flow
+import kotlinx.coroutines.flow.flow
 import org.json.JSONArray
 import org.json.JSONObject
 import javax.inject.Inject
 import javax.inject.Singleton
+import com.google.ai.client.generativeai.type.RequestOptions
+import kotlin.time.Duration.Companion.seconds
 
 @Singleton
 class GeminiApiService @Inject constructor() {
 
+    // Request options with 10 second timeout
+    private val requestOptions = RequestOptions(
+        timeout = 10.seconds
+    )
+
     private val model = GenerativeModel(
         modelName = "gemini-2.5-flash",
-        apiKey = BuildConfig.GEMINI_API_KEY
+        apiKey = BuildConfig.GEMINI_API_KEY,
+        requestOptions = requestOptions
+    )
+
+    // Response cache for common phrases
+    private val responseCache = mutableMapOf<String, String>()
+    private val commonGreetings = mapOf(
+        "こんにちは" to "こんにちは！今日はいい天気ですね。",
+        "おはよう" to "おはようございます！よく眠れましたか？",
+        "こんばんは" to "こんばんは！今日はどうでしたか？",
+        "ありがとう" to "どういたしまして！",
+        "さようなら" to "さようなら！またお会いしましょう。"
     )
 
     suspend fun sendMessage(
@@ -35,6 +55,65 @@ class GeminiApiService @Inject constructor() {
         } catch (e: Exception) {
             throw Exception("Failed to get response from Gemini: ${e.message}")
         }
+    }
+
+    /**
+     * Send message with streaming response (typewriter effect)
+     * Returns Flow that emits text chunks as they arrive
+     */
+    fun sendMessageStream(
+        message: String,
+        conversationHistory: List<Pair<String, Boolean>>,
+        systemPrompt: String
+    ): Flow<String> = flow {
+        try {
+            // Check cache for common greetings
+            val trimmedMessage = message.trim()
+            commonGreetings[trimmedMessage]?.let { cachedResponse ->
+                // Emit cached response instantly
+                emit(cachedResponse)
+                return@flow
+            }
+
+            // Check general cache
+            val cacheKey = "$message|${conversationHistory.size}"
+            responseCache[cacheKey]?.let { cachedResponse ->
+                emit(cachedResponse)
+                return@flow
+            }
+
+            // Stream from Gemini API
+            val chat = model.startChat(
+                history = buildHistory(conversationHistory, optimizeSystemPrompt(systemPrompt))
+            )
+
+            var fullResponse = StringBuilder()
+            chat.sendMessageStream(message).collect { chunk ->
+                val text = chunk.text ?: ""
+                fullResponse.append(text)
+                emit(cleanResponseText(text))
+            }
+
+            // Cache the full response
+            responseCache[cacheKey] = fullResponse.toString()
+
+            // Keep cache size manageable
+            if (responseCache.size > 50) {
+                responseCache.remove(responseCache.keys.first())
+            }
+
+        } catch (e: Exception) {
+            emit("エラーが発生しました: ${e.message}")
+        }
+    }
+
+    /**
+     * Optimize system prompt by removing redundancy
+     */
+    private fun optimizeSystemPrompt(prompt: String): String {
+        return prompt
+            .replace(Regex("\\s+"), " ") // Remove extra whitespace
+            .trim()
     }
 
     /**

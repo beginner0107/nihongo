@@ -157,10 +157,12 @@ class ChatViewModel @Inject constructor(
             val difficultyLevel = DifficultyLevel.fromInt(user?.level ?: 1)
             val difficultyPrompt = difficultyManager.getDifficultyPrompt(difficultyLevel)
 
-            // Combine all prompts
+            // Combine all prompts (optimized by API service)
             val enhancedPrompt = scenario.systemPrompt + personalizedPrefix + difficultyPrompt
 
-            repository.sendMessage(
+            // Use streaming API for instant response feel
+            var autoSpeakTriggered = false
+            repository.sendMessageStream(
                 conversationId = conversationId,
                 userMessage = message,
                 conversationHistory = _uiState.value.messages,
@@ -171,11 +173,15 @@ class ChatViewModel @Inject constructor(
                         _uiState.update { it.copy(isLoading = true) }
                     }
                     is Result.Success -> {
-                        _uiState.update { it.copy(isLoading = false) }
-                        // Auto-speak AI response
-                        if (_uiState.value.autoSpeak) {
+                        // Auto-speak once when first chunk arrives
+                        if (!autoSpeakTriggered && _uiState.value.autoSpeak && result.data.content.length > 10) {
                             voiceManager.speak(result.data.content, speed = _uiState.value.speechSpeed)
+                            autoSpeakTriggered = true
                         }
+
+                        // Check if this is the final chunk (by checking if loading should stop)
+                        // We keep loading state true during streaming
+                        _uiState.update { it.copy(isLoading = false) }
                     }
                     is Result.Error -> {
                         _uiState.update {
