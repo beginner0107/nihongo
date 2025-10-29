@@ -20,6 +20,7 @@ import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.filled.ErrorOutline
+import androidx.compose.material.icons.filled.HistoryEdu
 import androidx.compose.material.icons.filled.Lightbulb
 import androidx.compose.material.icons.filled.VolumeOff
 import androidx.compose.material.icons.filled.VolumeUp
@@ -40,6 +41,7 @@ fun ChatScreen(
     userId: Long,
     scenarioId: Long,
     onBackClick: () -> Unit = {},
+    onReviewClick: () -> Unit = {},
     viewModel: ChatViewModel = hiltViewModel()
 ) {
     val uiState by viewModel.uiState.collectAsState()
@@ -78,6 +80,12 @@ fun ChatScreen(
                     }
                 },
                 actions = {
+                    IconButton(onClick = onReviewClick) {
+                        Icon(
+                            imageVector = Icons.Default.HistoryEdu,
+                            contentDescription = "復習"
+                        )
+                    }
                     IconButton(onClick = { viewModel.toggleAutoSpeak() }) {
                         Icon(
                             imageVector = if (uiState.autoSpeak) {
