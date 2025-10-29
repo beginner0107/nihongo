@@ -3,6 +3,8 @@ package com.nihongo.conversation.data.remote
 import com.google.ai.client.generativeai.GenerativeModel
 import com.google.ai.client.generativeai.type.content
 import com.nihongo.conversation.BuildConfig
+import com.nihongo.conversation.core.network.NetworkMonitor
+import com.nihongo.conversation.core.network.OfflineManager
 import com.nihongo.conversation.domain.model.GrammarComponent
 import com.nihongo.conversation.domain.model.GrammarExplanation
 import com.nihongo.conversation.domain.model.GrammarType
@@ -17,7 +19,10 @@ import com.google.ai.client.generativeai.type.RequestOptions
 import kotlin.time.Duration.Companion.seconds
 
 @Singleton
-class GeminiApiService @Inject constructor() {
+class GeminiApiService @Inject constructor(
+    private val networkMonitor: NetworkMonitor,
+    private val offlineManager: OfflineManager
+) {
 
     // Request options with 10 second timeout
     private val requestOptions = RequestOptions(
@@ -30,6 +35,13 @@ class GeminiApiService @Inject constructor() {
         requestOptions = requestOptions
     )
 
+    companion object {
+        // Payload optimization limits
+        private const val MAX_HISTORY_MESSAGES = 20  // Last N messages only
+        private const val MAX_CONTEXT_LENGTH = 2000  // Characters per message
+        private const val MAX_SYSTEM_PROMPT_LENGTH = 500  // Truncate long prompts
+    }
+
     // Response cache for common phrases
     private val responseCache = mutableMapOf<String, String>()
     private val commonGreetings = mapOf(
@@ -39,6 +51,37 @@ class GeminiApiService @Inject constructor() {
         "ありがとう" to "どういたしまして！",
         "さようなら" to "さようなら！またお会いしましょう。"
     )
+
+    /**
+     * Initialize common phrases for offline use
+     * Should be called when app starts with network connection
+     */
+    suspend fun initializeOfflineData() {
+        val commonPhrases = listOf(
+            OfflineManager.CommonPhrase("こんにちは", "안녕하세요", "greeting"),
+            OfflineManager.CommonPhrase("おはようございます", "좋은 아침입니다", "greeting"),
+            OfflineManager.CommonPhrase("こんばんは", "안녕하세요 (저녁)", "greeting"),
+            OfflineManager.CommonPhrase("ありがとうございます", "감사합니다", "gratitude"),
+            OfflineManager.CommonPhrase("すみません", "죄송합니다", "apology"),
+            OfflineManager.CommonPhrase("お願いします", "부탁합니다", "request"),
+            OfflineManager.CommonPhrase("いただきます", "잘 먹겠습니다", "dining"),
+            OfflineManager.CommonPhrase("ごちそうさまでした", "잘 먹었습니다", "dining"),
+            OfflineManager.CommonPhrase("はい", "네", "response"),
+            OfflineManager.CommonPhrase("いいえ", "아니요", "response"),
+            OfflineManager.CommonPhrase("わかりました", "알겠습니다", "understanding"),
+            OfflineManager.CommonPhrase("もう一度お願いします", "다시 한 번 부탁합니다", "request"),
+            OfflineManager.CommonPhrase("ゆっくり話してください", "천천히 말씀해 주세요", "request"),
+            OfflineManager.CommonPhrase("これは何ですか", "이것은 무엇입니까", "question"),
+            OfflineManager.CommonPhrase("いくらですか", "얼마입니까", "shopping"),
+            OfflineManager.CommonPhrase("トイレはどこですか", "화장실은 어디입니까", "location"),
+            OfflineManager.CommonPhrase("助けてください", "도와주세요", "emergency"),
+            OfflineManager.CommonPhrase("わかりません", "모르겠습니다", "understanding"),
+            OfflineManager.CommonPhrase("大丈夫です", "괜찮습니다", "response"),
+            OfflineManager.CommonPhrase("またね", "또 만나요", "farewell")
+        )
+
+        offlineManager.storeCommonPhrases(commonPhrases)
+    }
 
     suspend fun sendMessage(
         message: String,
@@ -60,6 +103,7 @@ class GeminiApiService @Inject constructor() {
     /**
      * Send message with streaming response (typewriter effect)
      * Returns Flow that emits text chunks as they arrive
+     * Includes offline support and payload optimization
      */
     fun sendMessageStream(
         message: String,
@@ -67,24 +111,50 @@ class GeminiApiService @Inject constructor() {
         systemPrompt: String
     ): Flow<String> = flow {
         try {
-            // Check cache for common greetings
+            // Check cache for common greetings (instant response)
             val trimmedMessage = message.trim()
             commonGreetings[trimmedMessage]?.let { cachedResponse ->
-                // Emit cached response instantly
+                emit(cachedResponse)
+                offlineManager.cacheResponse("greeting:$trimmedMessage", cachedResponse)
+                return@flow
+            }
+
+            // Check offline cache
+            val cacheKey = "$message|${conversationHistory.size}"
+            offlineManager.getCachedResponse(cacheKey)?.let { cachedResponse ->
                 emit(cachedResponse)
                 return@flow
             }
 
-            // Check general cache
-            val cacheKey = "$message|${conversationHistory.size}"
+            // Check memory cache (faster than DataStore)
             responseCache[cacheKey]?.let { cachedResponse ->
                 emit(cachedResponse)
                 return@flow
             }
 
+            // Check network availability
+            if (!networkMonitor.isCurrentlyOnline()) {
+                // Search common phrases for offline response
+                val commonPhrase = offlineManager.searchCommonPhrases(trimmedMessage)
+                    .firstOrNull()
+
+                if (commonPhrase != null) {
+                    emit(commonPhrase.japanese)
+                    return@flow
+                }
+
+                // Emit offline error message
+                emit("オフラインです。インターネット接続を確認してください。")
+                return@flow
+            }
+
+            // Optimize payload: truncate history and system prompt
+            val optimizedHistory = optimizeHistory(conversationHistory)
+            val optimizedPrompt = optimizeSystemPrompt(systemPrompt)
+
             // Stream from Gemini API
             val chat = model.startChat(
-                history = buildHistory(conversationHistory, optimizeSystemPrompt(systemPrompt))
+                history = buildHistory(optimizedHistory, optimizedPrompt)
             )
 
             var fullResponse = StringBuilder()
@@ -94,10 +164,12 @@ class GeminiApiService @Inject constructor() {
                 emit(cleanResponseText(text))
             }
 
-            // Cache the full response
-            responseCache[cacheKey] = fullResponse.toString()
+            // Cache the full response in both caches
+            val finalResponse = fullResponse.toString()
+            responseCache[cacheKey] = finalResponse
+            offlineManager.cacheResponse(cacheKey, finalResponse)
 
-            // Keep cache size manageable
+            // Keep memory cache size manageable
             if (responseCache.size > 50) {
                 responseCache.remove(responseCache.keys.first())
             }
@@ -108,12 +180,145 @@ class GeminiApiService @Inject constructor() {
     }
 
     /**
-     * Optimize system prompt by removing redundancy
+     * Optimize conversation history to reduce payload size
+     * - Keep only last N messages
+     * - Truncate long messages
+     * - Remove unnecessary whitespace
+     */
+    private fun optimizeHistory(history: List<Pair<String, Boolean>>): List<Pair<String, Boolean>> {
+        return history
+            .takeLast(MAX_HISTORY_MESSAGES)  // Keep only recent messages
+            .map { (text, isUser) ->
+                val truncated = if (text.length > MAX_CONTEXT_LENGTH) {
+                    text.take(MAX_CONTEXT_LENGTH) + "..."
+                } else {
+                    text
+                }
+                truncated.trim() to isUser
+            }
+    }
+
+    /**
+     * Optimize system prompt by removing redundancy and truncating if too long
+     * - Remove extra whitespace
+     * - Truncate to maximum length
+     * - Keep only essential instructions
      */
     private fun optimizeSystemPrompt(prompt: String): String {
-        return prompt
-            .replace(Regex("\\s+"), " ") // Remove extra whitespace
+        val optimized = prompt
+            .replace(Regex("\\s+"), " ")  // Remove extra whitespace
+            .replace(Regex("\\n+"), "\n")  // Remove multiple newlines
             .trim()
+
+        // Truncate if exceeds maximum length
+        return if (optimized.length > MAX_SYSTEM_PROMPT_LENGTH) {
+            // Keep first N characters (most important instructions usually at start)
+            optimized.take(MAX_SYSTEM_PROMPT_LENGTH) + "..."
+        } else {
+            optimized
+        }
+    }
+
+    /**
+     * Batch multiple API requests to reduce network overhead
+     * Useful for fetching hints, grammar, and translation together
+     */
+    suspend fun batchRequests(
+        sentence: String,
+        conversationContext: List<String>,
+        userLevel: Int,
+        requestTypes: Set<BatchRequestType>
+    ): BatchResponse {
+        // Check if online
+        if (!networkMonitor.isCurrentlyOnline()) {
+            return BatchResponse(
+                grammar = null,
+                hints = emptyList(),
+                translation = null,
+                error = "オフラインです"
+            )
+        }
+
+        // Build combined prompt for all requests
+        val prompts = mutableListOf<String>()
+        if (BatchRequestType.GRAMMAR in requestTypes) {
+            prompts.add("1. 文法分析: $sentence")
+        }
+        if (BatchRequestType.HINTS in requestTypes) {
+            prompts.add("2. ヒント提案 (3つ)")
+        }
+        if (BatchRequestType.TRANSLATION in requestTypes) {
+            prompts.add("3. 韓国語翻訳: $sentence")
+        }
+
+        val batchPrompt = """
+            以下のリクエストに対して、JSONで回答してください：
+            ${prompts.joinToString("\n")}
+
+            会話コンテキスト: ${conversationContext.takeLast(5).joinToString(" | ")}
+            ユーザーレベル: $userLevel
+
+            JSON形式：
+            {
+              "grammar": { grammar explanation object },
+              "hints": [ hint objects ],
+              "translation": "korean translation"
+            }
+        """.trimIndent()
+
+        return try {
+            val response = model.generateContent(batchPrompt)
+            parseBatchResponse(response.text ?: "{}", sentence, conversationContext)
+        } catch (e: Exception) {
+            BatchResponse(
+                grammar = null,
+                hints = emptyList(),
+                translation = null,
+                error = e.message
+            )
+        }
+    }
+
+    enum class BatchRequestType {
+        GRAMMAR,
+        HINTS,
+        TRANSLATION
+    }
+
+    data class BatchResponse(
+        val grammar: GrammarExplanation?,
+        val hints: List<Hint>,
+        val translation: String?,
+        val error: String? = null
+    )
+
+    private fun parseBatchResponse(
+        jsonText: String,
+        sentence: String,
+        conversationContext: List<String>
+    ): BatchResponse {
+        return try {
+            val cleanJson = jsonText
+                .replace("```json", "")
+                .replace("```", "")
+                .trim()
+
+            val obj = JSONObject(cleanJson)
+
+            val grammar = if (obj.has("grammar")) {
+                parseGrammarExplanationFromJson(obj.getJSONObject("grammar").toString(), sentence)
+            } else null
+
+            val hints = if (obj.has("hints")) {
+                parseHintsFromJson(obj.getJSONArray("hints").toString())
+            } else emptyList()
+
+            val translation = obj.optString("translation", null)
+
+            BatchResponse(grammar, hints, translation)
+        } catch (e: Exception) {
+            BatchResponse(null, emptyList(), null, e.message)
+        }
     }
 
     /**
