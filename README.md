@@ -16,10 +16,13 @@ AI 기반 일본어 회화 학습을 위한 개인용 Android 애플리케이션
 - 💾 **대화 관리**: 대화 종료 버튼, 히스토리 자동 저장, 새 대화 시작 기능
 - 🎭 **6가지 시나리오**: 레스토랑, 쇼핑, 호텔, 친구 만들기, 전화 대화, 병원 (초급/중급/상급)
 - 🎙️ **음성 지원**: STT로 일본어 음성 인식, TTS로 AI 응답 자동 재생, 재시도 메커니즘
+- 🎤 **발음 연습**: AI 메시지 발음 평가, 0-100 정확도 점수, 레벤슈타인 거리 분석, 색상 피드백
+- 📚 **플래시카드 시스템**: 자동 어휘 추출, SM-2 간격 반복 알고리즘, 마스터리 추적, 복습 통계
+- 📜 **대화 이력**: 전체 대화 검색/필터링, 상태별 보기, 빠른 재개, 삭제 관리
 - ⚙️ **설정 시스템**: 난이도 조절 (1-3), 음성 속도 (0.5x-2.0x), 자동 읽기, 로마자 표시
 - 🎯 **난이도 조절**: JLPT 레벨별 AI 응답 (N5-N4/N3-N2/N1), 어휘 복잡도 분석, 별점 표시
 - 📊 **학습 통계**: 일일/주간/월간 진도, 연속 학습일 추적, 시나리오별 진행률, 차트 시각화
-- 🔥 **복습 모드**: 완료된 대화 재생, 날짜별 그룹화, 중요 문구 추출, 메시지 재생
+- 🔥 **복습 모드**: 완료된 대화만 표시, 학습 통계 (메시지/시간/단어), 중요 문구 추출, TTS 재생
 - 👤 **사용자 프로필**: 아바타 선택, 학습 목표, 개인화된 AI 응답
 - ✨ **세련된 UI**: Material 3 디자인, 타이핑 인디케이터, 부드러운 애니메이션, 메시지 타임스탬프
 
@@ -193,6 +196,149 @@ OutlinedTextField(
 - 메시지 간격: 12dp (이전 8dp에서 증가)
 - LazyColumn 컨텐츠 패딩: 16dp
 - 자동 스크롤: 새 메시지 추가 시 애니메이션 스크롤
+
+## 🆕 최신 업데이트 (2025-10-29 Part 2) - 발음 연습 및 학습 관리 시스템
+
+### ✨ 새로운 기능
+
+**1. 복습 화면 대폭 개선**
+- ✅ **완료된 대화만 표시**: `isCompleted = true` 필터링으로 복습용 대화만 로드
+- ✅ **완료 날짜 및 시간**: "完了: HH:mm" 형식으로 정확한 완료 시각 표시
+- ✅ **학습 통계 표시**:
+  - 💬 메시지 개수
+  - ⏰ 대화 지속 시간 (분 단위)
+  - 📖 학습한 단어 수 추정 (~語)
+- ✅ **날짜 그룹화 개선**: "오늘 완료", "어제 완료", "YYYY년 MM월 DD일 완료"
+
+**2. 새 대화 시작 기능 (New Chat)**
+- ✅ **새 대화 버튼**: TopAppBar에 새로고침(🔄) 아이콘 추가
+- ✅ **즉시 시작**: 현재 대화를 완료하고 동일 시나리오로 새 대화 즉시 생성
+- ✅ **토스트 알림**: "新しいチャットを開始しました" 확인 메시지
+- ✅ **상태 초기화**: 메시지, 번역, 문법 캐시 모두 깨끗하게 리셋
+
+**3. 🎤 발음 연습 기능 (Pronunciation Practice)**
+- ✅ **AI 메시지별 연습**: 각 AI 메시지에 "発音練習" 버튼 제공
+- ✅ **음성 인식 비교**: 사용자 발음을 STT로 인식 후 정확도 분석
+- ✅ **정확도 점수**: 0-100점 스코어링 (SM-2 알고리즘 기반)
+- ✅ **색상 피드백**:
+  - 🟢 정확 (Exact match)
+  - 🟡 근접 (≥70% similarity)
+  - 🔴 불일치 (Different)
+  - ⚪ 누락 (Missing)
+- ✅ **레벤슈타인 거리**: 문자 단위 유사도 계산
+- ✅ **재시도 가능**: 만족할 때까지 무제한 연습
+- ✅ **격려 메시지**: 점수별 피드백 (完璧です！/とても良い！/もう一度練習しましょう)
+- ✅ **아름다운 UI**: Material 3 Bottom Sheet, 큰 녹음 버튼, 애니메이션
+
+**4. 📚 어휘 플래시카드 시스템 (백엔드 완료)**
+- ✅ **자동 어휘 추출**: 대화에서 중요 단어/표현 자동 감지
+- ✅ **SuperMemo 2 (SM-2) 알고리즘**: 과학적 간격 반복 학습
+  - 첫 복습: 1일 후
+  - 두 번째 복습: 6일 후
+  - 이후: 이전 간격 × 난이도 계수 (ease factor)
+- ✅ **6단계 품질 평가**:
+  - 0 = 전혀 기억 안남
+  - 1 = 틀렸지만 익숙함
+  - 2 = 맞췄지만 어려웠음
+  - 3 = 약간 망설임
+  - 4 = 쉽게 기억
+  - 5 = 완벽/즉시 기억
+- ✅ **마스터리 추적**: 5회 이상 복습 + 90% 정확도 + 30일 간격 = 마스터
+- ✅ **복습 이력**: 모든 학습 세션 기록 및 분석
+- ✅ **통계 대시보드**:
+  - 총 단어 수
+  - 마스터한 단어 수
+  - 오늘 복습 예정 단어
+  - 새로운 단어
+  - 정확도 비율
+- ✅ **데이터베이스 설계**:
+  - `vocabulary_entries` 테이블 (단어, 의미, 예문, SM-2 파라미터)
+  - `review_history` 테이블 (복습 기록, 소요 시간, 품질 점수)
+  - Migration 2→3 적용
+
+**5. 📜 대화 이력 화면 (Conversation History)**
+- ✅ **전체 대화 목록**: 모든 대화(활성+완료) 표시
+- ✅ **실시간 검색**: 시나리오 제목 및 메시지 내용 검색
+- ✅ **3단계 필터링**:
+  - 📊 상태: 전체/진행중/완료
+  - 🎭 시나리오: 특정 시나리오만 표시
+  - 🔍 검색: 텍스트 기반 필터링
+- ✅ **풍부한 정보 표시**:
+  - 시나리오 제목 및 아이콘
+  - 상태 배지 (진행중/완료)
+  - 마지막 메시지 미리보기 (2줄)
+  - 날짜 (오늘/어제/날짜)
+  - 메시지 개수
+  - 대화 지속 시간
+- ✅ **빠른 작업**:
+  - ▶️ **계속하기** 버튼 (진행중 대화)
+  - 🔄 **재개** 버튼 (완료된 대화)
+  - 🗑️ **삭제** 버튼 (확인 다이얼로그)
+- ✅ **빈 상태 처리**: 필터 결과 없을 때 안내 메시지
+- ✅ **시나리오 필터 모달**: 스크롤 가능한 시나리오 선택기
+
+### 🗄️ 데이터베이스 업데이트
+
+**Schema Version 3 마이그레이션**:
+```sql
+-- vocabulary_entries 테이블 생성
+CREATE TABLE vocabulary_entries (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    userId INTEGER NOT NULL,
+    word TEXT NOT NULL,
+    reading TEXT,
+    meaning TEXT NOT NULL,
+    exampleSentence TEXT,
+    sourceConversationId INTEGER,
+    difficulty INTEGER DEFAULT 1,
+    createdAt INTEGER NOT NULL,
+    lastReviewedAt INTEGER,
+    nextReviewAt INTEGER NOT NULL,
+    reviewCount INTEGER DEFAULT 0,
+    correctCount INTEGER DEFAULT 0,
+    easeFactor REAL DEFAULT 2.5,
+    interval INTEGER DEFAULT 0,
+    isMastered INTEGER DEFAULT 0,
+    FOREIGN KEY(userId) REFERENCES users(id) ON DELETE CASCADE
+);
+
+-- review_history 테이블 생성
+CREATE TABLE review_history (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    vocabularyId INTEGER NOT NULL,
+    reviewedAt INTEGER NOT NULL,
+    quality INTEGER NOT NULL,
+    timeSpentMs INTEGER DEFAULT 0,
+    FOREIGN KEY(vocabularyId) REFERENCES vocabulary_entries(id) ON DELETE CASCADE
+);
+```
+
+### 💡 사용 방법
+
+**새 대화 시작**:
+1. 채팅 중 우측 상단의 새로고침(🔄) 버튼 클릭
+2. 현재 대화가 자동으로 완료 처리되고 새 대화 생성
+3. 깨끗한 상태에서 동일 시나리오 계속 연습
+
+**발음 연습**:
+1. AI 메시지 하단의 "発音練習" 버튼 클릭
+2. Bottom Sheet에서 큰 마이크(🎤) 버튼 누르기
+3. 일본어로 말하기 (자동으로 인식)
+4. 정확도 점수 및 색상 피드백 확인
+5. "もう一度" 버튼으로 재도전 또는 "完了" 버튼으로 종료
+
+**대화 이력 탐색**:
+1. 메인 화면에서 "会話履歴" 이동
+2. 검색창에 시나리오명이나 단어 입력
+3. 필터 칩으로 상태/시나리오 선택
+4. 대화 카드의 "続ける" 버튼으로 즉시 재개
+
+**어휘 학습** (향후 UI 추가 예정):
+- 대화 완료 시 자동으로 중요 단어 추출
+- 복습 시스템이 최적 타이밍에 단어 제시
+- 품질 평가로 다음 복습 일정 자동 조정
+
+---
 
 ## 🆕 최신 업데이트 (2025-10-29) - 대화 관리 및 번역 기능 강화
 
@@ -444,12 +590,21 @@ android {
 - [x] 대화 이력 보존 (네비게이션 시)
 - [x] 스마트 대화 생성 (빈 대화 방지)
 
-### 📅 Phase 4: 추가 기능 (계획)
-- [ ] 발음 평가 (STT 정확도 분석)
-- [ ] 플래시카드 생성 (중요 문구에서)
+### ✅ Phase 4: 추가 기능 (완료/진행중)
+- [x] **발음 평가**: STT 정확도 분석, 레벤슈타인 거리, 0-100 점수, 색상 피드백
+- [x] **플래시카드 시스템**: 자동 어휘 추출, SM-2 간격 반복, 데이터베이스 완성 (UI 개발 중)
+- [x] **대화 이력 관리**: 검색, 필터링, 빠른 재개, 통계 표시
 - [ ] 퀴즈 모드
 - [ ] 목표 설정 및 알림
 - [ ] 소셜 공유 기능
+
+### 📅 Phase 5: 향후 계획
+- [ ] 플래시카드 복습 UI (FlashcardReviewScreen, ViewModel)
+- [ ] 플래시카드 통계 차트
+- [ ] 발음 평가 히스토리 추적
+- [ ] 커스텀 어휘 추가 기능
+- [ ] 오프라인 모드 (로컬 TTS)
+- [ ] 위젯 (학습 진도 표시)
 
 ## 🧪 테스트
 
@@ -476,14 +631,23 @@ android {
 - **GrammarComponent.kt**: 문법 요소 (text, type, explanation, startIndex, endIndex)
 - **GrammarType.kt**: 문법 타입 enum (PARTICLE, VERB, ADJECTIVE, etc.)
 - **UserSettings.kt**: 사용자 설정 (difficulty, speechSpeed, autoSpeak, showRomaji)
+- **VocabularyEntry.kt**: 어휘 엔티티 (word, meaning, SM-2 파라미터, 마스터리)
+- **ReviewHistory.kt**: 복습 기록 (vocabularyId, quality, timeSpentMs)
+- **SpacedRepetition.kt**: SM-2 알고리즘 구현 (간격 계산, 마스터리 판정)
+- **PronunciationPractice.kt**: 발음 평가 (PronunciationResult, WordMatch, 레벤슈타인 거리)
 
 ### Data Layer
 #### Local (`data/local/`)
-- **NihongoDatabase.kt**: Room 데이터베이스 (4개 DAO, Schema v2)
+- **NihongoDatabase.kt**: Room 데이터베이스 (6개 DAO, Schema v3)
   - `MIGRATION_1_2`: isCompleted 컬럼 추가 마이그레이션
+  - `MIGRATION_2_3`: vocabulary_entries 및 review_history 테이블 생성
 - **UserDao.kt, ScenarioDao.kt, ConversationDao.kt, MessageDao.kt**: 데이터 접근 인터페이스
   - `getLatestActiveConversationByUserAndScenario()`: 활성 대화 조회
   - `getCompletedConversationsByUserAndScenario()`: 완료된 대화 조회
+- **VocabularyDao.kt**: 어휘 데이터 접근
+  - `getDueForReview()`: 복습 예정 단어 조회
+  - `getNewWords()`: 신규 단어 조회
+  - `getAverageQuality()`: 평균 정확도 계산
 - **SettingsDataStore.kt**: DataStore Preferences 관리
 - **DataInitializer.kt**: 6가지 기본 시나리오 초기화
 
@@ -504,23 +668,39 @@ android {
   - 연속 학습일 추적
   - 시나리오별 진행률
   - 학습 시간 추정
+- **VocabularyRepository.kt**: 어휘 관리
+  - `extractVocabularyFromConversation()`: 대화에서 어휘 추출
+  - `getReviewSession()`: 복습 세션 생성 (SM-2 기반)
+  - `submitReview()`: 복습 결과 제출 및 다음 간격 계산
+  - `getVocabularyStats()`: 어휘 학습 통계
 
 ### Presentation Layer
 #### Chat (`presentation/chat/`)
-- **ChatScreen.kt**: 메인 채팅 UI (360+ lines)
+- **ChatScreen.kt**: 메인 채팅 UI (500+ lines)
   - ChatScreen, MessageBubble, MessageInput composables
   - AnimatedVisibility, 타임스탬프, 에러 표시
   - 대화 종료 확인 다이얼로그
   - 메시지별 번역 버튼
+  - 발음 연습 버튼
 - **ChatViewModel.kt**: 채팅 상태 관리
   - 메시지 전송/수신, 음성 이벤트, 힌트 요청
   - Settings 관찰 및 VoiceManager 연동
   - `confirmEndChat()`: 대화 종료 및 상태 초기화
+  - `startNewChat()`: 새 대화 시작 (토스트 포함)
   - `toggleMessageTranslation()`: 메시지별 번역 토글
   - `requestGrammarExplanation()`: 문법 설명 (캐싱 지원)
+  - `startPronunciationPractice()`: 발음 연습 시작
+  - `checkPronunciation()`: 발음 정확도 분석
+- **PronunciationPracticeSheet.kt**: 발음 연습 UI (400+ lines)
+  - Target text 표시 및 TTS 재생
+  - 녹음 버튼 (큰 FloatingActionButton)
+  - 정확도 점수 카드 (0-100)
+  - 색상별 피드백 (정확/근접/불일치/누락)
+  - 재시도 및 완료 버튼
 - **TypingIndicator.kt**: 3-dot 펄스 애니메이션
 - **VoiceButton.kt**: 마이크 버튼 + 펄스 효과
 - **HintDialog.kt**: 힌트 카드 리스트 다이얼로그
+- **GrammarBottomSheet.kt**: 문법 설명 시트
 - **VoiceStateIndicator.kt**: 음성 상태 표시
 
 #### Scenario (`presentation/scenario/`)
@@ -558,6 +738,21 @@ android {
   - PieChart (파이 차트)
   - ChartLegend, StatCard
 
+#### History (`presentation/history/`)
+- **ConversationHistoryScreen.kt**: 대화 이력 UI (550+ lines)
+  - 검색 바 (실시간 필터링)
+  - 필터 칩 (상태/시나리오)
+  - 대화 카드 (제목, 상태, 미리보기, 통계)
+  - 빠른 작업 버튼 (계속/재개/삭제)
+  - 빈 상태 처리
+  - 삭제 확인 다이얼로그
+  - 시나리오 필터 모달
+- **ConversationHistoryViewModel.kt**: 이력 상태 관리
+  - 대화 로딩 및 필터링
+  - 검색 쿼리 처리
+  - 날짜 포맷팅 (오늘/어제/날짜)
+  - 지속 시간 포맷팅
+
 #### Navigation (`presentation/navigation/`)
 - **NihongoNavHost.kt**: Navigation Compose 라우팅
   - ScenarioList (시작) → Chat / Settings / Stats / Review
@@ -581,12 +776,20 @@ android {
 
 #### Util (`core/util/`)
 - **Result.kt**: Success/Error/Loading sealed class
+- **VocabularyExtractor.kt**: 대화에서 어휘 추출
+  - `extractFromMessages()`: AI 메시지에서 중요 단어 자동 추출
+  - `isImportantWord()`: 일반적인 조사/동사 필터링
+  - `estimateDifficulty()`: 한자/카타카나 기반 난이도 추정
 
 ### Application (`NihongoApp.kt`)
 - Hilt Application 진입점
 - DataInitializer로 기본 시나리오 삽입
 
-**총 파일 수**: 40+ Kotlin 파일 (Review 모드 +2, Stats 대시보드 +4, 기존 30+)
+**총 파일 수**: 55+ Kotlin 파일
+- Domain: 13 모델 (+4 신규)
+- Data: 9 DAO/Repository (+2 신규)
+- Presentation: 25+ 화면/ViewModel (+3 신규)
+- Core: 8 유틸리티 (+1 신규)
 
 ## 🔑 핵심 구현 포인트
 
