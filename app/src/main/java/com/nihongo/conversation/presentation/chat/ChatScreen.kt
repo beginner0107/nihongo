@@ -11,6 +11,7 @@ import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.Lightbulb
 import androidx.compose.material.icons.filled.VolumeOff
 import androidx.compose.material.icons.filled.VolumeUp
 import androidx.compose.material3.*
@@ -132,7 +133,19 @@ fun ChatScreen(
                         permissionLauncher.launch(Manifest.permission.RECORD_AUDIO)
                     }
                 },
-                onStopRecording = viewModel::stopVoiceRecording
+                onStopRecording = viewModel::stopVoiceRecording,
+                onRequestHint = viewModel::requestHints
+            )
+        }
+
+        // Hint Dialog
+        if (uiState.showHintDialog) {
+            HintDialog(
+                hints = uiState.hints,
+                isLoading = uiState.isLoadingHints,
+                onDismiss = viewModel::dismissHintDialog,
+                onSpeakHint = viewModel::speakMessage,
+                onUseHint = viewModel::useHint
             )
         }
     }
@@ -183,38 +196,58 @@ fun MessageInput(
     enabled: Boolean,
     voiceState: com.nihongo.conversation.core.voice.VoiceState,
     onStartRecording: () -> Unit,
-    onStopRecording: () -> Unit
+    onStopRecording: () -> Unit,
+    onRequestHint: () -> Unit = {}
 ) {
-    Row(
-        modifier = Modifier
-            .fillMaxWidth()
-            .padding(8.dp),
-        verticalAlignment = Alignment.CenterVertically,
-        horizontalArrangement = Arrangement.spacedBy(8.dp)
+    Column(
+        modifier = Modifier.fillMaxWidth()
     ) {
-        // Voice button
-        VoiceButton(
-            voiceState = voiceState,
-            onStartRecording = onStartRecording,
-            onStopRecording = onStopRecording
-        )
-
-        // Text input
-        OutlinedTextField(
-            value = text,
-            onValueChange = onTextChange,
-            modifier = Modifier.weight(1f),
-            placeholder = { Text("メッセージを入力...") },
-            enabled = enabled,
-            maxLines = 4
-        )
-
-        // Send button
-        Button(
-            onClick = onSend,
-            enabled = enabled && text.isNotBlank()
+        Row(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(8.dp),
+            verticalAlignment = Alignment.CenterVertically,
+            horizontalArrangement = Arrangement.spacedBy(8.dp)
         ) {
-            Text("送信")
+            // Voice button
+            VoiceButton(
+                voiceState = voiceState,
+                onStartRecording = onStartRecording,
+                onStopRecording = onStopRecording
+            )
+
+            // Text input
+            OutlinedTextField(
+                value = text,
+                onValueChange = onTextChange,
+                modifier = Modifier.weight(1f),
+                placeholder = { Text("メッセージを入力...") },
+                enabled = enabled,
+                maxLines = 4
+            )
+
+            // Send button
+            Button(
+                onClick = onSend,
+                enabled = enabled && text.isNotBlank()
+            ) {
+                Text("送信")
+            }
+        }
+
+        // Hint button
+        TextButton(
+            onClick = onRequestHint,
+            modifier = Modifier.padding(horizontal = 8.dp),
+            enabled = enabled
+        ) {
+            Icon(
+                imageVector = Icons.Default.Lightbulb,
+                contentDescription = null,
+                modifier = Modifier.size(18.dp)
+            )
+            Spacer(modifier = Modifier.width(4.dp))
+            Text("힌트 요청 (Korean-Japanese)")
         }
     }
 }

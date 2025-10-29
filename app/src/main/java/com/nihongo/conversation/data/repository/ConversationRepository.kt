@@ -78,4 +78,16 @@ class ConversationRepository @Inject constructor(
             emit(Result.Error(e))
         }
     }
+
+    suspend fun getHints(
+        conversationHistory: List<Message>,
+        userLevel: Int
+    ): List<Hint> {
+        val context = conversationHistory.takeLast(5).joinToString("\n") { message ->
+            if (message.isUser) "사용자: ${message.content}"
+            else "AI: ${message.content}"
+        }
+
+        return geminiApi.generateHints(context, userLevel)
+    }
 }

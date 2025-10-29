@@ -8,6 +8,7 @@ import com.nihongo.conversation.core.voice.VoiceManager
 import com.nihongo.conversation.core.voice.VoiceState
 import com.nihongo.conversation.data.repository.ConversationRepository
 import com.nihongo.conversation.domain.model.Conversation
+import com.nihongo.conversation.domain.model.Hint
 import com.nihongo.conversation.domain.model.Message
 import com.nihongo.conversation.domain.model.Scenario
 import dagger.hilt.android.lifecycle.HiltViewModel
@@ -21,7 +22,10 @@ data class ChatUiState(
     val isLoading: Boolean = false,
     val error: String? = null,
     val scenario: Scenario? = null,
-    val autoSpeak: Boolean = true
+    val autoSpeak: Boolean = true,
+    val hints: List<Hint> = emptyList(),
+    val isLoadingHints: Boolean = false,
+    val showHintDialog: Boolean = false
 )
 
 @HiltViewModel
@@ -138,6 +142,45 @@ class ChatViewModel @Inject constructor(
 
     fun toggleAutoSpeak() {
         _uiState.update { it.copy(autoSpeak = !it.autoSpeak) }
+    }
+
+    fun requestHints() {
+        viewModelScope.launch {
+            _uiState.update { it.copy(isLoadingHints = true, showHintDialog = true) }
+
+            try {
+                val hints = repository.getHints(
+                    conversationHistory = _uiState.value.messages,
+                    userLevel = 1 // TODO: Get from user profile
+                )
+                _uiState.update {
+                    it.copy(
+                        hints = hints,
+                        isLoadingHints = false
+                    )
+                }
+            } catch (e: Exception) {
+                _uiState.update {
+                    it.copy(
+                        isLoadingHints = false,
+                        error = "힌트를 가져오는데 실패했습니다"
+                    )
+                }
+            }
+        }
+    }
+
+    fun dismissHintDialog() {
+        _uiState.update { it.copy(showHintDialog = false) }
+    }
+
+    fun useHint(hint: Hint) {
+        _uiState.update {
+            it.copy(
+                inputText = hint.japanese,
+                showHintDialog = false
+            )
+        }
     }
 
     override fun onCleared() {
