@@ -8,10 +8,12 @@ import com.nihongo.conversation.core.voice.VoiceManager
 import com.nihongo.conversation.core.voice.VoiceState
 import com.nihongo.conversation.data.local.SettingsDataStore
 import com.nihongo.conversation.data.repository.ConversationRepository
+import com.nihongo.conversation.data.repository.ProfileRepository
 import com.nihongo.conversation.domain.model.Conversation
 import com.nihongo.conversation.domain.model.Hint
 import com.nihongo.conversation.domain.model.Message
 import com.nihongo.conversation.domain.model.Scenario
+import com.nihongo.conversation.domain.model.User
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.flow.*
 import kotlinx.coroutines.launch
@@ -23,6 +25,7 @@ data class ChatUiState(
     val isLoading: Boolean = false,
     val error: String? = null,
     val scenario: Scenario? = null,
+    val user: User? = null,
     val autoSpeak: Boolean = true,
     val speechSpeed: Float = 1.0f,
     val hints: List<Hint> = emptyList(),
@@ -34,7 +37,8 @@ data class ChatUiState(
 class ChatViewModel @Inject constructor(
     private val repository: ConversationRepository,
     private val voiceManager: VoiceManager,
-    private val settingsDataStore: SettingsDataStore
+    private val settingsDataStore: SettingsDataStore,
+    private val profileRepository: ProfileRepository
 ) : ViewModel() {
 
     private val _uiState = MutableStateFlow(ChatUiState())
@@ -47,6 +51,7 @@ class ChatViewModel @Inject constructor(
     init {
         observeVoiceEvents()
         observeSettings()
+        observeUserProfile()
     }
 
     private fun observeSettings() {
@@ -59,6 +64,14 @@ class ChatViewModel @Inject constructor(
                     )
                 }
                 voiceManager.setSpeechSpeed(settings.speechSpeed)
+            }
+        }
+    }
+
+    private fun observeUserProfile() {
+        viewModelScope.launch {
+            profileRepository.getCurrentUser().collect { user ->
+                _uiState.update { it.copy(user = user) }
             }
         }
     }
@@ -98,11 +111,15 @@ class ChatViewModel @Inject constructor(
         viewModelScope.launch {
             _uiState.update { it.copy(inputText = "", isLoading = true, error = null) }
 
+            // Get personalized prompt prefix
+            val personalizedPrefix = profileRepository.getPersonalizedPromptPrefix()
+            val enhancedPrompt = scenario.systemPrompt + personalizedPrefix
+
             repository.sendMessage(
                 conversationId = currentConversationId,
                 userMessage = message,
                 conversationHistory = _uiState.value.messages,
-                systemPrompt = scenario.systemPrompt
+                systemPrompt = enhancedPrompt
             ).collect { result ->
                 when (result) {
                     is Result.Loading -> {

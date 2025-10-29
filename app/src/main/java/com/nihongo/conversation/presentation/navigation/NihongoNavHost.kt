@@ -8,6 +8,7 @@ import androidx.navigation.compose.composable
 import androidx.navigation.compose.rememberNavController
 import androidx.navigation.navArgument
 import com.nihongo.conversation.presentation.chat.ChatScreen
+import com.nihongo.conversation.presentation.profile.ProfileScreen
 import com.nihongo.conversation.presentation.review.ReviewScreen
 import com.nihongo.conversation.presentation.scenario.ScenarioListScreen
 import com.nihongo.conversation.presentation.settings.SettingsScreen
@@ -18,6 +19,7 @@ sealed class Screen(val route: String) {
     data object Settings : Screen("settings")
     data object Review : Screen("review")
     data object Stats : Screen("stats")
+    data object Profile : Screen("profile")
 
     data object Chat : Screen("chat/{userId}/{scenarioId}") {
         fun createRoute(userId: Long, scenarioId: Long) = "chat/$userId/$scenarioId"
@@ -42,6 +44,9 @@ fun NihongoNavHost(
                 },
                 onStatsClick = {
                     navController.navigate(Screen.Stats.route)
+                },
+                onProfileClick = {
+                    navController.navigate(Screen.Profile.route)
                 }
             )
         }
@@ -61,6 +66,13 @@ fun NihongoNavHost(
         composable(route = Screen.Stats.route) {
             StatsScreen(
                 onBackClick = { navController.popBackStack() }
+            )
+        }
+
+        composable(route = Screen.Profile.route) {
+            ProfileScreen(
+                onBackClick = { navController.popBackStack() },
+                onSaveSuccess = { navController.popBackStack() }
             )
         }
 

@@ -24,6 +24,7 @@ fun ScenarioListScreen(
     onScenarioSelected: (Long) -> Unit,
     onSettingsClick: () -> Unit = {},
     onStatsClick: () -> Unit = {},
+    onProfileClick: () -> Unit = {},
     viewModel: ScenarioViewModel = hiltViewModel()
 ) {
     val uiState by viewModel.uiState.collectAsState()
@@ -45,6 +46,12 @@ fun ScenarioListScreen(
                     }
                 },
                 actions = {
+                    IconButton(onClick = onProfileClick) {
+                        Icon(
+                            imageVector = Icons.Default.AccountCircle,
+                            contentDescription = "プロフィール"
+                        )
+                    }
                     IconButton(onClick = onStatsClick) {
                         Icon(
                             imageVector = Icons.Default.BarChart,
