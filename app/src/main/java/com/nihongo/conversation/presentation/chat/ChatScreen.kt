@@ -78,6 +78,15 @@ fun ChatScreen(
                     }
                 },
                 actions = {
+                    // Show "End Chat" button only if there are messages
+                    if (uiState.messages.isNotEmpty()) {
+                        IconButton(onClick = { viewModel.showEndChatDialog() }) {
+                            Icon(
+                                imageVector = Icons.Default.Done,
+                                contentDescription = "チャット終了"
+                            )
+                        }
+                    }
                     IconButton(onClick = onReviewClick) {
                         Icon(
                             imageVector = Icons.Default.HistoryEdu,
@@ -127,7 +136,15 @@ fun ChatScreen(
                             onSpeakMessage = if (!message.isUser) {
                                 { viewModel.speakMessage(message.content) }
                             } else null,
-                            onLongPress = { viewModel.requestGrammarExplanation(message.content) }
+                            onLongPress = { viewModel.requestGrammarExplanation(message.content) },
+                            isTranslationExpanded = message.id in uiState.expandedTranslations,
+                            translation = uiState.translations[message.id],
+                            onToggleTranslation = if (!message.isUser) {
+                                { viewModel.toggleMessageTranslation(message.id) }
+                            } else null,
+                            onRequestTranslation = if (!message.isUser) {
+                                { viewModel.requestTranslation(message.id, message.content) }
+                            } else null
                         )
                     }
                 }
@@ -234,6 +251,35 @@ fun ChatScreen(
                 onDismiss = viewModel::dismissGrammarSheet
             )
         }
+
+        // End Chat Confirmation Dialog
+        if (uiState.showEndChatDialog) {
+            androidx.compose.material3.AlertDialog(
+                onDismissRequest = viewModel::dismissEndChatDialog,
+                icon = {
+                    Icon(
+                        imageVector = Icons.Default.Done,
+                        contentDescription = null
+                    )
+                },
+                title = {
+                    Text("チャットを終了しますか？")
+                },
+                text = {
+                    Text("現在の会話を履歴に保存して新しいチャットを始めます。")
+                },
+                confirmButton = {
+                    TextButton(onClick = viewModel::confirmEndChat) {
+                        Text("終了")
+                    }
+                },
+                dismissButton = {
+                    TextButton(onClick = viewModel::dismissEndChatDialog) {
+                        Text("キャンセル")
+                    }
+                }
+            )
+        }
     }
 }
 
@@ -242,7 +288,11 @@ fun ChatScreen(
 fun MessageBubble(
     message: Message,
     onSpeakMessage: (() -> Unit)? = null,
-    onLongPress: () -> Unit = {}
+    onLongPress: () -> Unit = {},
+    isTranslationExpanded: Boolean = false,
+    translation: String? = null,
+    onToggleTranslation: (() -> Unit)? = null,
+    onRequestTranslation: (() -> Unit)? = null
 ) {
     val timeFormatter = remember {
         java.text.SimpleDateFormat("HH:mm", java.util.Locale.getDefault())
@@ -285,6 +335,54 @@ fun MessageBubble(
                         MaterialTheme.colorScheme.onSecondaryContainer
                     }
                 )
+
+                // Show translation button and translation for AI messages
+                if (!message.isUser && onToggleTranslation != null && onRequestTranslation != null) {
+                    Spacer(modifier = Modifier.height(4.dp))
+
+                    // Translation toggle button
+                    TextButton(
+                        onClick = onToggleTranslation,
+                        contentPadding = PaddingValues(horizontal = 8.dp, vertical = 2.dp),
+                        modifier = Modifier.height(28.dp)
+                    ) {
+                        Icon(
+                            imageVector = Icons.Default.Translate,
+                            contentDescription = "번역",
+                            modifier = Modifier.size(16.dp)
+                        )
+                        Spacer(modifier = Modifier.width(4.dp))
+                        Text(
+                            text = if (isTranslationExpanded) "번역 숨기기" else "한국어 번역",
+                            style = MaterialTheme.typography.labelSmall
+                        )
+                    }
+
+                    // Show translation when expanded
+                    if (isTranslationExpanded) {
+                        if (translation != null) {
+                            HorizontalDivider(
+                                modifier = Modifier.padding(vertical = 4.dp),
+                                color = MaterialTheme.colorScheme.onSecondaryContainer.copy(alpha = 0.2f)
+                            )
+                            Text(
+                                text = translation,
+                                style = MaterialTheme.typography.bodySmall,
+                                color = MaterialTheme.colorScheme.onSecondaryContainer.copy(alpha = 0.8f)
+                            )
+                        } else {
+                            // Auto-request translation when expanded
+                            LaunchedEffect(message.id) {
+                                onRequestTranslation()
+                            }
+                            Text(
+                                text = "번역 중...",
+                                style = MaterialTheme.typography.bodySmall,
+                                color = MaterialTheme.colorScheme.onSecondaryContainer.copy(alpha = 0.5f)
+                            )
+                        }
+                    }
+                }
 
                 // Show difficulty indicator for AI messages
                 if (!message.isUser && message.complexityScore > 0) {

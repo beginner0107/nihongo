@@ -23,7 +23,9 @@ object DatabaseModule {
             context,
             NihongoDatabase::class.java,
             "nihongo_database"
-        ).build()
+        )
+            .addMigrations(NihongoDatabase.MIGRATION_1_2)
+            .build()
     }
 
     @Provides

@@ -7,6 +7,9 @@ import com.nihongo.conversation.data.remote.GeminiApiService
 import com.nihongo.conversation.domain.model.*
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.flow
+import kotlinx.coroutines.flow.first
+import kotlinx.coroutines.withContext
+import kotlinx.coroutines.Dispatchers
 import javax.inject.Inject
 import javax.inject.Singleton
 
@@ -35,6 +38,59 @@ class ConversationRepository @Inject constructor(
 
     suspend fun createConversation(conversation: Conversation): Long =
         conversationDao.insertConversation(conversation)
+
+    /**
+     * Get existing active conversation ID for user and scenario without creating a new one.
+     * Returns null if no active conversation exists.
+     */
+    suspend fun getExistingConversation(userId: Long, scenarioId: Long): Long? {
+        return conversationDao.getLatestActiveConversationByUserAndScenario(userId, scenarioId)?.id
+    }
+
+    /**
+     * Get existing active conversation or create a new one for the user and scenario.
+     * This allows resuming conversations when navigating back to the chat screen.
+     */
+    suspend fun getOrCreateConversation(userId: Long, scenarioId: Long): Long {
+        // Try to get the most recent active conversation for this user + scenario
+        val existingConversation = conversationDao.getLatestActiveConversationByUserAndScenario(userId, scenarioId)
+
+        return if (existingConversation != null) {
+            // Resume existing conversation - update timestamp
+            val updated = existingConversation.copy(updatedAt = System.currentTimeMillis())
+            conversationDao.updateConversation(updated)
+            existingConversation.id
+        } else {
+            // Create new conversation
+            val newConversation = Conversation(
+                userId = userId,
+                scenarioId = scenarioId,
+                isCompleted = false
+            )
+            conversationDao.insertConversation(newConversation)
+        }
+    }
+
+    /**
+     * Mark the current conversation as completed.
+     * This saves it to history and allows starting a new conversation.
+     */
+    suspend fun completeConversation(conversationId: Long) {
+        val conversation = conversationDao.getConversationById(conversationId).first()
+        conversation?.let {
+            val completed = it.copy(
+                isCompleted = true,
+                updatedAt = System.currentTimeMillis()
+            )
+            conversationDao.updateConversation(completed)
+        }
+    }
+
+    /**
+     * Get completed conversations for a user and scenario (chat history).
+     */
+    fun getCompletedConversations(userId: Long, scenarioId: Long): Flow<List<Conversation>> =
+        conversationDao.getCompletedConversationsByUserAndScenario(userId, scenarioId)
 
     // Message operations
     fun getMessages(conversationId: Long): Flow<List<Message>> =
@@ -110,5 +166,9 @@ class ConversationRepository @Inject constructor(
             .takeLast(5)
 
         return geminiApi.explainGrammar(sentence, examples, userLevel)
+    }
+
+    suspend fun translateToKorean(japaneseText: String): String {
+        return geminiApi.translateToKorean(japaneseText)
     }
 }

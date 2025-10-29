@@ -36,7 +36,11 @@ data class ChatUiState(
     val showHintDialog: Boolean = false,
     val grammarExplanation: GrammarExplanation? = null,
     val isLoadingGrammar: Boolean = false,
-    val showGrammarSheet: Boolean = false
+    val showGrammarSheet: Boolean = false,
+    val translations: Map<Long, String> = emptyMap(), // messageId -> Korean translation
+    val expandedTranslations: Set<Long> = emptySet(), // messageIds with translation expanded
+    val grammarCache: Map<String, GrammarExplanation> = emptyMap(), // text -> cached grammar
+    val showEndChatDialog: Boolean = false // Show confirmation dialog for ending chat
 )
 
 @HiltViewModel
@@ -53,7 +57,9 @@ class ChatViewModel @Inject constructor(
 
     val voiceState: StateFlow<VoiceState> = voiceManager.state
 
-    private var currentConversationId: Long = 0
+    private var currentConversationId: Long? = null
+    private var currentUserId: Long = 0
+    private var currentScenarioId: Long = 0
 
     init {
         observeVoiceEvents()
@@ -85,22 +91,30 @@ class ChatViewModel @Inject constructor(
 
     fun initConversation(userId: Long, scenarioId: Long) {
         viewModelScope.launch {
+            // Store user and scenario IDs
+            currentUserId = userId
+            currentScenarioId = scenarioId
+
             // Load scenario
             repository.getScenario(scenarioId).first()?.let { scenario ->
                 _uiState.update { it.copy(scenario = scenario) }
 
-                // Create or get conversation
-                val conversation = Conversation(
-                    userId = userId,
-                    scenarioId = scenarioId
-                )
-                currentConversationId = repository.createConversation(conversation)
+                // Try to get existing conversation (don't create yet - wait for first message)
+                val existingConversationId = repository.getExistingConversation(userId, scenarioId)
 
-                // Load messages
-                repository.getMessages(currentConversationId)
-                    .collect { messages ->
-                        _uiState.update { it.copy(messages = messages) }
-                    }
+                if (existingConversationId != null) {
+                    // Resume existing conversation
+                    currentConversationId = existingConversationId
+
+                    // Load messages
+                    repository.getMessages(existingConversationId)
+                        .collect { messages ->
+                            _uiState.update { it.copy(messages = messages) }
+                        }
+                } else {
+                    // No existing conversation - will be created on first message
+                    _uiState.update { it.copy(messages = emptyList()) }
+                }
             }
         }
     }
@@ -118,6 +132,16 @@ class ChatViewModel @Inject constructor(
         viewModelScope.launch {
             _uiState.update { it.copy(inputText = "", isLoading = true, error = null) }
 
+            // Create conversation on first message if it doesn't exist
+            if (currentConversationId == null) {
+                currentConversationId = repository.getOrCreateConversation(currentUserId, currentScenarioId)
+            }
+
+            val conversationId = currentConversationId ?: run {
+                _uiState.update { it.copy(isLoading = false, error = "会話を作成できませんでした") }
+                return@launch
+            }
+
             // Get personalized prompt prefix
             val personalizedPrefix = profileRepository.getPersonalizedPromptPrefix()
 
@@ -130,7 +154,7 @@ class ChatViewModel @Inject constructor(
             val enhancedPrompt = scenario.systemPrompt + personalizedPrefix + difficultyPrompt
 
             repository.sendMessage(
-                conversationId = currentConversationId,
+                conversationId = conversationId,
                 userMessage = message,
                 conversationHistory = _uiState.value.messages,
                 systemPrompt = enhancedPrompt
@@ -236,6 +260,19 @@ class ChatViewModel @Inject constructor(
 
     fun requestGrammarExplanation(sentence: String) {
         viewModelScope.launch {
+            // Check cache first
+            val cached = _uiState.value.grammarCache[sentence]
+            if (cached != null) {
+                _uiState.update {
+                    it.copy(
+                        grammarExplanation = cached,
+                        showGrammarSheet = true,
+                        isLoadingGrammar = false
+                    )
+                }
+                return@launch
+            }
+
             _uiState.update {
                 it.copy(
                     isLoadingGrammar = true,
@@ -255,7 +292,8 @@ class ChatViewModel @Inject constructor(
                 _uiState.update {
                     it.copy(
                         grammarExplanation = grammarExplanation,
-                        isLoadingGrammar = false
+                        isLoadingGrammar = false,
+                        grammarCache = it.grammarCache + (sentence to grammarExplanation)
                     )
                 }
             } catch (e: Exception) {
@@ -269,12 +307,73 @@ class ChatViewModel @Inject constructor(
         }
     }
 
+    fun requestTranslation(messageId: Long, japaneseText: String) {
+        viewModelScope.launch {
+            // Check if already translated
+            if (_uiState.value.translations.containsKey(messageId)) return@launch
+
+            try {
+                val translation = repository.translateToKorean(japaneseText)
+                _uiState.update {
+                    it.copy(translations = it.translations + (messageId to translation))
+                }
+            } catch (e: Exception) {
+                _uiState.update {
+                    it.copy(error = "번역 실패: ${e.message}")
+                }
+            }
+        }
+    }
+
+    fun toggleMessageTranslation(messageId: Long) {
+        _uiState.update { state ->
+            val expanded = state.expandedTranslations
+            state.copy(
+                expandedTranslations = if (messageId in expanded) {
+                    expanded - messageId
+                } else {
+                    expanded + messageId
+                }
+            )
+        }
+    }
+
     fun dismissGrammarSheet() {
         _uiState.update {
             it.copy(
                 showGrammarSheet = false,
                 grammarExplanation = null
             )
+        }
+    }
+
+    fun showEndChatDialog() {
+        _uiState.update { it.copy(showEndChatDialog = true) }
+    }
+
+    fun dismissEndChatDialog() {
+        _uiState.update { it.copy(showEndChatDialog = false) }
+    }
+
+    fun confirmEndChat() {
+        viewModelScope.launch {
+            currentConversationId?.let { conversationId ->
+                // Mark conversation as completed
+                repository.completeConversation(conversationId)
+
+                // Reset state for new conversation
+                currentConversationId = null
+                _uiState.update {
+                    it.copy(
+                        messages = emptyList(),
+                        inputText = "",
+                        error = null,
+                        translations = emptyMap(),
+                        expandedTranslations = emptySet(),
+                        showEndChatDialog = false
+                    )
+                }
+            }
         }
     }
 

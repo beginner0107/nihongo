@@ -45,7 +45,7 @@ class VoiceManager @Inject constructor(
     private var textToSpeech: TextToSpeech? = null
     private var isTtsInitialized = false
     private val pendingSpeechQueue = mutableListOf<PendingSpeech>()
-    private var initializationAttempted = false
+    private var isInitializing = false
 
     private data class PendingSpeech(val text: String, val utteranceId: String, val speed: Float)
 
@@ -54,15 +54,26 @@ class VoiceManager @Inject constructor(
     }
 
     private fun initializeTts() {
-        if (initializationAttempted) return
-        initializationAttempted = true
+        // Don't start a new initialization if one is already in progress
+        if (isInitializing) return
+
+        // If already initialized successfully, don't re-initialize
+        if (isTtsInitialized && textToSpeech != null) return
+
+        isInitializing = true
 
         try {
+            // Clean up any previous failed instance
+            textToSpeech?.shutdown()
+            textToSpeech = null
+            isTtsInitialized = false
+
             textToSpeech = TextToSpeech(context) { status ->
                 when (status) {
                     TextToSpeech.SUCCESS -> {
                         val tts = textToSpeech
                         if (tts == null) {
+                            isInitializing = false
                             _events.trySend(VoiceEvent.Error("TTS初期化エラー"))
                             return@TextToSpeech
                         }
@@ -70,10 +81,12 @@ class VoiceManager @Inject constructor(
                         val langResult = tts.setLanguage(Locale.JAPANESE)
                         when (langResult) {
                             TextToSpeech.LANG_MISSING_DATA -> {
+                                isInitializing = false
                                 _events.trySend(VoiceEvent.Error("日本語音声データがありません。デバイス設定でダウンロードしてください。"))
                                 return@TextToSpeech
                             }
                             TextToSpeech.LANG_NOT_SUPPORTED -> {
+                                isInitializing = false
                                 _events.trySend(VoiceEvent.Error("日本語音声がサポートされていません"))
                                 return@TextToSpeech
                             }
@@ -97,8 +110,9 @@ class VoiceManager @Inject constructor(
                             }
                         })
 
-                        // Mark as initialized
+                        // Mark as initialized - SUCCESS!
                         isTtsInitialized = true
+                        isInitializing = false
 
                         // Process pending queue
                         synchronized(pendingSpeechQueue) {
@@ -113,11 +127,13 @@ class VoiceManager @Inject constructor(
                         }
                     }
                     else -> {
+                        isInitializing = false
                         _events.trySend(VoiceEvent.Error("TTS初期化失敗。デバイスの音声設定を確認してください。"))
                     }
                 }
             }
         } catch (e: Exception) {
+            isInitializing = false
             _events.trySend(VoiceEvent.Error("TTS初期化エラー: ${e.message}"))
         }
     }
@@ -212,6 +228,11 @@ class VoiceManager @Inject constructor(
             synchronized(pendingSpeechQueue) {
                 pendingSpeechQueue.add(PendingSpeech(cleanText, utteranceId, speed))
             }
+
+            // Try to initialize if not already in progress
+            if (!isInitializing) {
+                initializeTts()
+            }
             return
         }
 
@@ -242,11 +263,22 @@ class VoiceManager @Inject constructor(
         _state.value = VoiceState.Idle
     }
 
+    fun retryTtsInitialization() {
+        // Force a fresh initialization attempt
+        isTtsInitialized = false
+        isInitializing = false
+        initializeTts()
+    }
+
     fun release() {
         stopListening()
         stopSpeaking()
         textToSpeech?.shutdown()
         textToSpeech = null
         isTtsInitialized = false
+        isInitializing = false
+        synchronized(pendingSpeechQueue) {
+            pendingSpeechQueue.clear()
+        }
     }
 }

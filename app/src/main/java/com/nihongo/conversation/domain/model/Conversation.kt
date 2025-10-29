@@ -27,5 +27,6 @@ data class Conversation(
     val userId: Long,
     val scenarioId: Long,
     val createdAt: Long = System.currentTimeMillis(),
-    val updatedAt: Long = System.currentTimeMillis()
+    val updatedAt: Long = System.currentTimeMillis(),
+    val isCompleted: Boolean = false // false = active, true = ended
 )

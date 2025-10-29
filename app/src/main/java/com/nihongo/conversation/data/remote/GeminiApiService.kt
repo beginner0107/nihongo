@@ -255,6 +255,25 @@ class GeminiApiService @Inject constructor() {
         }
     }
 
+    suspend fun translateToKorean(japaneseText: String): String {
+        return try {
+            val prompt = """
+                다음 일본어 문장을 자연스러운 한국어로 번역해주세요.
+                문장: $japaneseText
+
+                주의사항:
+                - 번역문만 출력하세요 (설명이나 다른 텍스트 없이)
+                - 자연스러운 한국어 표현을 사용하세요
+                - 존댓말로 번역하세요
+            """.trimIndent()
+
+            val response = model.generateContent(prompt)
+            response.text?.trim() ?: "번역 실패"
+        } catch (e: Exception) {
+            "번역 오류: ${e.message}"
+        }
+    }
+
     private fun buildHistory(
         history: List<Pair<String, Boolean>>,
         systemPrompt: String
