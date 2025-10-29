@@ -24,6 +24,7 @@ AI 기반 일본어 회화 학습을 위한 개인용 Android 애플리케이션
 - 📊 **학습 통계**: 일일/주간/월간 진도, 연속 학습일 추적, 시나리오별 진행률, 차트 시각화
 - 🔥 **복습 모드**: 완료된 대화만 표시, 학습 통계 (메시지/시간/단어), 중요 문구 추출, TTS 재생
 - 👤 **사용자 프로필**: 아바타 선택, 학습 목표, 개인화된 AI 응답
+- 👥 **멀티 유저 지원**: DataStore 기반 세션 관리, 유저 선택 UI, 자동 로그인, 데이터 격리
 - ✨ **세련된 UI**: Material 3 디자인, 타이핑 인디케이터, 부드러운 애니메이션, 메시지 타임스탬프
 
 ## 🚀 빠른 시작
@@ -68,12 +69,19 @@ app/
 │   │   ├── usecase/          # 비즈니스 로직
 │   │   └── repository/       # Repository 인터페이스
 │   ├── presentation/         # 프레젠테이션 레이어
-│   │   ├── ui/               # Compose UI
-│   │   ├── viewmodel/        # ViewModels
+│   │   ├── chat/             # 대화 화면
+│   │   ├── flashcard/        # 플래시카드 복습
+│   │   ├── user/             # 유저 선택/관리
+│   │   ├── scenario/         # 시나리오 목록
+│   │   ├── stats/            # 통계 화면
+│   │   ├── review/           # 복습 화면
 │   │   └── theme/            # 테마 설정
 │   └── core/                 # 공통 유틸리티
 │       ├── di/               # Dependency Injection
-│       └── utils/            # 헬퍼 함수
+│       ├── session/          # 세션 관리 (UserSessionManager)
+│       ├── network/          # 네트워크 모니터링/오프라인
+│       ├── voice/            # STT/TTS
+│       └── util/             # 헬퍼 함수
 └── build.gradle.kts
 ```
 
@@ -86,7 +94,7 @@ app/
   - 11개 최적화 인덱스 (복합 인덱스 포함)
   - 데이터베이스 뷰 (conversation_stats)
   - 스트리밍 쿼리 최적화
-- **Persistence**: DataStore Preferences
+- **Persistence**: DataStore Preferences (Settings, User Session, Offline Cache)
 - **Network**: Retrofit + OkHttp
 - **Async**: Coroutines + Flow
 - **AI**: Gemini 2.5 Flash API (스트리밍 지원)
@@ -155,6 +163,24 @@ app/
 - 📅 **주간/월간 뷰**: 필터 칩으로 기간 선택
 - 💯 **총계 통계**: 전체 대화 수, 메시지 수, 학습 시간
 - 🎨 **Canvas API 차트**: 커스텀 그래픽 시각화
+
+### 사용자 선택 화면 (UserSelectionScreen)
+- 👥 **유저 카드 리스트**: 아바타, 이름, 레벨 표시
+- ✅ **선택 인디케이터**: 현재 선택된 유저 강조
+- ➕ **유저 생성 FAB**: 새 사용자 추가 버튼
+- 🎨 **아바타 선택**: 6가지 이모지 아바타 (😊 😎 🤓 😺 🦊 🐼)
+- 📊 **레벨 선택**: 초급/중급/상급 필터 칩
+- 🔄 **자동 네비게이션**: 선택 후 자동으로 메인 화면 이동
+
+### 플래시카드 복습 화면 (FlashcardReviewScreen)
+- 🃏 **3D 카드 뒤집기**: 400ms 부드러운 flip 애니메이션
+- 📈 **진행도 표시**: 현재/전체 카운터, 진행 바, 퍼센트
+- 📚 **카드 앞면**: 일본어 단어 + 읽기 + 힌트 아이콘
+- ✅ **카드 뒷면**: 한국어 의미 + 예문 (옵션)
+- 🎯 **품질 평가 버튼**: 0-5 색상별 버튼 (6개)
+- 📊 **세션 완료 화면**: 트로피, 통계 요약, 재시작/종료
+- 🎨 **색상 코딩**: 난이도별 버튼 색상 (빨강→노랑→초록→파랑)
+- ⏱️ **시간 추적**: 카드당 소요 시간 자동 측정
 
 ## 🌐 최신 업데이트 (2025-10-29 Part 7) - 네트워크 성능 최적화
 
@@ -443,6 +469,170 @@ fun provideOkHttpClient(): OkHttpClient {
 - ✏️ `GeminiApiService.kt` - 페이로드 최적화, 오프라인 지원, 배칭
 
 자세한 내용은 [NETWORK_OPTIMIZATIONS.md](NETWORK_OPTIMIZATIONS.md)를 참조하세요.
+
+---
+
+## 🎉 최신 업데이트 (2025-10-30 Part 8) - 사용자 세션 관리 & 플래시카드 복습
+
+### 🆕 핵심 기능
+
+이번 업데이트에서는 **멀티 유저 지원**과 **플래시카드 복습 시스템**을 추가하여 개인화된 학습 경험을 제공합니다.
+
+### 1️⃣ 사용자 세션 관리 시스템 ✅
+
+**완전한 멀티 유저 지원**으로 여러 사람이 같은 기기를 사용할 수 있습니다!
+
+**주요 기능:**
+- ✅ **UserSessionManager**: DataStore 기반 영구 세션 저장
+- ✅ **사용자 선택 UI**: 아바타 (😊 😎 🤓 😺 🦊 🐼), 이름, 레벨 선택
+- ✅ **자동 로그인**: 마지막 선택한 사용자 기억
+- ✅ **데이터 격리**: 각 사용자별 독립된 대화, 통계, 복습 데이터
+- ✅ **유저 생성**: 초급/중급/상급 레벨, 6가지 아바타 선택
+- ✅ **Reactive 업데이트**: Flow API로 실시간 세션 변경 반영
+
+**구현 세부사항:**
+```kotlin
+// UserSessionManager
+- currentUserId: Flow<Long?>           // 현재 로그인 유저
+- currentUserName: Flow<String>        // 유저 이름
+- currentUserLevel: Flow<Int>          // 유저 레벨 (1-3)
+- setCurrentUser()                     // 유저 선택
+- clearSession()                       // 로그아웃
+```
+
+**수정된 모든 하드코딩 제거:**
+- ✅ ConversationHistoryViewModel
+- ✅ ReviewViewModel
+- ✅ ChatViewModel
+- ✅ StatsRepository
+
+**UI 컴포넌트:**
+- **UserSelectionScreen**: 유저 카드 리스트, 선택 인디케이터
+- **CreateUserDialog**: 이름/레벨/아바타 선택
+- **EmptyState**: 첫 사용자 생성 안내
+
+### 2️⃣ 플래시카드 복습 시스템 ✅
+
+**SM-2 간격 반복 알고리즘**으로 효율적인 단어 학습!
+
+**주요 기능:**
+- ✅ **3D 카드 뒤집기**: 400ms 부드러운 flip 애니메이션
+- ✅ **6단계 품질 평가**: 0-5 색상 코딩 버튼
+  - 0: 전혀 기억 안 남 (빨강)
+  - 1: 틀렸음 (빨강)
+  - 2: 어려웠음 (주황)
+  - 3: 조금 헷갈림 (노랑)
+  - 4: 쉬웠음 (초록)
+  - 5: 완벽! (파랑)
+- ✅ **실시간 진행도**: X/Y 카운터, 진행 바, 퍼센트
+- ✅ **세션 통계**: 정답률, 평균 품질, 소요 시간
+- ✅ **완료 화면**: 🏆 트로피와 함께 결과 요약
+
+**SM-2 알고리즘 통합:**
+```kotlin
+품질 0-2: 간격 리셋 → 10분 후 재복습
+품질 3:   첫 복습 1일, 두 번째 6일, 이후 간격 × 난이도 계수
+품질 4-5: 큰 폭으로 간격 증가
+
+마스터 조건:
+- 복습 5회 이상
+- 정답률 90% 이상
+- 간격 30일 이상
+```
+
+**카드 구성:**
+- **앞면**: 일본어 단어 + 읽기 + ? 아이콘
+- **뒷면**: 한국어 의미 + 예문 (있을 경우)
+
+**세션 설정:**
+```kotlin
+ReviewSessionConfig(
+    maxNewWords = 10,      // 신규 단어 최대 10개
+    maxReviewWords = 20,   // 복습 단어 최대 20개
+    includeNew = true,     // 신규 단어 포함
+    includeDue = true      // 복습 예정 단어 포함
+)
+```
+
+**통계 추적:**
+- 세션별: 카드 수, 정답률, 평균 품질, 소요 시간
+- 단어별: 복습 횟수, 정답 횟수, 난이도 계수, 다음 복습일
+
+**UI 흐름:**
+1. 메인 메뉴에서 "단語帳" FAB 버튼 클릭
+2. 복습 예정 카드 로딩 (최대 20개)
+3. 카드 앞면 표시 (일본어)
+4. 사용자가 답 생각 후 "답 표시" 버튼
+5. 카드 뒤집기 애니메이션
+6. 의미 + 예문 확인
+7. 품질 평가 (0-5 버튼)
+8. 자동으로 다음 카드
+9. 완료 후 통계 요약
+
+### 📁 새로 추가된 파일
+
+**사용자 세션 관리:**
+- ✅ `UserSessionManager.kt` (140 lines) - 세션 관리 싱글톤
+- ✅ `UserSelectionViewModel.kt` (150 lines) - 유저 선택 로직
+- ✅ `UserSelectionScreen.kt` (380 lines) - 유저 선택 UI
+
+**플래시카드 시스템:**
+- ✅ `FlashcardReviewViewModel.kt` (230 lines) - 복습 세션 관리
+- ✅ `FlashcardReviewScreen.kt` (600 lines) - 플래시카드 UI
+
+**문서:**
+- ✅ `USER_SESSION_IMPLEMENTATION.md` - 사용자 세션 상세 가이드
+- ✅ `FLASHCARD_IMPLEMENTATION.md` - 플래시카드 시스템 가이드
+
+### 🔄 수정된 파일
+
+**세션 관리 통합:**
+- ✏️ `ConversationHistoryViewModel.kt` - UserSessionManager 사용
+- ✏️ `ReviewViewModel.kt` - UserSessionManager 사용
+- ✏️ `ChatViewModel.kt` - UserSessionManager 사용
+- ✏️ `StatsRepository.kt` - UserSessionManager 사용
+
+**네비게이션:**
+- ✏️ `NihongoNavHost.kt` - UserSelection, Flashcard 라우트 추가
+- ✏️ `ScenarioListScreen.kt` - 단어장 FAB 버튼 추가
+
+### 📊 개선 효과
+
+**사용자 경험:**
+- ✨ 가족이나 친구와 함께 사용 가능
+- ✨ 각자의 학습 진도 독립 관리
+- ✨ 개인화된 통계 및 복습 일정
+- ✨ 직관적인 유저 선택 및 생성
+
+**학습 효율:**
+- 🎯 과학적으로 입증된 SM-2 알고리즘
+- 🎯 최적의 복습 타이밍 자동 계산
+- 🎯 마스터리 추적으로 성취감
+- 🎯 실시간 피드백으로 동기부여
+
+**기술 품질:**
+- ✅ Clean Architecture 유지
+- ✅ Reactive Flow API 사용
+- ✅ Hilt DI 완전 통합
+- ✅ Material 3 디자인 준수
+- ✅ 부드러운 애니메이션
+
+### 🎓 사용 방법
+
+**유저 선택:**
+1. 앱 실행 → 유저 선택 화면
+2. 기존 유저 선택 또는 "+" 버튼으로 생성
+3. 이름, 레벨 (초급/중급/상급), 아바타 선택
+4. 자동으로 시나리오 목록으로 이동
+
+**플래시카드 복습:**
+1. 시나리오 목록에서 "단語帳" FAB 클릭
+2. 복습 예정 카드 자동 로딩
+3. 카드 앞면 보고 답 생각
+4. "답을 표시" 버튼 클릭
+5. 의미 확인 후 기억 정도 평가 (0-5)
+6. 자동으로 다음 카드
+7. 완료 후 통계 확인
 
 ---
 
