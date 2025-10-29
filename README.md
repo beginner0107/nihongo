@@ -11,13 +11,15 @@ AI 기반 일본어 회화 학습을 위한 개인용 Android 애플리케이션
 - 🤖 **AI 대화 파트너**: Gemini 2.5 Flash를 활용한 자연스러운 일본어 대화
 - 💭 **맥락 기억**: 이전 대화를 기억하고 관계를 이어가는 친구 같은 AI
 - 💡 **AI 힌트 시스템**: 한국어-일본어 번역 힌트, 로마자 표기, 문맥 기반 제안
-- 📖 **문법 설명 기능**: 메시지 길게 누르기로 즉시 문법 분석, 색상별 구문 강조, 한국어 설명
+- 📖 **문법 설명 기능**: 메시지 길게 누르기로 즉시 문법 분석, 색상별 구문 강조, 캐싱으로 즉시 재로딩
+- 🌐 **메시지별 번역**: 각 AI 메시지마다 한국어 번역 버튼, 선택적 번역 확인
+- 💾 **대화 관리**: 대화 종료 버튼, 히스토리 자동 저장, 새 대화 시작 기능
 - 🎭 **6가지 시나리오**: 레스토랑, 쇼핑, 호텔, 친구 만들기, 전화 대화, 병원 (초급/중급/상급)
-- 🎙️ **음성 지원**: STT로 일본어 음성 인식, TTS로 AI 응답 자동 재생
+- 🎙️ **음성 지원**: STT로 일본어 음성 인식, TTS로 AI 응답 자동 재생, 재시도 메커니즘
 - ⚙️ **설정 시스템**: 난이도 조절 (1-3), 음성 속도 (0.5x-2.0x), 자동 읽기, 로마자 표시
 - 🎯 **난이도 조절**: JLPT 레벨별 AI 응답 (N5-N4/N3-N2/N1), 어휘 복잡도 분석, 별점 표시
 - 📊 **학습 통계**: 일일/주간/월간 진도, 연속 학습일 추적, 시나리오별 진행률, 차트 시각화
-- 🔥 **복습 모드**: 과거 대화 재생, 날짜별 그룹화, 중요 문구 추출, 메시지 재생
+- 🔥 **복습 모드**: 완료된 대화 재생, 날짜별 그룹화, 중요 문구 추출, 메시지 재생
 - 👤 **사용자 프로필**: 아바타 선택, 학습 목표, 개인화된 AI 응답
 - ✨ **세련된 UI**: Material 3 디자인, 타이핑 인디케이터, 부드러운 애니메이션, 메시지 타임스탬프
 
@@ -192,7 +194,66 @@ OutlinedTextField(
 - LazyColumn 컨텐츠 패딩: 16dp
 - 자동 스크롤: 새 메시지 추가 시 애니메이션 스크롤
 
-## 🆕 최근 업데이트 (2025-10) - TTS 및 텍스트 정제
+## 🆕 최신 업데이트 (2025-10-29) - 대화 관리 및 번역 기능 강화
+
+### ✨ 새로운 기능
+
+**1. 대화 종료 및 새 대화 시작**
+- ✅ **"チャット終了" 버튼**: 메시지가 있을 때 TopAppBar에 체크마크(✓) 버튼 표시
+- ✅ **확인 다이얼로그**: 실수 방지를 위한 확인 절차
+- ✅ **대화 히스토리 자동 저장**: 종료된 대화는 복습 모드에서 확인 가능
+- ✅ **깨끗한 시작**: 종료 후 동일 시나리오에서 새 대화 시작
+
+**2. 개선된 번역 기능**
+- ✅ **메시지별 번역 버튼**: 각 AI 메시지마다 "한국어 번역" 버튼 제공
+- ✅ **토글 방식**: 원하는 메시지만 선택적으로 번역 확인
+- ✅ **번역 캐싱**: 한 번 번역된 메시지는 즉시 표시
+- ✅ **간결한 UI**: 버튼 텍스트가 "번역 숨기기"로 변경
+
+**3. 문법 설명 캐싱**
+- ✅ **즉시 로딩**: 같은 문장을 다시 길게 누르면 캐시에서 즉시 표시
+- ✅ **스크롤 안정성**: 문법 시트가 더 이상 스크롤로 사라지지 않음
+- ✅ **성능 향상**: API 호출 최소화로 데이터 절약
+
+**4. 대화 이력 보존**
+- ✅ **자동 복원**: 복습 화면에서 돌아와도 대화 내용 유지
+- ✅ **시나리오별 관리**: 각 시나리오마다 독립적인 대화 세션
+- ✅ **스마트 저장**: 실제로 메시지를 보낼 때만 대화 생성 (빈 대화 방지)
+
+**5. TTS 안정성 개선**
+- ✅ **재시도 메커니즘**: 초기화 실패 시 자동 재시도
+- ✅ **시나리오 전환 안정화**: 시나리오를 바꿔도 TTS가 계속 작동
+- ✅ **더 나은 에러 메시지**: 문제 발생 시 구체적인 해결 방법 제시
+
+### 🗄️ 데이터베이스 개선
+
+**Schema Version 2 마이그레이션**:
+```sql
+ALTER TABLE conversations ADD COLUMN isCompleted INTEGER NOT NULL DEFAULT 0
+```
+- 활성 대화(isCompleted = 0)와 종료된 대화(isCompleted = 1) 구분
+- 기존 데이터 자동 마이그레이션으로 데이터 손실 없음
+- 복습 모드에서 종료된 대화만 표시
+
+### 💡 사용 방법
+
+**대화 종료하기**:
+1. 채팅 중 우측 상단의 체크마크(✓) 버튼 클릭
+2. 확인 다이얼로그에서 "終了" 선택
+3. 대화가 히스토리에 저장되고 새 대화 시작
+
+**번역 보기**:
+1. AI 메시지 하단의 "한국어 번역" 버튼 클릭
+2. 번역이 메시지 아래에 표시됨
+3. "번역 숨기기" 버튼으로 다시 숨기기
+
+**문법 설명 빠르게 보기**:
+1. AI 메시지 길게 누르기
+2. 두 번째부터는 캐시에서 즉시 로딩!
+
+---
+
+## 🆕 이전 업데이트 (2025-10) - TTS 및 텍스트 정제
 
 ### TTS (Text-to-Speech) 시스템 대폭 개선
 
@@ -376,6 +437,12 @@ android {
 - [x] 사용자 프로필 시스템 (아바타, 학습 목표, 개인화)
 - [x] 난이도별 AI 응답 조정 (JLPT N5-N1, 어휘 복잡도 분석)
 - [x] 문법 설명 기능 (색상 구문 강조, 한국어 설명, 대화 예시)
+- [x] 문법 캐싱 (즉시 재로딩)
+- [x] 메시지별 한국어 번역 버튼
+- [x] 대화 종료 및 히스토리 관리
+- [x] TTS 재시도 메커니즘
+- [x] 대화 이력 보존 (네비게이션 시)
+- [x] 스마트 대화 생성 (빈 대화 방지)
 
 ### 📅 Phase 4: 추가 기능 (계획)
 - [ ] 발음 평가 (STT 정확도 분석)
@@ -402,7 +469,7 @@ android {
 ### Domain Layer (`domain/model/`)
 - **User.kt**: 사용자 엔티티 (Room @Entity, avatarId, learningGoal, level)
 - **Scenario.kt**: 시나리오 템플릿 (제목, 설명, 난이도, 시스템 프롬프트)
-- **Conversation.kt**: 대화 세션 (userId, scenarioId)
+- **Conversation.kt**: 대화 세션 (userId, scenarioId, isCompleted)
 - **Message.kt**: 개별 메시지 (content, isUser, timestamp, complexityScore)
 - **Hint.kt**: AI 힌트 (japanese, korean, romaji, explanation)
 - **GrammarExplanation.kt**: 문법 분석 (components, overallExplanation, examples, relatedPatterns)
@@ -412,8 +479,11 @@ android {
 
 ### Data Layer
 #### Local (`data/local/`)
-- **NihongoDatabase.kt**: Room 데이터베이스 (4개 DAO)
+- **NihongoDatabase.kt**: Room 데이터베이스 (4개 DAO, Schema v2)
+  - `MIGRATION_1_2`: isCompleted 컬럼 추가 마이그레이션
 - **UserDao.kt, ScenarioDao.kt, ConversationDao.kt, MessageDao.kt**: 데이터 접근 인터페이스
+  - `getLatestActiveConversationByUserAndScenario()`: 활성 대화 조회
+  - `getCompletedConversationsByUserAndScenario()`: 완료된 대화 조회
 - **SettingsDataStore.kt**: DataStore Preferences 관리
 - **DataInitializer.kt**: 6가지 기본 시나리오 초기화
 
@@ -426,6 +496,9 @@ android {
 - **ConversationRepository.kt**: 통합 데이터 관리
   - Room DB + Gemini API 통합
   - Flow 기반 리액티브 데이터
+  - `getOrCreateConversation()`: 대화 세션 복원 또는 생성
+  - `completeConversation()`: 대화 종료 및 히스토리 저장
+  - `translateToKorean()`: 일본어 → 한국어 번역
 - **StatsRepository.kt**: 학습 통계 계산
   - 일일/주간/월간 통계
   - 연속 학습일 추적
@@ -437,9 +510,14 @@ android {
 - **ChatScreen.kt**: 메인 채팅 UI (360+ lines)
   - ChatScreen, MessageBubble, MessageInput composables
   - AnimatedVisibility, 타임스탬프, 에러 표시
+  - 대화 종료 확인 다이얼로그
+  - 메시지별 번역 버튼
 - **ChatViewModel.kt**: 채팅 상태 관리
   - 메시지 전송/수신, 음성 이벤트, 힌트 요청
   - Settings 관찰 및 VoiceManager 연동
+  - `confirmEndChat()`: 대화 종료 및 상태 초기화
+  - `toggleMessageTranslation()`: 메시지별 번역 토글
+  - `requestGrammarExplanation()`: 문법 설명 (캐싱 지원)
 - **TypingIndicator.kt**: 3-dot 펄스 애니메이션
 - **VoiceButton.kt**: 마이크 버튼 + 펄스 효과
 - **HintDialog.kt**: 힌트 카드 리스트 다이얼로그
@@ -494,8 +572,10 @@ android {
 #### Voice (`core/voice/`)
 - **VoiceManager.kt**: STT/TTS 통합 관리
   - Android SpeechRecognizer (일본어 ja-JP)
-  - TextToSpeech (속도 제어 0.5x-2.0x)
+  - TextToSpeech (속도 제어 0.5x-2.0x, 재시도 메커니즘)
+  - Pending queue 시스템 (비동기 초기화 문제 해결)
   - StateFlow 기반 상태 관리
+  - `retryTtsInitialization()`: TTS 재초기화 함수
 - **VoiceState.kt**: Idle, Listening, Speaking 상태
 - **VoiceEvent.kt**: RecognitionResult, Error, SpeakingComplete 이벤트
 
