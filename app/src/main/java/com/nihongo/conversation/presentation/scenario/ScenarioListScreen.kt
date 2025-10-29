@@ -22,6 +22,7 @@ import com.nihongo.conversation.domain.model.Scenario
 @Composable
 fun ScenarioListScreen(
     onScenarioSelected: (Long) -> Unit,
+    onFlashcardClick: () -> Unit = {},
     onSettingsClick: () -> Unit = {},
     onStatsClick: () -> Unit = {},
     onProfileClick: () -> Unit = {},
@@ -65,6 +66,18 @@ fun ScenarioListScreen(
                         )
                     }
                 }
+            )
+        },
+        floatingActionButton = {
+            ExtendedFloatingActionButton(
+                onClick = onFlashcardClick,
+                icon = {
+                    Icon(
+                        imageVector = Icons.Default.Style,
+                        contentDescription = "単語帳"
+                    )
+                },
+                text = { Text("単語帳") }
             )
         }
     ) { padding ->

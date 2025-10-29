@@ -8,6 +8,7 @@ import androidx.navigation.compose.composable
 import androidx.navigation.compose.rememberNavController
 import androidx.navigation.navArgument
 import com.nihongo.conversation.presentation.chat.ChatScreen
+import com.nihongo.conversation.presentation.flashcard.FlashcardReviewScreen
 import com.nihongo.conversation.presentation.profile.ProfileScreen
 import com.nihongo.conversation.presentation.review.ReviewScreen
 import com.nihongo.conversation.presentation.scenario.ScenarioListScreen
@@ -18,6 +19,7 @@ import com.nihongo.conversation.presentation.user.UserSelectionScreen
 sealed class Screen(val route: String) {
     data object UserSelection : Screen("user_selection")
     data object ScenarioList : Screen("scenarios")
+    data object Flashcard : Screen("flashcard")
     data object Settings : Screen("settings")
     data object Review : Screen("review")
     data object Stats : Screen("stats")
@@ -52,6 +54,9 @@ fun NihongoNavHost(
                 onScenarioSelected = { scenarioId ->
                     navController.navigate(Screen.Chat.createRoute(1L, scenarioId))
                 },
+                onFlashcardClick = {
+                    navController.navigate(Screen.Flashcard.route)
+                },
                 onSettingsClick = {
                     navController.navigate(Screen.Settings.route)
                 },
@@ -66,6 +71,12 @@ fun NihongoNavHost(
 
         composable(route = Screen.Settings.route) {
             SettingsScreen(
+                onBackClick = { navController.popBackStack() }
+            )
+        }
+
+        composable(route = Screen.Flashcard.route) {
+            FlashcardReviewScreen(
                 onBackClick = { navController.popBackStack() }
             )
         }
