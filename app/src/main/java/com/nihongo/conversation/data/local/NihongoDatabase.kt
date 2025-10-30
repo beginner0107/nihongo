@@ -7,6 +7,7 @@ import androidx.sqlite.db.SupportSQLiteDatabase
 import com.nihongo.conversation.domain.model.Conversation
 import com.nihongo.conversation.domain.model.ConversationStats
 import com.nihongo.conversation.domain.model.Message
+import com.nihongo.conversation.domain.model.PronunciationHistory
 import com.nihongo.conversation.domain.model.ReviewHistory
 import com.nihongo.conversation.domain.model.Scenario
 import com.nihongo.conversation.domain.model.User
@@ -19,12 +20,13 @@ import com.nihongo.conversation.domain.model.VocabularyEntry
         Conversation::class,
         Message::class,
         VocabularyEntry::class,
-        ReviewHistory::class
+        ReviewHistory::class,
+        PronunciationHistory::class
     ],
     views = [
         ConversationStats::class
     ],
-    version = 4,
+    version = 5,
     exportSchema = false
 )
 abstract class NihongoDatabase : RoomDatabase() {
@@ -33,6 +35,7 @@ abstract class NihongoDatabase : RoomDatabase() {
     abstract fun conversationDao(): ConversationDao
     abstract fun messageDao(): MessageDao
     abstract fun vocabularyDao(): VocabularyDao
+    abstract fun pronunciationHistoryDao(): PronunciationHistoryDao
 
     companion object {
         val MIGRATION_1_2 = object : Migration(1, 2) {
@@ -130,6 +133,39 @@ abstract class NihongoDatabase : RoomDatabase() {
                         LEFT JOIN messages m ON c.id = m.conversationId
                         GROUP BY c.id
                 """.trimIndent())
+            }
+        }
+
+        val MIGRATION_4_5 = object : Migration(4, 5) {
+            override fun migrate(database: SupportSQLiteDatabase) {
+                // Create pronunciation_history table
+                database.execSQL("""
+                    CREATE TABLE IF NOT EXISTS pronunciation_history (
+                        id INTEGER PRIMARY KEY AUTOINCREMENT NOT NULL,
+                        userId INTEGER NOT NULL,
+                        messageId INTEGER,
+                        vocabularyId INTEGER,
+                        expectedText TEXT NOT NULL,
+                        recognizedText TEXT NOT NULL,
+                        accuracyScore INTEGER NOT NULL,
+                        wordComparisonJson TEXT NOT NULL,
+                        practicedAt INTEGER NOT NULL,
+                        durationMs INTEGER NOT NULL DEFAULT 0,
+                        attemptNumber INTEGER NOT NULL DEFAULT 1,
+                        source TEXT NOT NULL DEFAULT 'CHAT',
+                        FOREIGN KEY(userId) REFERENCES users(id) ON DELETE CASCADE,
+                        FOREIGN KEY(messageId) REFERENCES messages(id) ON DELETE SET NULL,
+                        FOREIGN KEY(vocabularyId) REFERENCES vocabulary_entries(id) ON DELETE SET NULL
+                    )
+                """)
+
+                // Create indices for pronunciation_history
+                database.execSQL("CREATE INDEX IF NOT EXISTS index_pronunciation_history_userId ON pronunciation_history(userId)")
+                database.execSQL("CREATE INDEX IF NOT EXISTS index_pronunciation_history_messageId ON pronunciation_history(messageId)")
+                database.execSQL("CREATE INDEX IF NOT EXISTS index_pronunciation_history_vocabularyId ON pronunciation_history(vocabularyId)")
+                database.execSQL("CREATE INDEX IF NOT EXISTS index_pronunciation_history_practicedAt ON pronunciation_history(practicedAt)")
+                database.execSQL("CREATE INDEX IF NOT EXISTS idx_pronunciation_user_date ON pronunciation_history(userId, practicedAt)")
+                database.execSQL("CREATE INDEX IF NOT EXISTS idx_pronunciation_user_score ON pronunciation_history(userId, accuracyScore)")
             }
         }
     }

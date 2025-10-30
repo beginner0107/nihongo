@@ -22,6 +22,7 @@ import com.nihongo.conversation.domain.model.VocabularyEntry
 @Composable
 fun FlashcardReviewScreen(
     onBackClick: () -> Unit,
+    onStatsClick: () -> Unit = {},
     viewModel: FlashcardReviewViewModel = hiltViewModel()
 ) {
     val uiState by viewModel.uiState.collectAsState()
@@ -46,6 +47,9 @@ fun FlashcardReviewScreen(
                     }
                 },
                 actions = {
+                    IconButton(onClick = onStatsClick) {
+                        Icon(Icons.Default.BarChart, "統計")
+                    }
                     if (!uiState.isSessionComplete && currentCard != null) {
                         IconButton(onClick = { viewModel.restartSession() }) {
                             Icon(Icons.Default.Refresh, "再開始")
@@ -67,6 +71,7 @@ fun FlashcardReviewScreen(
                     stats = uiState.sessionStats,
                     onRestartClick = { viewModel.restartSession() },
                     onBackClick = onBackClick,
+                    onStatsClick = onStatsClick,
                     formatDuration = { viewModel.formatDuration(it) },
                     modifier = Modifier.padding(padding)
                 )
@@ -373,6 +378,7 @@ fun SessionCompleteScreen(
     stats: SessionStats,
     onRestartClick: () -> Unit,
     onBackClick: () -> Unit,
+    onStatsClick: () -> Unit,
     formatDuration: (Long) -> String,
     modifier: Modifier = Modifier
 ) {
@@ -438,6 +444,19 @@ fun SessionCompleteScreen(
             Icon(Icons.Default.Refresh, null)
             Spacer(modifier = Modifier.width(8.dp))
             Text("もう一度", style = MaterialTheme.typography.titleMedium)
+        }
+
+        Spacer(modifier = Modifier.height(12.dp))
+
+        OutlinedButton(
+            onClick = onStatsClick,
+            modifier = Modifier
+                .fillMaxWidth()
+                .height(56.dp)
+        ) {
+            Icon(Icons.Default.BarChart, null)
+            Spacer(modifier = Modifier.width(8.dp))
+            Text("詳細統計を見る", style = MaterialTheme.typography.titleMedium)
         }
 
         Spacer(modifier = Modifier.height(12.dp))

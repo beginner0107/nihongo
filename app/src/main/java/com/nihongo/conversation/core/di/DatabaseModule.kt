@@ -50,4 +50,8 @@ object DatabaseModule {
 
     @Provides
     fun provideVocabularyDao(database: NihongoDatabase): VocabularyDao = database.vocabularyDao()
+
+    @Provides
+    fun providePronunciationHistoryDao(database: NihongoDatabase): PronunciationHistoryDao =
+        database.pronunciationHistoryDao()
 }

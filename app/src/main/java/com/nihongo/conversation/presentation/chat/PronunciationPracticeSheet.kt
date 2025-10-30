@@ -30,6 +30,8 @@ fun PronunciationPracticeSheet(
     targetText: String,
     result: PronunciationResult?,
     isRecording: Boolean,
+    bestScore: Int? = null,
+    previousAttempts: Int = 0,
     onStartRecording: () -> Unit,
     onStopRecording: () -> Unit,
     onRetry: () -> Unit,
@@ -109,6 +111,45 @@ fun PronunciationPracticeSheet(
                 }
             }
 
+            // Previous Best Score Display
+            if (bestScore != null && bestScore > 0) {
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.SpaceBetween,
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    Row(
+                        verticalAlignment = Alignment.CenterVertically,
+                        horizontalArrangement = Arrangement.spacedBy(8.dp)
+                    ) {
+                        Icon(
+                            imageVector = Icons.Default.EmojiEvents,
+                            contentDescription = null,
+                            tint = Color(0xFFFFD700),
+                            modifier = Modifier.size(20.dp)
+                        )
+                        Text(
+                            text = "前回のベスト:",
+                            style = MaterialTheme.typography.labelMedium,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant
+                        )
+                        Text(
+                            text = "$bestScore 点",
+                            style = MaterialTheme.typography.titleMedium,
+                            fontWeight = FontWeight.Bold,
+                            color = MaterialTheme.colorScheme.primary
+                        )
+                    }
+                    if (previousAttempts > 0) {
+                        Text(
+                            text = "$previousAttempts 回目",
+                            style = MaterialTheme.typography.bodySmall,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant
+                        )
+                    }
+                }
+            }
+
             // Recording Button
             Box(
                 modifier = Modifier.fillMaxWidth(),
@@ -165,7 +206,10 @@ fun PronunciationPracticeSheet(
                         HorizontalDivider()
 
                         // Score Display
-                        AccuracyScoreCard(score = it.accuracyScore)
+                        AccuracyScoreCard(
+                            score = it.accuracyScore,
+                            bestScore = bestScore
+                        )
 
                         // Comparison Display
                         ComparisonCard(result = it)
@@ -211,7 +255,11 @@ fun PronunciationPracticeSheet(
 }
 
 @Composable
-fun AccuracyScoreCard(score: Int) {
+fun AccuracyScoreCard(score: Int, bestScore: Int? = null) {
+    val improvement = if (bestScore != null && bestScore > 0) {
+        score - bestScore
+    } else null
+
     Card(
         modifier = Modifier.fillMaxWidth(),
         colors = CardDefaults.cardColors(
@@ -256,6 +304,54 @@ fun AccuracyScoreCard(score: Int) {
                 )
             }
 
+            // Improvement indicator
+            if (improvement != null) {
+                Card(
+                    colors = CardDefaults.cardColors(
+                        containerColor = when {
+                            improvement > 0 -> Color(0xFF4CAF50).copy(alpha = 0.2f)
+                            improvement < 0 -> Color(0xFFF44336).copy(alpha = 0.2f)
+                            else -> MaterialTheme.colorScheme.surfaceVariant
+                        }
+                    )
+                ) {
+                    Row(
+                        modifier = Modifier.padding(horizontal = 12.dp, vertical = 6.dp),
+                        verticalAlignment = Alignment.CenterVertically,
+                        horizontalArrangement = Arrangement.spacedBy(4.dp)
+                    ) {
+                        Icon(
+                            imageVector = when {
+                                improvement > 0 -> Icons.Default.TrendingUp
+                                improvement < 0 -> Icons.Default.TrendingDown
+                                else -> Icons.Default.Remove
+                            },
+                            contentDescription = null,
+                            modifier = Modifier.size(16.dp),
+                            tint = when {
+                                improvement > 0 -> Color(0xFF4CAF50)
+                                improvement < 0 -> Color(0xFFF44336)
+                                else -> MaterialTheme.colorScheme.onSurfaceVariant
+                            }
+                        )
+                        Text(
+                            text = when {
+                                improvement > 0 -> "+$improvement"
+                                improvement < 0 -> "$improvement"
+                                else -> "同じ"
+                            },
+                            style = MaterialTheme.typography.labelLarge,
+                            fontWeight = FontWeight.Bold,
+                            color = when {
+                                improvement > 0 -> Color(0xFF4CAF50)
+                                improvement < 0 -> Color(0xFFF44336)
+                                else -> MaterialTheme.colorScheme.onSurfaceVariant
+                            }
+                        )
+                    }
+                }
+            }
+
             // Score feedback
             Row(
                 verticalAlignment = Alignment.CenterVertically,
@@ -270,13 +366,15 @@ fun AccuracyScoreCard(score: Int) {
                     contentDescription = null,
                     tint = when {
                         score >= 80 -> Color(0xFF4CAF50)
-                        score >= 60 -> Color(0xFFFFC107)
+                        score >= 60 -> Color(0xFFC107)
                         else -> Color(0xFFF44336)
                     }
                 )
                 Text(
                     text = when {
+                        score >= 90 && improvement != null && improvement > 0 -> "新記録！完璧です！"
                         score >= 90 -> "完璧です！"
+                        score >= 80 && improvement != null && improvement > 0 -> "上達しました！"
                         score >= 80 -> "とても良い！"
                         score >= 70 -> "良いです！"
                         score >= 60 -> "もう少しです"

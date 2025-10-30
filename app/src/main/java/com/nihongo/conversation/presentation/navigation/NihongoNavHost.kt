@@ -9,7 +9,9 @@ import androidx.navigation.compose.rememberNavController
 import androidx.navigation.navArgument
 import com.nihongo.conversation.presentation.chat.ChatScreen
 import com.nihongo.conversation.presentation.flashcard.FlashcardReviewScreen
+import com.nihongo.conversation.presentation.flashcard.FlashcardStatsScreen
 import com.nihongo.conversation.presentation.profile.ProfileScreen
+import com.nihongo.conversation.presentation.pronunciation.PronunciationHistoryScreen
 import com.nihongo.conversation.presentation.review.ReviewScreen
 import com.nihongo.conversation.presentation.scenario.ScenarioListScreen
 import com.nihongo.conversation.presentation.settings.SettingsScreen
@@ -20,6 +22,8 @@ sealed class Screen(val route: String) {
     data object UserSelection : Screen("user_selection")
     data object ScenarioList : Screen("scenarios")
     data object Flashcard : Screen("flashcard")
+    data object FlashcardStats : Screen("flashcard_stats")
+    data object PronunciationHistory : Screen("pronunciation_history")
     data object Settings : Screen("settings")
     data object Review : Screen("review")
     data object Stats : Screen("stats")
@@ -77,6 +81,19 @@ fun NihongoNavHost(
 
         composable(route = Screen.Flashcard.route) {
             FlashcardReviewScreen(
+                onBackClick = { navController.popBackStack() },
+                onStatsClick = { navController.navigate(Screen.FlashcardStats.route) }
+            )
+        }
+
+        composable(route = Screen.FlashcardStats.route) {
+            FlashcardStatsScreen(
+                onBackClick = { navController.popBackStack() }
+            )
+        }
+
+        composable(route = Screen.PronunciationHistory.route) {
+            PronunciationHistoryScreen(
                 onBackClick = { navController.popBackStack() }
             )
         }
