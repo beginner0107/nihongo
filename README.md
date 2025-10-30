@@ -12,6 +12,7 @@ AI 기반 일본어 회화 학습을 위한 개인용 Android 애플리케이션
 - **AI 대화 파트너**: Gemini 2.5 Flash를 활용한 자연스러운 일본어 대화
 - **맥락 기억**: 이전 대화를 기억하고 관계를 이어가는 친구 같은 AI
 - **AI 힌트 시스템**: 한국어-일본어 번역 힌트, 로마자 표기, 문맥 기반 제안
+- **메시지 컨텍스트 메뉴**: 길게 누르기로 복사/읽기/문법 분석/번역 기능 접근, 외부 앱 연동 가능
 - **문법 설명 기능**: 메시지 길게 누르기로 즉시 문법 분석, 색상별 구문 강조, 캐싱으로 즉시 재로딩
 - **메시지별 번역**: 각 AI 메시지마다 한국어 번역 버튼, 선택적 번역 확인
 
@@ -2601,6 +2602,111 @@ GrammarAPI: Returned local analysis after timeout exception
 - `LocalGrammarAnalyzer.kt`: 로컬 패턴 매칭
 - `ChatViewModel.kt`: 문법 분석 요청 관리
 - `CLAUDE.md`: 프로젝트 작업 가이드
+
+## 📋 메시지 컨텍스트 메뉴 (2025-10-30)
+
+### 개요
+채팅 메시지에 롱프레스 컨텍스트 메뉴를 추가하여 다양한 기능에 빠르게 접근할 수 있도록 개선했습니다.
+
+### 주요 기능
+
+#### 컨텍스트 메뉴 항목
+메시지를 길게 누르면 다음 메뉴가 표시됩니다:
+
+1. **📋 복사** (모든 메시지)
+   - 메시지 텍스트를 클립보드에 복사
+   - 외부 번역기나 메모장에 붙여넣기 가능
+   - 복사 완료 시 토스트 메시지 표시
+
+2. **🔊 읽기** (TTS 지원 메시지)
+   - 일본어 TTS로 메시지 읽어주기
+   - 발음 확인 및 듣기 연습
+
+3. **📖 문법 분석** (AI 메시지만)
+   - 문법 구조 분석 Bottom Sheet 표시
+   - 문법 포인트 색상별 강조
+   - 한국어 설명 제공
+
+4. **🌐 번역 보기/숨기기** (AI 메시지, 번역 가능 시)
+   - 한국어 번역 토글
+   - ML Kit 온디바이스 번역
+   - 빠른 의미 파악
+
+### 사용 방법
+
+```
+1. 채팅 메시지를 길게 누르기 (Long Press)
+2. 원하는 메뉴 항목 선택
+3. 복사 시 "복사되었습니다" 토스트 확인
+```
+
+### 기술 구현
+
+**주요 변경 파일**: [`ChatScreen.kt`](app/src/main/java/com/nihongo/conversation/presentation/chat/ChatScreen.kt)
+
+```kotlin
+// MessageBubble 함수에 추가
+val context = LocalContext.current
+val clipboardManager = LocalClipboardManager.current
+var showContextMenu by remember { mutableStateOf(false) }
+
+Box {
+    Surface(
+        modifier = Modifier.combinedClickable(
+            onClick = { onSpeakMessage?.invoke() },
+            onLongClick = { showContextMenu = true }  // 컨텍스트 메뉴 표시
+        )
+    ) {
+        // 메시지 내용...
+    }
+
+    DropdownMenu(
+        expanded = showContextMenu,
+        onDismissRequest = { showContextMenu = false }
+    ) {
+        // 복사 메뉴 (항상 표시)
+        DropdownMenuItem(
+            text = { Text("복사") },
+            leadingIcon = { Icon(Icons.Default.ContentCopy, null) },
+            onClick = {
+                clipboardManager.setText(AnnotatedString(message.content))
+                Toast.makeText(context, "복사되었습니다", Toast.LENGTH_SHORT).show()
+                showContextMenu = false
+            }
+        )
+
+        // 조건부 메뉴 항목들...
+    }
+}
+```
+
+### 사용 예시
+
+**일본어 표현 외부 번역기로 확인**:
+1. AI 메시지 "レストランを予約したいのですが" 길게 누르기
+2. "복사" 선택
+3. Google 번역 앱이나 Papago 앱에 붙여넣기
+4. 다양한 번역 비교 가능
+
+**발음과 문법 동시 학습**:
+1. 메시지 길게 누르기
+2. "읽기"로 발음 확인
+3. 다시 길게 누르기
+4. "문법 분석"으로 구조 이해
+
+### 이전과의 차이
+
+| 항목 | 이전 | 현재 |
+|------|------|------|
+| **복사 기능** | ❌ 없음 | ✅ 컨텍스트 메뉴에서 가능 |
+| **메뉴 접근** | - | 길게 누르기 1회 |
+| **외부 앱 연동** | ❌ 불가능 | ✅ 클립보드로 가능 |
+| **기능 발견성** | 낮음 | 높음 (메뉴로 통합) |
+
+### 관련 파일
+
+- [`ChatScreen.kt:339-609`](app/src/main/java/com/nihongo/conversation/presentation/chat/ChatScreen.kt#L339-L609): MessageBubble 컨텍스트 메뉴 구현
+- `GrammarBottomSheet.kt`: 클립보드 사용 참고 예시
 
 ## 🧹 프로젝트 정리 (2025-10-30)
 

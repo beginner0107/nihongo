@@ -196,6 +196,47 @@ Refactor [컴포넌트]:
 
 ## 🆕 최근 업데이트 (2025-10)
 
+### 메시지 컨텍스트 메뉴 (2025-10-30)
+**파일**: `presentation/chat/ChatScreen.kt`
+
+**주요 변경사항**:
+1. **롱프레스 컨텍스트 메뉴 추가**
+   ```kotlin
+   Box {
+       Surface(
+           modifier = Modifier.combinedClickable(
+               onClick = { onSpeakMessage?.invoke() },
+               onLongClick = { showContextMenu = true }
+           )
+       ) { /* 메시지 내용 */ }
+
+       DropdownMenu(
+           expanded = showContextMenu,
+           onDismissRequest = { showContextMenu = false }
+       ) {
+           // 메뉴 항목들...
+       }
+   }
+   ```
+
+2. **메뉴 항목 (조건부 표시)**:
+   - 복사 (항상): 클립보드에 텍스트 복사
+   - 읽기 (onSpeakMessage != null): TTS 재생
+   - 문법 분석 (!message.isUser): 문법 분석 Bottom Sheet
+   - 번역 토글 (!message.isUser && onToggleTranslation != null): 번역 표시/숨김
+
+3. **클립보드 연동**:
+   ```kotlin
+   val clipboardManager = LocalClipboardManager.current
+   clipboardManager.setText(AnnotatedString(message.content))
+   Toast.makeText(context, "복사되었습니다", Toast.LENGTH_SHORT).show()
+   ```
+
+**사용 시나리오**:
+- 외부 번역기 연동 (Google 번역, Papago)
+- 메모장에 저장
+- 다른 앱과 텍스트 공유
+
 ### 문법 분석 최적화 (2025-10-30)
 **파일**: `data/remote/GeminiApiService.kt`, `core/grammar/LocalGrammarAnalyzer.kt`, `presentation/chat/ChatViewModel.kt`
 

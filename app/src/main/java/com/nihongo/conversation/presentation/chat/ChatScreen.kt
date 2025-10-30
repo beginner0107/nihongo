@@ -351,31 +351,35 @@ fun MessageBubble(
     val timeFormatter = remember {
         java.text.SimpleDateFormat("HH:mm", java.util.Locale.getDefault())
     }
+    val context = androidx.compose.ui.platform.LocalContext.current
+    val clipboardManager = androidx.compose.ui.platform.LocalClipboardManager.current
+    var showContextMenu by remember { mutableStateOf(false) }
 
     Column(
         modifier = Modifier.fillMaxWidth(),
         horizontalAlignment = if (message.isUser) Alignment.End else Alignment.Start
     ) {
-        Surface(
-            shape = RoundedCornerShape(
-                topStart = 16.dp,
-                topEnd = 16.dp,
-                bottomStart = if (message.isUser) 16.dp else 4.dp,
-                bottomEnd = if (message.isUser) 4.dp else 16.dp
-            ),
-            color = if (message.isUser) {
-                MaterialTheme.colorScheme.primaryContainer
-            } else {
-                MaterialTheme.colorScheme.secondaryContainer
-            },
-            tonalElevation = 1.dp,
-            modifier = Modifier
-                .widthIn(max = 280.dp)
-                .combinedClickable(
-                    onClick = { onSpeakMessage?.invoke() },
-                    onLongClick = onLongPress
-                )
-        ) {
+        Box {
+            Surface(
+                shape = RoundedCornerShape(
+                    topStart = 16.dp,
+                    topEnd = 16.dp,
+                    bottomStart = if (message.isUser) 16.dp else 4.dp,
+                    bottomEnd = if (message.isUser) 4.dp else 16.dp
+                ),
+                color = if (message.isUser) {
+                    MaterialTheme.colorScheme.primaryContainer
+                } else {
+                    MaterialTheme.colorScheme.secondaryContainer
+                },
+                tonalElevation = 1.dp,
+                modifier = Modifier
+                    .widthIn(max = 280.dp)
+                    .combinedClickable(
+                        onClick = { onSpeakMessage?.invoke() },
+                        onLongClick = { showContextMenu = true }
+                    )
+            ) {
             Column(
                 modifier = Modifier.padding(12.dp),
                 verticalArrangement = Arrangement.spacedBy(4.dp)
@@ -523,7 +527,85 @@ fun MessageBubble(
                 )
             }
         }
-    }
+
+        // Context Menu
+        androidx.compose.material3.DropdownMenu(
+            expanded = showContextMenu,
+            onDismissRequest = { showContextMenu = false }
+        ) {
+            // 복사 (Always available)
+            androidx.compose.material3.DropdownMenuItem(
+                text = { androidx.compose.material3.Text("복사") },
+                leadingIcon = {
+                    androidx.compose.material3.Icon(
+                        androidx.compose.material.icons.Icons.Default.ContentCopy,
+                        contentDescription = null
+                    )
+                },
+                onClick = {
+                    clipboardManager.setText(androidx.compose.ui.text.AnnotatedString(message.content))
+                    android.widget.Toast.makeText(context, "복사되었습니다", android.widget.Toast.LENGTH_SHORT).show()
+                    showContextMenu = false
+                }
+            )
+
+            // 읽기 (If TTS available)
+            if (onSpeakMessage != null) {
+                androidx.compose.material3.DropdownMenuItem(
+                    text = { androidx.compose.material3.Text("읽기") },
+                    leadingIcon = {
+                        androidx.compose.material3.Icon(
+                            androidx.compose.material.icons.Icons.Default.VolumeUp,
+                            contentDescription = null
+                        )
+                    },
+                    onClick = {
+                        onSpeakMessage()
+                        showContextMenu = false
+                    }
+                )
+            }
+
+            // 문법 분석 (If AI message)
+            if (!message.isUser) {
+                androidx.compose.material3.DropdownMenuItem(
+                    text = { androidx.compose.material3.Text("문법 분석") },
+                    leadingIcon = {
+                        androidx.compose.material3.Icon(
+                            androidx.compose.material.icons.Icons.Default.MenuBook,
+                            contentDescription = null
+                        )
+                    },
+                    onClick = {
+                        onLongPress()
+                        showContextMenu = false
+                    }
+                )
+            }
+
+            // 번역 토글 (If AI message and translation available)
+            if (!message.isUser && onToggleTranslation != null) {
+                androidx.compose.material3.DropdownMenuItem(
+                    text = {
+                        androidx.compose.material3.Text(
+                            if (isTranslationExpanded) "번역 숨기기" else "번역 보기"
+                        )
+                    },
+                    leadingIcon = {
+                        androidx.compose.material3.Icon(
+                            androidx.compose.material.icons.Icons.Default.Translate,
+                            contentDescription = null
+                        )
+                    },
+                    onClick = {
+                        onToggleTranslation()
+                        showContextMenu = false
+                    }
+                )
+            }
+        }
+    }  // Close Box
+    }  // Close Column
 }
 
 @Composable
