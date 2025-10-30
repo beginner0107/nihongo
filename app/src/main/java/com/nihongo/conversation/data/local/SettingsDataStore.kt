@@ -24,6 +24,7 @@ class SettingsDataStore @Inject constructor(
         val SPEECH_SPEED = floatPreferencesKey("speech_speed")
         val AUTO_SPEAK = booleanPreferencesKey("auto_speak")
         val SHOW_ROMAJI = booleanPreferencesKey("show_romaji")
+        val FEEDBACK_ENABLED = booleanPreferencesKey("feedback_enabled")
     }
 
     val userSettings: Flow<UserSettings> = context.dataStore.data
@@ -39,7 +40,8 @@ class SettingsDataStore @Inject constructor(
                 difficultyLevel = preferences[PreferencesKeys.DIFFICULTY_LEVEL] ?: 1,
                 speechSpeed = preferences[PreferencesKeys.SPEECH_SPEED] ?: 1.0f,
                 autoSpeak = preferences[PreferencesKeys.AUTO_SPEAK] ?: true,
-                showRomaji = preferences[PreferencesKeys.SHOW_ROMAJI] ?: true
+                showRomaji = preferences[PreferencesKeys.SHOW_ROMAJI] ?: true,
+                feedbackEnabled = preferences[PreferencesKeys.FEEDBACK_ENABLED] ?: true
             )
         }
 
@@ -64,6 +66,12 @@ class SettingsDataStore @Inject constructor(
     suspend fun updateShowRomaji(enabled: Boolean) {
         context.dataStore.edit { preferences ->
             preferences[PreferencesKeys.SHOW_ROMAJI] = enabled
+        }
+    }
+
+    suspend fun updateFeedbackEnabled(enabled: Boolean) {
+        context.dataStore.edit { preferences ->
+            preferences[PreferencesKeys.FEEDBACK_ENABLED] = enabled
         }
     }
 }

@@ -558,6 +558,76 @@ class GeminiApiService @Inject constructor(
         }
     }
 
+    /**
+     * Analyze user message for grammar errors, unnatural expressions, and suggestions
+     * Returns JSON array of feedback items
+     */
+    suspend fun analyzeGrammarAndStyle(
+        userMessage: String,
+        conversationContext: List<String>,
+        userLevel: Int
+    ): String {
+        return try {
+            val prompt = """
+                일본어 학습자의 메시지를 분석하고 피드백을 제공하세요.
+
+                사용자 메시지: $userMessage
+                사용자 레벨: $userLevel (1=초급, 2=중급, 3=고급)
+                대화 컨텍스트: ${conversationContext.takeLast(3).joinToString(" | ")}
+
+                다음 4가지 측면에서 분석하고, 문제가 있는 경우에만 피드백을 제공하세요:
+
+                1. **문법 오류** (GRAMMAR_ERROR):
+                   - 조사, 동사 활용, 문장 구조 등의 문법적 오류
+                   - severity: ERROR (틀림), WARNING (어색함), INFO (개선 가능)
+
+                2. **부자연스러운 표현** (UNNATURAL):
+                   - 한국어를 직역한 것 같은 표현 (직역체)
+                   - 일본인이 사용하지 않는 표현
+                   - severity: WARNING
+
+                3. **더 나은 표현** (BETTER_EXPRESSION):
+                   - 더 자연스럽거나 적절한 대안 표현
+                   - 상황에 더 맞는 표현
+                   - severity: INFO
+
+                4. **대화 흐름** (CONVERSATION_FLOW):
+                   - 문맥상 어색한 응답
+                   - 대화 전략 제안
+                   - severity: INFO
+
+                5. **경어 레벨** (POLITENESS_LEVEL):
+                   - 존댓말/반말 사용이 상황에 맞지 않음
+                   - severity: WARNING
+
+                JSON 형식으로 응답하세요 (문제가 없으면 빈 배열):
+                [
+                  {
+                    "type": "GRAMMAR_ERROR|UNNATURAL|BETTER_EXPRESSION|CONVERSATION_FLOW|POLITENESS_LEVEL",
+                    "severity": "ERROR|WARNING|INFO",
+                    "correctedText": "수정된 문장 (해당되는 경우)",
+                    "explanation": "한국어로 설명 (왜 틀렸는지, 왜 어색한지)",
+                    "betterExpression": "더 나은 대안 표현 (해당되는 경우)",
+                    "additionalNotes": "추가 설명이나 사용 예시 (선택적)",
+                    "grammarPattern": "문법 패턴 이름 (예: 助詞の使い方, 敬語, 時制)"
+                  }
+                ]
+
+                중요 규칙:
+                - 완벽한 문장이면 빈 배열 [] 을 반환하세요
+                - 사소한 문제는 무시하세요 (학습에 도움되는 것만)
+                - 초급자에게는 관대하게, 고급자에게는 엄격하게
+                - explanation은 친절하고 이해하기 쉽게 작성하세요
+                - JSON만 출력하고 다른 텍스트는 포함하지 마세요
+            """.trimIndent()
+
+            val response = model.generateContent(prompt)
+            response.text?.trim() ?: "[]"
+        } catch (e: Exception) {
+            "[]" // Return empty array on error
+        }
+    }
+
     private fun buildHistory(
         history: List<Pair<String, Boolean>>,
         systemPrompt: String

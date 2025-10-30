@@ -18,9 +18,11 @@ import com.nihongo.conversation.core.voice.VoiceManager
 import com.nihongo.conversation.core.voice.VoiceState
 import com.nihongo.conversation.data.local.SettingsDataStore
 import com.nihongo.conversation.data.repository.ConversationRepository
+import com.nihongo.conversation.data.repository.GrammarFeedbackRepository
 import com.nihongo.conversation.data.repository.ProfileRepository
 import com.nihongo.conversation.domain.model.Conversation
 import com.nihongo.conversation.domain.model.GrammarExplanation
+import com.nihongo.conversation.domain.model.GrammarFeedback
 import com.nihongo.conversation.domain.model.Hint
 import com.nihongo.conversation.domain.model.Message
 import com.nihongo.conversation.domain.model.PronunciationResult
@@ -60,7 +62,11 @@ data class ChatUiState(
     val showPronunciationSheet: Boolean = false, // Show pronunciation practice sheet
     val pronunciationTargetText: String? = null, // Text to practice
     val pronunciationResult: PronunciationResult? = null, // Result of pronunciation attempt
-    val isPronunciationRecording: Boolean = false // Whether currently recording pronunciation
+    val isPronunciationRecording: Boolean = false, // Whether currently recording pronunciation
+    val grammarFeedback: ImmutableMap<Long, ImmutableList<GrammarFeedback>> = ImmutableMap.empty(), // messageId -> feedback list
+    val isAnalyzingFeedback: Boolean = false, // Whether analyzing current message
+    val unacknowledgedFeedbackCount: Int = 0, // Badge count for feedback tab
+    val feedbackEnabled: Boolean = true // Toggle for real-time feedback analysis
 ) {
     /**
      * Computed property using derivedStateOf pattern
@@ -82,7 +88,8 @@ class ChatViewModel @Inject constructor(
     private val profileRepository: ProfileRepository,
     private val difficultyManager: DifficultyManager,
     private val memoryManager: MemoryManager,
-    private val userSessionManager: UserSessionManager
+    private val userSessionManager: UserSessionManager,
+    private val grammarFeedbackRepository: GrammarFeedbackRepository
 ) : ViewModel() {
 
     private val _uiState = MutableStateFlow(ChatUiState())
@@ -221,6 +228,8 @@ class ChatViewModel @Inject constructor(
 
             // Use streaming API for instant response feel
             var autoSpeakTriggered = false
+            var userMessageId: Long? = null
+
             repository.sendMessageStream(
                 conversationId = conversationId,
                 userMessage = message,
@@ -238,6 +247,16 @@ class ChatViewModel @Inject constructor(
                             autoSpeakTriggered = true
                         }
 
+                        // Store user message ID for feedback analysis
+                        // User message is typically the second-to-last message
+                        val messages = _uiState.value.messages.items
+                        if (messages.size >= 2) {
+                            val userMessage = messages[messages.size - 2]
+                            if (userMessage.isUser && userMessageId == null) {
+                                userMessageId = userMessage.id
+                            }
+                        }
+
                         // Check if this is the final chunk (by checking if loading should stop)
                         // We keep loading state true during streaming
                         _uiState.update { it.copy(isLoading = false) }
@@ -251,6 +270,11 @@ class ChatViewModel @Inject constructor(
                         }
                     }
                 }
+            }
+
+            // After streaming is complete, analyze the user message for feedback
+            userMessageId?.let { messageId ->
+                analyzeMessageForFeedback(messageId, message)
             }
         }
     }
@@ -553,6 +577,111 @@ class ChatViewModel @Inject constructor(
             )
         }
         voiceManager.stopListening()
+    }
+
+    /**
+     * Analyze user message for grammar and style feedback
+     * Called automatically after user sends a message
+     */
+    private fun analyzeMessageForFeedback(messageId: Long, userMessage: String) {
+        // Skip if feedback is disabled
+        if (!_uiState.value.feedbackEnabled) return
+
+        viewModelScope.launch {
+            _uiState.update { it.copy(isAnalyzingFeedback = true) }
+
+            try {
+                // Get conversation context for better analysis
+                val conversationContext = _uiState.value.messages.items
+                    .takeLast(5)
+                    .map { it.content }
+
+                val userLevel = _uiState.value.user?.level ?: 1
+
+                // Analyze message using AI
+                val feedbackList = grammarFeedbackRepository.analyzeMessage(
+                    userId = currentUserId,
+                    messageId = messageId,
+                    userMessage = userMessage,
+                    conversationContext = conversationContext,
+                    userLevel = userLevel
+                )
+
+                // Update state with feedback
+                if (feedbackList.isNotEmpty()) {
+                    val currentFeedbackMap = _uiState.value.grammarFeedback.items.toMutableMap()
+                    currentFeedbackMap[messageId] = feedbackList.toImmutableList()
+
+                    _uiState.update {
+                        it.copy(
+                            grammarFeedback = currentFeedbackMap.toImmutableMap(),
+                            isAnalyzingFeedback = false,
+                            unacknowledgedFeedbackCount = it.unacknowledgedFeedbackCount + feedbackList.size
+                        )
+                    }
+                }
+            } catch (e: Exception) {
+                // Silently fail - feedback is optional
+                _uiState.update { it.copy(isAnalyzingFeedback = false) }
+            }
+        }
+    }
+
+    /**
+     * Get feedback for a specific message
+     */
+    fun getFeedbackForMessage(messageId: Long): List<GrammarFeedback> {
+        return _uiState.value.grammarFeedback.items[messageId]?.items ?: emptyList()
+    }
+
+    /**
+     * Acknowledge feedback (mark as seen)
+     */
+    fun acknowledgeFeedback(feedbackId: Long) {
+        viewModelScope.launch {
+            grammarFeedbackRepository.acknowledgeFeedback(feedbackId)
+
+            _uiState.update {
+                it.copy(
+                    unacknowledgedFeedbackCount = maxOf(0, it.unacknowledgedFeedbackCount - 1)
+                )
+            }
+        }
+    }
+
+    /**
+     * Apply a correction from feedback
+     */
+    fun applyCorrectionFromFeedback(feedbackId: Long, correctedText: String) {
+        viewModelScope.launch {
+            grammarFeedbackRepository.markCorrectionApplied(feedbackId)
+
+            // Update input text with correction
+            _uiState.update { it.copy(inputText = correctedText) }
+        }
+    }
+
+    /**
+     * Toggle real-time feedback analysis
+     */
+    fun toggleFeedback() {
+        _uiState.update { it.copy(feedbackEnabled = !it.feedbackEnabled) }
+
+        viewModelScope.launch {
+            settingsDataStore.updateFeedbackEnabled(_uiState.value.feedbackEnabled)
+        }
+    }
+
+    /**
+     * Load unacknowledged feedback count
+     */
+    private fun loadUnacknowledgedFeedbackCount() {
+        viewModelScope.launch {
+            grammarFeedbackRepository.getUnacknowledgedFeedback(currentUserId)
+                .collect { feedbackList ->
+                    _uiState.update { it.copy(unacknowledgedFeedbackCount = feedbackList.size) }
+                }
+        }
     }
 
     override fun onCleared() {

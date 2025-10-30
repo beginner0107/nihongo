@@ -25,7 +25,8 @@ object DatabaseModule {
             "nihongo_database"
         )
             .addMigrations(
-                NihongoDatabase.MIGRATION_1_2
+                NihongoDatabase.MIGRATION_1_2,
+                NihongoDatabase.MIGRATION_5_6
                 // Removed MIGRATION_2_3 and MIGRATION_3_4 due to SQL formatting issues
                 // These migrations will fallback to destructive migration
             )
@@ -54,4 +55,8 @@ object DatabaseModule {
     @Provides
     fun providePronunciationHistoryDao(database: NihongoDatabase): PronunciationHistoryDao =
         database.pronunciationHistoryDao()
+
+    @Provides
+    fun provideGrammarFeedbackDao(database: NihongoDatabase): GrammarFeedbackDao =
+        database.grammarFeedbackDao()
 }

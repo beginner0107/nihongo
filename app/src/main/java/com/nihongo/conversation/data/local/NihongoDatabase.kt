@@ -6,6 +6,7 @@ import androidx.room.migration.Migration
 import androidx.sqlite.db.SupportSQLiteDatabase
 import com.nihongo.conversation.domain.model.Conversation
 import com.nihongo.conversation.domain.model.ConversationStats
+import com.nihongo.conversation.domain.model.GrammarFeedback
 import com.nihongo.conversation.domain.model.Message
 import com.nihongo.conversation.domain.model.PronunciationHistory
 import com.nihongo.conversation.domain.model.ReviewHistory
@@ -21,12 +22,13 @@ import com.nihongo.conversation.domain.model.VocabularyEntry
         Message::class,
         VocabularyEntry::class,
         ReviewHistory::class,
-        PronunciationHistory::class
+        PronunciationHistory::class,
+        GrammarFeedback::class
     ],
     views = [
         ConversationStats::class
     ],
-    version = 5,
+    version = 6,
     exportSchema = false
 )
 abstract class NihongoDatabase : RoomDatabase() {
@@ -36,6 +38,7 @@ abstract class NihongoDatabase : RoomDatabase() {
     abstract fun messageDao(): MessageDao
     abstract fun vocabularyDao(): VocabularyDao
     abstract fun pronunciationHistoryDao(): PronunciationHistoryDao
+    abstract fun grammarFeedbackDao(): GrammarFeedbackDao
 
     companion object {
         val MIGRATION_1_2 = object : Migration(1, 2) {
@@ -166,6 +169,41 @@ abstract class NihongoDatabase : RoomDatabase() {
                 database.execSQL("CREATE INDEX IF NOT EXISTS index_pronunciation_history_practicedAt ON pronunciation_history(practicedAt)")
                 database.execSQL("CREATE INDEX IF NOT EXISTS idx_pronunciation_user_date ON pronunciation_history(userId, practicedAt)")
                 database.execSQL("CREATE INDEX IF NOT EXISTS idx_pronunciation_user_score ON pronunciation_history(userId, accuracyScore)")
+            }
+        }
+
+        val MIGRATION_5_6 = object : Migration(5, 6) {
+            override fun migrate(database: SupportSQLiteDatabase) {
+                // Create grammar_feedback table
+                database.execSQL("""
+                    CREATE TABLE IF NOT EXISTS grammar_feedback (
+                        id INTEGER PRIMARY KEY AUTOINCREMENT NOT NULL,
+                        userId INTEGER NOT NULL,
+                        messageId INTEGER NOT NULL,
+                        originalText TEXT NOT NULL,
+                        correctedText TEXT,
+                        feedbackType TEXT NOT NULL,
+                        severity TEXT NOT NULL,
+                        explanation TEXT NOT NULL,
+                        betterExpression TEXT,
+                        additionalNotes TEXT,
+                        grammarPattern TEXT,
+                        userAcknowledged INTEGER NOT NULL DEFAULT 0,
+                        userAppliedCorrection INTEGER NOT NULL DEFAULT 0,
+                        createdAt INTEGER NOT NULL,
+                        FOREIGN KEY(userId) REFERENCES users(id) ON DELETE CASCADE,
+                        FOREIGN KEY(messageId) REFERENCES messages(id) ON DELETE CASCADE
+                    )
+                """)
+
+                // Create indices for grammar_feedback
+                database.execSQL("CREATE INDEX IF NOT EXISTS index_grammar_feedback_userId ON grammar_feedback(userId)")
+                database.execSQL("CREATE INDEX IF NOT EXISTS index_grammar_feedback_messageId ON grammar_feedback(messageId)")
+                database.execSQL("CREATE INDEX IF NOT EXISTS index_grammar_feedback_createdAt ON grammar_feedback(createdAt)")
+                database.execSQL("CREATE INDEX IF NOT EXISTS index_grammar_feedback_feedbackType ON grammar_feedback(feedbackType)")
+                database.execSQL("CREATE INDEX IF NOT EXISTS index_grammar_feedback_severity ON grammar_feedback(severity)")
+                database.execSQL("CREATE INDEX IF NOT EXISTS idx_grammar_user_type ON grammar_feedback(userId, feedbackType)")
+                database.execSQL("CREATE INDEX IF NOT EXISTS idx_grammar_user_date ON grammar_feedback(userId, createdAt)")
             }
         }
     }
