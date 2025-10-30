@@ -28,7 +28,9 @@ import com.nihongo.conversation.domain.model.Message
 import com.nihongo.conversation.domain.model.PronunciationResult
 import com.nihongo.conversation.domain.model.PronunciationScorer
 import com.nihongo.conversation.domain.model.Scenario
+import com.nihongo.conversation.domain.model.TranscriptEntry
 import com.nihongo.conversation.domain.model.User
+import com.nihongo.conversation.domain.model.VoiceOnlySession
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.flow.*
@@ -66,7 +68,10 @@ data class ChatUiState(
     val grammarFeedback: ImmutableMap<Long, ImmutableList<GrammarFeedback>> = ImmutableMap.empty(), // messageId -> feedback list
     val isAnalyzingFeedback: Boolean = false, // Whether analyzing current message
     val unacknowledgedFeedbackCount: Int = 0, // Badge count for feedback tab
-    val feedbackEnabled: Boolean = true // Toggle for real-time feedback analysis
+    val feedbackEnabled: Boolean = true, // Toggle for real-time feedback analysis
+    val voiceOnlySession: VoiceOnlySession? = null, // Voice-only mode session state
+    val showTranscriptDialog: Boolean = false, // Show post-conversation transcript
+    val currentVoiceState: com.nihongo.conversation.domain.model.VoiceState = com.nihongo.conversation.domain.model.VoiceState.IDLE // Current voice activity state
 ) {
     /**
      * Computed property using derivedStateOf pattern
@@ -78,6 +83,11 @@ data class ChatUiState(
      * Computed property for message count
      */
     val messageCount: Int get() = messages.size
+
+    /**
+     * Whether in voice-only mode
+     */
+    val isVoiceOnlyMode: Boolean get() = voiceOnlySession?.isActive == true
 }
 
 @HiltViewModel
@@ -681,6 +691,97 @@ class ChatViewModel @Inject constructor(
                 .collect { feedbackList ->
                     _uiState.update { it.copy(unacknowledgedFeedbackCount = feedbackList.size) }
                 }
+        }
+    }
+
+    /**
+     * Start voice-only conversation mode
+     */
+    fun startVoiceOnlyMode(targetDuration: Int = 5) {
+        val conversationId = currentConversationId
+
+        val session = VoiceOnlySession(
+            isActive = true,
+            startTime = System.currentTimeMillis(),
+            conversationId = conversationId,
+            targetDuration = targetDuration,
+            messageCount = _uiState.value.messages.size
+        )
+
+        _uiState.update {
+            it.copy(
+                voiceOnlySession = session,
+                currentVoiceState = com.nihongo.conversation.domain.model.VoiceState.IDLE
+            )
+        }
+
+        // Auto-enable auto-speak for voice-only mode
+        if (!_uiState.value.autoSpeak) {
+            viewModelScope.launch {
+                settingsDataStore.updateAutoSpeak(true)
+            }
+        }
+    }
+
+    /**
+     * End voice-only conversation mode
+     */
+    fun endVoiceOnlyMode() {
+        val session = _uiState.value.voiceOnlySession ?: return
+
+        // Build transcript from current messages
+        val transcript = _uiState.value.messages.items.map { message ->
+            TranscriptEntry(
+                messageId = message.id,
+                text = message.content,
+                isUser = message.isUser,
+                timestamp = message.timestamp,
+                wasSpoken = true, // Assume all were spoken in voice mode
+                wasHeard = true
+            )
+        }
+
+        _uiState.update {
+            it.copy(
+                voiceOnlySession = session.copy(
+                    isActive = false,
+                    transcript = transcript
+                ),
+                showTranscriptDialog = true,
+                currentVoiceState = com.nihongo.conversation.domain.model.VoiceState.IDLE
+            )
+        }
+
+        // Stop any ongoing voice activity
+        voiceManager.stopListening()
+    }
+
+    /**
+     * Update voice state for visual indicators
+     */
+    fun updateVoiceState(state: com.nihongo.conversation.domain.model.VoiceState) {
+        _uiState.update { it.copy(currentVoiceState = state) }
+    }
+
+    /**
+     * Dismiss transcript dialog
+     */
+    fun dismissTranscript() {
+        _uiState.update {
+            it.copy(
+                showTranscriptDialog = false,
+                voiceOnlySession = null
+            )
+        }
+    }
+
+    /**
+     * Check if voice-only session should auto-end
+     */
+    private fun checkVoiceOnlyTimeout() {
+        val session = _uiState.value.voiceOnlySession
+        if (session != null && session.isActive && session.isComplete) {
+            endVoiceOnlyMode()
         }
     }
 
