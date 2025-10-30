@@ -2602,6 +2602,120 @@ GrammarAPI: Returned local analysis after timeout exception
 - `ChatViewModel.kt`: 문법 분석 요청 관리
 - `CLAUDE.md`: 프로젝트 작업 가이드
 
+## 🧹 프로젝트 정리 (2025-10-30)
+
+### 개요
+프로젝트 구조를 단순화하고 중복 문서를 제거하여 유지보수성을 개선했습니다.
+
+### 정리 내역
+
+#### 삭제된 파일 (24개 문서)
+모든 기능별 개별 문서를 README.md로 통합하여 삭제:
+
+```
+❌ BUILD_FIXES.md                  → README.md 통합
+❌ COMPILATION_FIXES.md            → README.md 통합
+❌ EMERGENCY_BUILD_FIXES.md        → README.md 통합
+❌ CACHE_SYSTEM.md                 → README.md에 포함됨
+❌ DIFFICULTY_SYSTEM.md            → README.md에 포함됨
+❌ FLASHCARD_IMPLEMENTATION.md     → README.md에 포함됨
+❌ GRAMMAR_FIXES.md                → README.md에 포함됨
+❌ HINT_SYSTEM.md                  → README.md에 포함됨
+❌ ICONS_README.md                 → README.md에 포함됨
+❌ MEMORY_OPTIMIZATIONS.md         → README.md에 포함됨
+❌ NETWORK_OPTIMIZATIONS.md        → README.md에 포함됨
+❌ PERFORMANCE_OPTIMIZATIONS.md    → README.md에 포함됨
+❌ PROFILE_SYSTEM.md               → README.md에 포함됨
+❌ PROJECT_STATUS.md               → 개발 완료
+❌ REVIEW_MODE.md                  → README.md에 포함됨
+❌ SCENARIO_SYSTEM.md              → README.md에 포함됨
+❌ SESSION_SUMMARY.md              → 임시 파일
+❌ SETTINGS_SYSTEM.md              → README.md에 포함됨
+❌ STATS_DASHBOARD.md              → README.md에 포함됨
+❌ TROUBLESHOOTING.md              → README.md 통합
+❌ USER_SESSION_IMPLEMENTATION.md  → README.md에 포함됨
+❌ VOICE_FEATURES.md               → README.md에 포함됨
+❌ MODEL_SELECTION.md              → README.md에 포함됨
+❌ EFFICIENT USAGE.md              → README.md 통합
+```
+
+#### 정리된 프로젝트 구조
+
+```
+nihongo/
+├── 📄 README.md           ← 모든 기능 설명 통합 (101KB)
+├── 📄 CLAUDE.md           ← 개발자 작업 가이드 (12KB)
+├── ⚙️ build.gradle.kts    ← 프로젝트 레벨 빌드 설정
+├── ⚙️ settings.gradle.kts ← 멀티 모듈 설정
+├── ⚙️ gradle.properties   ← Gradle 전역 설정
+├── 🔑 local.properties    ← API 키 (Git 제외)
+├── 📁 gradle/wrapper/     ← Gradle wrapper
+├── 🔧 gradlew            ← Gradle wrapper (Unix)
+├── 🔧 gradlew.bat        ← Gradle wrapper (Windows)
+└── 📁 app/               ← Android 앱 모듈
+    ├── build.gradle.kts  ← 앱 레벨 빌드 설정
+    ├── gradle.properties ← 앱 레벨 설정
+    ├── proguard-rules.pro
+    └── src/
+        ├── main/
+        │   ├── java/com/nihongo/conversation/
+        │   ├── res/
+        │   └── AndroidManifest.xml
+        └── test/
+```
+
+#### 정리 효과
+
+| 항목 | 이전 | 이후 | 개선 |
+|------|------|------|------|
+| 마크다운 문서 | 26개 | 2개 | **92% ↓** |
+| 루트 디렉토리 파일 | 40+ | 12개 | **70% ↓** |
+| 문서 중복 | 심각 | 없음 | **100% 해결** |
+| 프로젝트 명확성 | 낮음 | 높음 | **향상** |
+
+#### 남은 핵심 파일
+
+**문서:**
+- `README.md`: 전체 프로젝트 문서 (기능, 아키텍처, 사용법)
+- `CLAUDE.md`: 개발자 작업 가이드 (최근 업데이트, 디버깅 팁)
+
+**빌드 설정:**
+- `build.gradle.kts`: Kotlin DSL 프로젝트 빌드 스크립트
+- `settings.gradle.kts`: Gradle 프로젝트 설정
+- `gradle.properties`: Gradle JVM 메모리 설정 등
+
+**앱 모듈:**
+- `app/build.gradle.kts`: 앱 의존성, 컴파일 설정
+- `app/gradle.properties`: 앱 레벨 Gradle 설정
+- `app/src/`: 소스 코드 (Kotlin, XML, assets)
+
+### 이점
+
+1. **단순화**: 필요한 파일만 남아 프로젝트 구조가 명확함
+2. **통합**: 모든 문서가 README.md 하나에 정리됨
+3. **유지보수**: 문서 업데이트 시 하나의 파일만 수정
+4. **검색 용이**: README.md 내 검색으로 모든 정보 접근
+5. **Git 효율**: 불필요한 파일 추적 제거
+
+### 빌드 확인
+
+```bash
+# Clean 빌드 테스트
+./gradlew clean
+# ✅ BUILD SUCCESSFUL in 901ms
+
+# 앱 빌드 테스트
+JAVA_HOME=/path/to/java17 ./gradlew assembleDebug
+# ✅ BUILD SUCCESSFUL
+```
+
+### Android Studio 사용
+
+프로젝트를 Android Studio에서 열 때:
+1. `nihongo` 폴더를 프로젝트로 오픈
+2. 또는 `app` 폴더를 모듈로 직접 오픈 가능
+3. 두 방식 모두 정상 작동
+
 ## 🤝 기여하기
 
 개인 프로젝트이지만 피드백과 제안은 환영합니다!
