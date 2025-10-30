@@ -11,6 +11,7 @@ import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.*
 import androidx.compose.material3.*
+import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -23,12 +24,17 @@ import androidx.compose.ui.text.withStyle
 import androidx.compose.ui.unit.dp
 import com.nihongo.conversation.domain.model.MatchType
 import com.nihongo.conversation.domain.model.PronunciationResult
+import com.nihongo.conversation.domain.model.EnhancedPronunciationResult
+import com.nihongo.conversation.domain.model.ProblematicSound
+import com.nihongo.conversation.presentation.pronunciation.PitchAccentVisualization
+import com.nihongo.conversation.presentation.pronunciation.IntonationVisualizer
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun PronunciationPracticeSheet(
     targetText: String,
     result: PronunciationResult?,
+    enhancedResult: EnhancedPronunciationResult? = null,
     isRecording: Boolean,
     bestScore: Int? = null,
     previousAttempts: Int = 0,
@@ -213,6 +219,34 @@ fun PronunciationPracticeSheet(
 
                         // Comparison Display
                         ComparisonCard(result = it)
+
+                        // Enhanced Pronunciation Features
+                        enhancedResult?.let { enhanced ->
+                            HorizontalDivider()
+
+                            // Overall Score Display
+                            EnhancedScoreCard(score = enhanced.overallScore)
+
+                            // Pitch Accent Analysis
+                            enhanced.pitchAccent?.let { pitchAccent ->
+                                PitchAccentVisualization(analysis = pitchAccent)
+                            }
+
+                            // Intonation Analysis
+                            enhanced.intonation?.let { intonation ->
+                                IntonationVisualizer(analysis = intonation)
+                            }
+
+                            // Speed & Rhythm Analysis
+                            enhanced.rhythm?.let { rhythm ->
+                                RhythmAnalysisCard(rhythm = rhythm)
+                            }
+
+                            // Problematic Sounds
+                            if (enhanced.problematicSounds.isNotEmpty()) {
+                                ProblematicSoundsCard(sounds = enhanced.problematicSounds)
+                            }
+                        }
 
                         // Action Buttons
                         Row(
@@ -489,5 +523,417 @@ fun LegendItem(color: Color, label: String) {
             style = MaterialTheme.typography.labelSmall,
             color = MaterialTheme.colorScheme.onSurfaceVariant
         )
+    }
+}
+
+/**
+ * Enhanced score card showing all pronunciation dimensions
+ */
+@Composable
+fun EnhancedScoreCard(score: com.nihongo.conversation.domain.model.PronunciationScore) {
+    Card(
+        modifier = Modifier.fillMaxWidth(),
+        colors = CardDefaults.cardColors(
+            containerColor = MaterialTheme.colorScheme.primaryContainer
+        )
+    ) {
+        Column(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(16.dp),
+            verticalArrangement = Arrangement.spacedBy(12.dp)
+        ) {
+            Text(
+                text = "総合評価",
+                style = MaterialTheme.typography.titleMedium,
+                fontWeight = FontWeight.Bold,
+                color = MaterialTheme.colorScheme.onPrimaryContainer
+            )
+
+            // Overall score and grade
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.SpaceBetween,
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                Column {
+                    Text(
+                        text = "${score.overall.toInt()} 点",
+                        style = MaterialTheme.typography.displayMedium,
+                        fontWeight = FontWeight.Bold,
+                        color = MaterialTheme.colorScheme.primary
+                    )
+                    Text(
+                        text = getGradeLabel(score.grade),
+                        style = MaterialTheme.typography.titleSmall,
+                        color = MaterialTheme.colorScheme.onPrimaryContainer
+                    )
+                }
+
+                Icon(
+                    imageVector = getGradeIcon(score.grade),
+                    contentDescription = null,
+                    modifier = Modifier.size(48.dp),
+                    tint = MaterialTheme.colorScheme.primary
+                )
+            }
+
+            HorizontalDivider()
+
+            // Individual scores
+            ScoreDimension("正確性", score.accuracy)
+            ScoreDimension("ピッチ", score.pitch)
+            ScoreDimension("イントネーション", score.intonation)
+            ScoreDimension("リズム", score.rhythm)
+            ScoreDimension("明瞭さ", score.clarity)
+            ScoreDimension("自然さ", score.naturalness)
+        }
+    }
+}
+
+@Composable
+private fun ScoreDimension(label: String, score: Float) {
+    Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
+        Row(
+            modifier = Modifier.fillMaxWidth(),
+            horizontalArrangement = Arrangement.SpaceBetween
+        ) {
+            Text(
+                text = label,
+                style = MaterialTheme.typography.bodyMedium
+            )
+            Text(
+                text = "${score.toInt()}",
+                style = MaterialTheme.typography.bodyMedium,
+                fontWeight = FontWeight.Bold
+            )
+        }
+        LinearProgressIndicator(
+            progress = score / 100f,
+            modifier = Modifier.fillMaxWidth(),
+            color = getScoreColor(score)
+        )
+    }
+}
+
+private fun getScoreColor(score: Float): Color {
+    return when {
+        score >= 80 -> Color(0xFF4CAF50)
+        score >= 60 -> Color(0xFFFFC107)
+        else -> Color(0xFFFF5722)
+    }
+}
+
+private fun getGradeLabel(grade: com.nihongo.conversation.domain.model.PronunciationGrade): String {
+    return when (grade) {
+        com.nihongo.conversation.domain.model.PronunciationGrade.NATIVE_LIKE -> "ネイティブレベル"
+        com.nihongo.conversation.domain.model.PronunciationGrade.EXCELLENT -> "優秀"
+        com.nihongo.conversation.domain.model.PronunciationGrade.GOOD -> "良い"
+        com.nihongo.conversation.domain.model.PronunciationGrade.FAIR -> "まあまあ"
+        com.nihongo.conversation.domain.model.PronunciationGrade.NEEDS_WORK -> "要改善"
+        com.nihongo.conversation.domain.model.PronunciationGrade.BEGINNER -> "初心者"
+    }
+}
+
+private fun getGradeIcon(grade: com.nihongo.conversation.domain.model.PronunciationGrade): ImageVector {
+    return when (grade) {
+        com.nihongo.conversation.domain.model.PronunciationGrade.NATIVE_LIKE -> Icons.Default.Stars
+        com.nihongo.conversation.domain.model.PronunciationGrade.EXCELLENT -> Icons.Default.EmojiEvents
+        com.nihongo.conversation.domain.model.PronunciationGrade.GOOD -> Icons.Default.ThumbUp
+        com.nihongo.conversation.domain.model.PronunciationGrade.FAIR -> Icons.Default.SentimentNeutral
+        com.nihongo.conversation.domain.model.PronunciationGrade.NEEDS_WORK -> Icons.Default.TrendingUp
+        com.nihongo.conversation.domain.model.PronunciationGrade.BEGINNER -> Icons.Default.School
+    }
+}
+
+/**
+ * Rhythm analysis card
+ */
+@Composable
+fun RhythmAnalysisCard(rhythm: com.nihongo.conversation.domain.model.RhythmAnalysis) {
+    Card(
+        colors = CardDefaults.cardColors(
+            containerColor = MaterialTheme.colorScheme.surfaceVariant
+        )
+    ) {
+        Column(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(16.dp),
+            verticalArrangement = Arrangement.spacedBy(12.dp)
+        ) {
+            Text(
+                text = "リズム・速度分析",
+                style = MaterialTheme.typography.titleMedium,
+                fontWeight = FontWeight.Bold
+            )
+
+            // Speed rating
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.SpaceBetween,
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                Text(
+                    text = "スピード:",
+                    style = MaterialTheme.typography.bodyMedium
+                )
+                Surface(
+                    shape = androidx.compose.foundation.shape.RoundedCornerShape(8.dp),
+                    color = getSpeedColor(rhythm.speedRating)
+                ) {
+                    Text(
+                        text = getSpeedLabel(rhythm.speedRating),
+                        modifier = Modifier.padding(horizontal = 12.dp, vertical = 4.dp),
+                        style = MaterialTheme.typography.bodyMedium,
+                        fontWeight = FontWeight.Bold,
+                        color = Color.White
+                    )
+                }
+            }
+
+            // Rhythm score
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.SpaceBetween
+            ) {
+                Text(text = "リズムスコア:")
+                Text(
+                    text = "${rhythm.rhythmScore.toInt()} / 100",
+                    fontWeight = FontWeight.Bold
+                )
+            }
+
+            // Naturalness
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.SpaceBetween
+            ) {
+                Text(text = "自然さ:")
+                Text(
+                    text = "${rhythm.naturalness.toInt()} / 100",
+                    fontWeight = FontWeight.Bold
+                )
+            }
+
+            // Average mora duration
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.SpaceBetween
+            ) {
+                Text(text = "平均モーラ時間:")
+                Text(
+                    text = "${rhythm.averageMoraDuration} ms",
+                    fontWeight = FontWeight.Bold
+                )
+            }
+
+            // Native comparison if available
+            rhythm.comparison?.let { comparison ->
+                HorizontalDivider()
+
+                Text(
+                    text = "ネイティブとの比較",
+                    style = MaterialTheme.typography.labelMedium,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                )
+
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.SpaceBetween
+                ) {
+                    Text(text = "速度比:")
+                    Text(
+                        text = "${(comparison.speedRatio * 100).toInt()}%",
+                        fontWeight = FontWeight.Bold
+                    )
+                }
+
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.SpaceBetween
+                ) {
+                    Text(text = "リズム類似度:")
+                    Text(
+                        text = "${comparison.rhythmSimilarity.toInt()}%",
+                        fontWeight = FontWeight.Bold
+                    )
+                }
+
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.SpaceBetween
+                ) {
+                    Text(text = "ピッチ類似度:")
+                    Text(
+                        text = "${comparison.pitchSimilarity.toInt()}%",
+                        fontWeight = FontWeight.Bold
+                    )
+                }
+            }
+        }
+    }
+}
+
+private fun getSpeedColor(rating: com.nihongo.conversation.domain.model.SpeedRating): Color {
+    return when (rating) {
+        com.nihongo.conversation.domain.model.SpeedRating.TOO_SLOW -> Color(0xFF2196F3)
+        com.nihongo.conversation.domain.model.SpeedRating.SLOW -> Color(0xFF4CAF50)
+        com.nihongo.conversation.domain.model.SpeedRating.NATURAL -> Color(0xFF4CAF50)
+        com.nihongo.conversation.domain.model.SpeedRating.FAST -> Color(0xFFFFC107)
+        com.nihongo.conversation.domain.model.SpeedRating.TOO_FAST -> Color(0xFFFF5722)
+    }
+}
+
+private fun getSpeedLabel(rating: com.nihongo.conversation.domain.model.SpeedRating): String {
+    return when (rating) {
+        com.nihongo.conversation.domain.model.SpeedRating.TOO_SLOW -> "遅すぎる"
+        com.nihongo.conversation.domain.model.SpeedRating.SLOW -> "やや遅い"
+        com.nihongo.conversation.domain.model.SpeedRating.NATURAL -> "自然"
+        com.nihongo.conversation.domain.model.SpeedRating.FAST -> "やや速い"
+        com.nihongo.conversation.domain.model.SpeedRating.TOO_FAST -> "速すぎる"
+    }
+}
+
+/**
+ * Problematic sounds card
+ */
+@Composable
+fun ProblematicSoundsCard(sounds: List<ProblematicSound>) {
+    Card(
+        colors = CardDefaults.cardColors(
+            containerColor = Color(0xFFFFF3E0)
+        )
+    ) {
+        Column(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(16.dp),
+            verticalArrangement = Arrangement.spacedBy(12.dp)
+        ) {
+            Row(
+                horizontalArrangement = Arrangement.spacedBy(8.dp),
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                Icon(
+                    imageVector = Icons.Default.ErrorOutline,
+                    contentDescription = null,
+                    tint = Color(0xFFEF6C00)
+                )
+                Text(
+                    text = "要注意の音",
+                    style = MaterialTheme.typography.titleMedium,
+                    fontWeight = FontWeight.Bold,
+                    color = Color(0xFFEF6C00)
+                )
+            }
+
+            sounds.forEach { sound ->
+                ProblematicSoundItem(sound = sound)
+            }
+        }
+    }
+}
+
+@Composable
+private fun ProblematicSoundItem(sound: ProblematicSound) {
+    Surface(
+        shape = androidx.compose.foundation.shape.RoundedCornerShape(8.dp),
+        color = Color.White
+    ) {
+        Column(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(12.dp),
+            verticalArrangement = Arrangement.spacedBy(8.dp)
+        ) {
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.SpaceBetween,
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                Row(
+                    horizontalArrangement = Arrangement.spacedBy(8.dp),
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    Surface(
+                        shape = CircleShape,
+                        color = getSeverityColor(sound.severity)
+                    ) {
+                        Text(
+                            text = sound.mora,
+                            modifier = Modifier.padding(8.dp),
+                            style = MaterialTheme.typography.titleSmall,
+                            fontWeight = FontWeight.Bold,
+                            color = Color.White
+                        )
+                    }
+
+                    Text(
+                        text = getSoundTypeLabel(sound.soundType),
+                        style = MaterialTheme.typography.bodyMedium,
+                        fontWeight = FontWeight.Bold
+                    )
+                }
+
+                Text(
+                    text = getSeverityLabel(sound.severity),
+                    style = MaterialTheme.typography.labelSmall,
+                    color = getSeverityColor(sound.severity)
+                )
+            }
+
+            Text(
+                text = sound.suggestion,
+                style = MaterialTheme.typography.bodySmall,
+                color = MaterialTheme.colorScheme.onSurfaceVariant
+            )
+
+            sound.nativeExample?.let { example ->
+                Surface(
+                    shape = androidx.compose.foundation.shape.RoundedCornerShape(4.dp),
+                    color = MaterialTheme.colorScheme.secondaryContainer
+                ) {
+                    Text(
+                        text = "💡 $example",
+                        modifier = Modifier.padding(8.dp),
+                        style = MaterialTheme.typography.bodySmall
+                    )
+                }
+            }
+        }
+    }
+}
+
+private fun getSeverityColor(severity: com.nihongo.conversation.domain.model.IssueSeverity): Color {
+    return when (severity) {
+        com.nihongo.conversation.domain.model.IssueSeverity.CRITICAL -> Color(0xFFD32F2F)
+        com.nihongo.conversation.domain.model.IssueSeverity.HIGH -> Color(0xFFFF5722)
+        com.nihongo.conversation.domain.model.IssueSeverity.MEDIUM -> Color(0xFFFFC107)
+        com.nihongo.conversation.domain.model.IssueSeverity.LOW -> Color(0xFF2196F3)
+    }
+}
+
+private fun getSeverityLabel(severity: com.nihongo.conversation.domain.model.IssueSeverity): String {
+    return when (severity) {
+        com.nihongo.conversation.domain.model.IssueSeverity.CRITICAL -> "重大"
+        com.nihongo.conversation.domain.model.IssueSeverity.HIGH -> "高"
+        com.nihongo.conversation.domain.model.IssueSeverity.MEDIUM -> "中"
+        com.nihongo.conversation.domain.model.IssueSeverity.LOW -> "低"
+    }
+}
+
+private fun getSoundTypeLabel(soundType: com.nihongo.conversation.domain.model.JapaneseSound): String {
+    return when (soundType) {
+        com.nihongo.conversation.domain.model.JapaneseSound.RA_GYOU -> "ら行"
+        com.nihongo.conversation.domain.model.JapaneseSound.TSU_CHU -> "つ/ちゅ"
+        com.nihongo.conversation.domain.model.JapaneseSound.LONG_VOWEL -> "長音"
+        com.nihongo.conversation.domain.model.JapaneseSound.DOUBLE_CONSONANT -> "促音（っ）"
+        com.nihongo.conversation.domain.model.JapaneseSound.N_SOUND -> "ん"
+        com.nihongo.conversation.domain.model.JapaneseSound.WA_WO -> "は/を"
+        com.nihongo.conversation.domain.model.JapaneseSound.GA_NGA -> "が/んが"
+        com.nihongo.conversation.domain.model.JapaneseSound.SHI_CHI -> "し/ち"
+        com.nihongo.conversation.domain.model.JapaneseSound.TSU_SU -> "つ/す"
+        com.nihongo.conversation.domain.model.JapaneseSound.FU_HU -> "ふ"
     }
 }
