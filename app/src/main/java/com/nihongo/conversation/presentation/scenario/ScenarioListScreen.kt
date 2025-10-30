@@ -23,6 +23,7 @@ import com.nihongo.conversation.domain.model.Scenario
 fun ScenarioListScreen(
     onScenarioSelected: (Long) -> Unit,
     onFlashcardClick: () -> Unit = {},
+    onAddVocabularyClick: () -> Unit = {},
     onSettingsClick: () -> Unit = {},
     onStatsClick: () -> Unit = {},
     onProfileClick: () -> Unit = {},
@@ -69,16 +70,34 @@ fun ScenarioListScreen(
             )
         },
         floatingActionButton = {
-            ExtendedFloatingActionButton(
-                onClick = onFlashcardClick,
-                icon = {
+            Column(
+                verticalArrangement = Arrangement.spacedBy(12.dp),
+                horizontalAlignment = Alignment.End
+            ) {
+                // Add custom vocabulary FAB
+                SmallFloatingActionButton(
+                    onClick = onAddVocabularyClick,
+                    containerColor = MaterialTheme.colorScheme.secondaryContainer,
+                    contentColor = MaterialTheme.colorScheme.onSecondaryContainer
+                ) {
                     Icon(
-                        imageVector = Icons.Default.Style,
-                        contentDescription = "単語帳"
+                        imageVector = Icons.Default.Add,
+                        contentDescription = "単語を追加"
                     )
-                },
-                text = { Text("単語帳") }
-            )
+                }
+
+                // Flashcard review FAB
+                ExtendedFloatingActionButton(
+                    onClick = onFlashcardClick,
+                    icon = {
+                        Icon(
+                            imageVector = Icons.Default.Style,
+                            contentDescription = "単語帳"
+                        )
+                    },
+                    text = { Text("単語帳") }
+                )
+            }
         }
     ) { padding ->
         if (uiState.isLoading) {

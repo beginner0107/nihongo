@@ -92,17 +92,45 @@ class VocabularyRepository @Inject constructor(
     suspend fun addCustomVocabulary(
         userId: Long,
         word: String,
+        reading: String? = null,
         meaning: String,
-        exampleSentence: String? = null
+        exampleSentence: String? = null,
+        difficulty: Int = 1,
+        addToReviewQueue: Boolean = true
     ): Long {
+        // Check for duplicates
+        val existing = vocabularyDao.findByWord(userId, word)
+        if (existing != null) {
+            throw IllegalArgumentException("この単語は既に追加されています")
+        }
+
         val entry = VocabularyEntry(
             userId = userId,
             word = word,
+            reading = reading,
             meaning = meaning,
             exampleSentence = exampleSentence,
-            difficulty = 1
+            difficulty = difficulty,
+            sourceConversationId = null, // Mark as custom entry
+            nextReviewAt = if (addToReviewQueue) System.currentTimeMillis() else System.currentTimeMillis() + (24 * 60 * 60 * 1000L)
         )
         return vocabularyDao.insertVocabulary(entry)
+    }
+
+    /**
+     * Check if a word already exists for this user
+     */
+    suspend fun wordExists(userId: Long, word: String): Boolean {
+        return vocabularyDao.findByWord(userId, word) != null
+    }
+
+    /**
+     * Get custom vocabulary (entries with no source conversation)
+     */
+    fun getCustomVocabulary(userId: Long): Flow<List<VocabularyEntry>> {
+        return vocabularyDao.getAllVocabulary(userId).map { entries ->
+            entries.filter { it.sourceConversationId == null }
+        }
     }
 
     // ========== Review Sessions ==========

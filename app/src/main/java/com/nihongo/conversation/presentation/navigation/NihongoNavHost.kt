@@ -17,6 +17,7 @@ import com.nihongo.conversation.presentation.scenario.ScenarioListScreen
 import com.nihongo.conversation.presentation.settings.SettingsScreen
 import com.nihongo.conversation.presentation.stats.StatsScreen
 import com.nihongo.conversation.presentation.user.UserSelectionScreen
+import com.nihongo.conversation.presentation.vocabulary.AddVocabularyScreen
 
 sealed class Screen(val route: String) {
     data object UserSelection : Screen("user_selection")
@@ -24,6 +25,7 @@ sealed class Screen(val route: String) {
     data object Flashcard : Screen("flashcard")
     data object FlashcardStats : Screen("flashcard_stats")
     data object PronunciationHistory : Screen("pronunciation_history")
+    data object AddVocabulary : Screen("add_vocabulary")
     data object Settings : Screen("settings")
     data object Review : Screen("review")
     data object Stats : Screen("stats")
@@ -61,6 +63,9 @@ fun NihongoNavHost(
                 onFlashcardClick = {
                     navController.navigate(Screen.Flashcard.route)
                 },
+                onAddVocabularyClick = {
+                    navController.navigate(Screen.AddVocabulary.route)
+                },
                 onSettingsClick = {
                     navController.navigate(Screen.Settings.route)
                 },
@@ -95,6 +100,13 @@ fun NihongoNavHost(
         composable(route = Screen.PronunciationHistory.route) {
             PronunciationHistoryScreen(
                 onBackClick = { navController.popBackStack() }
+            )
+        }
+
+        composable(route = Screen.AddVocabulary.route) {
+            AddVocabularyScreen(
+                onBackClick = { navController.popBackStack() },
+                onVocabularySaved = { navController.popBackStack() }
             )
         }
 

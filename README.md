@@ -16,8 +16,11 @@ AI 기반 일본어 회화 학습을 위한 개인용 Android 애플리케이션
 - 💾 **대화 관리**: 대화 종료 버튼, 히스토리 자동 저장, 새 대화 시작 기능
 - 🎭 **6가지 시나리오**: 레스토랑, 쇼핑, 호텔, 친구 만들기, 전화 대화, 병원 (초급/중급/상급)
 - 🎙️ **음성 지원**: STT로 일본어 음성 인식, TTS로 AI 응답 자동 재생, 재시도 메커니즘
-- 🎤 **발음 연습**: AI 메시지 발음 평가, 0-100 정확도 점수, 레벤슈타인 거리 분석, 색상 피드백
+- 🎤 **발음 연습**: AI 메시지 발음 평가, 0-100 정확도 점수, 레벤슈타인 거리 분석, 색상 피드백, 향상도 표시
+- 📊 **발음 히스토리 추적**: 전체 연습 기록, 약점 분석, 마스터 문구, 7일 추세 차트, 필터/정렬
 - 📚 **플래시카드 복습 시스템**: 3D 카드 뒤집기 애니메이션, 0-5 품질 평가 (SM-2), 실시간 진행도 추적, 세션 통계
+- 📈 **플래시카드 통계**: 30일 캘린더 히트맵, 정확도 추세, 학습 스트릭, 개인 베스트, 상위 향상 단어
+- ➕ **커스텀 단어 추가**: 클립보드 임포트, 난이도 설정, 예문 추가, 즉시 복습 큐 등록
 - 📜 **대화 이력**: 전체 대화 검색/필터링, 상태별 보기, 빠른 재개, 삭제 관리
 - ⚙️ **설정 시스템**: 난이도 조절 (1-3), 음성 속도 (0.5x-2.0x), 자동 읽기, 로마자 표시
 - 🎯 **난이도 조절**: JLPT 레벨별 AI 응답 (N5-N4/N3-N2/N1), 어휘 복잡도 분석, 별점 표시
@@ -70,7 +73,9 @@ app/
 │   │   └── repository/       # Repository 인터페이스
 │   ├── presentation/         # 프레젠테이션 레이어
 │   │   ├── chat/             # 대화 화면
-│   │   ├── flashcard/        # 플래시카드 복습
+│   │   ├── flashcard/        # 플래시카드 복습 및 통계
+│   │   ├── pronunciation/    # 발음 히스토리
+│   │   ├── vocabulary/       # 커스텀 단어 추가
 │   │   ├── user/             # 유저 선택/관리
 │   │   ├── scenario/         # 시나리오 목록
 │   │   ├── stats/            # 통계 화면
@@ -178,9 +183,232 @@ app/
 - 📚 **카드 앞면**: 일본어 단어 + 읽기 + 힌트 아이콘
 - ✅ **카드 뒷면**: 한국어 의미 + 예문 (옵션)
 - 🎯 **품질 평가 버튼**: 0-5 색상별 버튼 (6개)
-- 📊 **세션 완료 화면**: 트로피, 통계 요약, 재시작/종료
+- 📊 **세션 완료 화면**: 트로피, 통계 요약, 재시작/종료, 상세 통계 보기
 - 🎨 **색상 코딩**: 난이도별 버튼 색상 (빨강→노랑→초록→파랑)
 - ⏱️ **시간 추적**: 카드당 소요 시간 자동 측정
+
+### 플래시카드 통계 화면 (FlashcardStatsScreen)
+- 📊 **개요 카드**: 총 단어수, 마스터 단어, 복습 대기, 신규 단어
+- 🔥 **학습 스트릭**: 현재 연속일, 최장 기록, 불 아이콘
+- 📅 **캘린더 히트맵**: 30일 복습 활동 시각화, 색상 강도 표시
+- 🥧 **마스터리 파이 차트**: 마스터/학습중/신규 분포, 범례
+- 📈 **정확도 추세**: 7일간 평균 정확도 라인 차트
+- 📊 **일일 복습 바 차트**: 7일간 복습한 단어 수
+- 🏆 **개인 베스트**: 최고 정확도, 1일 최다 복습, 최속 습득
+- ⭐ **상위 향상 단어**: Top 5 향상률 단어, 순위 배지
+
+### 발음 히스토리 화면 (PronunciationHistoryScreen)
+- 📊 **개요 통계**: 총 연습 횟수, 연습 문구 수, 평균/최고 정확도, 총 연습 시간
+- 📈 **7일 추세 차트**: 평균 정확도 변화 라인 차트
+- ⚠️ **요연습 문구**: 평균 70% 미만 Top 5, 빨간 경고
+- ✅ **마스터 문구**: 평균 90% 이상 Top 5, 초록 체크
+- 🎯 **필터링**: 전체/요연습/학습중/마스터 드롭다운
+- 🔄 **정렬**: 최신순/정확도 높음/낮음/연습 횟수
+- 📝 **문구 카드**: 일본어 텍스트, 평균/최고 점수, 연습 횟수, 최근 시간
+- 👆 **클릭 재연습**: 문구 클릭으로 즉시 재연습 시작
+
+### 커스텀 단어 추가 화면 (AddVocabularyScreen)
+- 📋 **클립보드 제안**: 자동 감지, 원탭 임포트, 포맷 파싱 (word:reading:meaning)
+- 📝 **필수 입력**: 일본어 단어, 한국어 의미 (validation)
+- 🔤 **선택 입력**: 읽기(히라가나), 예문(다중라인)
+- ⭐ **난이도 슬라이더**: 1-5 별점, 시각적 표시
+- ⏰ **복습 큐 토글**: 즉시 추가 vs. 내일 추가
+- 💾 **중복 검사**: 기존 단어 확인, 에러 메시지
+- ✅ **성공 피드백**: Snackbar 알림, 자동 화면 이동
+- 🗑️ **클리어 버튼**: 폼 초기화
+
+## 🎉 최신 업데이트 (2025-10-30 Part 9) - 학습 분석 및 개인화
+
+### 🆕 핵심 기능
+
+이번 업데이트에서는 **플래시카드 통계**, **발음 히스토리 추적**, **커스텀 단어 추가** 기능을 완성하여 학습 진도를 상세히 분석하고 개인화된 학습 경험을 제공합니다.
+
+### 1️⃣ 플래시카드 통계 대시보드 ✅
+
+**포괄적인 학습 분석**으로 단어 복습 진도를 한눈에 확인!
+
+**주요 기능:**
+- ✅ **30일 캘린더 히트맵**: GitHub 스타일 복습 활동 시각화, 색상 강도로 복습량 표시
+- ✅ **학습 스트릭 추적**: 현재 연속 복습일, 역대 최장 기록, 불 아이콘 표시
+- ✅ **마스터리 파이 차트**: 마스터/학습중/신규 단어 분포, 색상별 범례
+- ✅ **정확도 추세 차트**: 7일간 평균 정확도 변화 라인 차트
+- ✅ **일일 복습량 차트**: 7일간 복습한 단어 수 바 차트
+- ✅ **개인 베스트 기록**: 최고 정확도, 1일 최다 복습, 최속 습득 (금/은/동 메달)
+- ✅ **상위 향상 단어**: Top 5 향상률 단어, 순위 배지 (금/은/동)
+- ✅ **세션 완료 통합**: 복습 완료 후 "상세 통계 보기" 버튼
+
+**기술 구현:**
+- `FlashcardStatsViewModel.kt`: 포괄적 분석 계산 (30일 데이터, 스트릭, 베스트)
+- `FlashcardStatsScreen.kt`: 4가지 차트 타입 (히트맵, 파이, 라인, 바)
+- `CalendarHeatmap`: 커스텀 Compose 컴포넌트, 30일 그리드, 강도 색상
+
+### 2️⃣ 발음 히스토리 추적 시스템 ✅
+
+**모든 발음 연습을 기록**하여 약점 파악 및 향상도 추적!
+
+**주요 기능:**
+- ✅ **전체 히스토리 저장**: 데이터베이스에 모든 연습 기록 (텍스트, 점수, 시간)
+- ✅ **통계 대시보드**: 총 연습 횟수, 문구 수, 평균/최고 정확도, 총 시간
+- ✅ **7일 추세 차트**: 날짜별 평균 정확도 변화 라인 차트
+- ✅ **약점 분석**: 평균 70% 미만 문구 Top 5 표시 (빨간 경고)
+- ✅ **마스터 문구**: 평균 90% 이상 문구 Top 5 표시 (초록 체크)
+- ✅ **필터링 & 정렬**: 전체/요연습/학습중/마스터, 최신/정확도/횟수 정렬
+- ✅ **문구별 상세 정보**: 평균/최고 점수, 시도 횟수, 상대 시간
+- ✅ **향상도 표시**: 연습 화면에서 이전 최고점 대비 향상 표시 (+5, -2 등)
+- ✅ **재연습 기능**: 문구 클릭으로 즉시 재연습 시작
+
+**기술 구현:**
+- `PronunciationHistory` 엔티티: userId, messageId, vocabularyId 링크
+- `PronunciationHistoryDao`: 25+ 쿼리 메서드 (통계, 그룹화, 필터링)
+- `PronunciationHistoryRepository`: 통계 계산, JSON 직렬화
+- `PronunciationHistoryViewModel`: 필터/정렬 로직
+- `PronunciationHistoryScreen`: 포괄적 UI (차트, 리스트, 필터)
+- Database Migration 4→5: 새 테이블 및 인덱스
+
+### 3️⃣ 커스텀 단어 추가 기능 ✅
+
+**개인화된 학습**으로 원하는 단어를 직접 추가!
+
+**주요 기능:**
+- ✅ **스마트 클립보드 임포트**: 자동 감지, 포맷 파싱 (word:reading:meaning)
+- ✅ **필수/선택 입력**: 단어(필수), 의미(필수), 읽기(선택), 예문(선택)
+- ✅ **난이도 설정**: 1-5 별점 슬라이더, 시각적 피드백
+- ✅ **복습 큐 제어**: 즉시 추가 vs. 내일 추가 토글
+- ✅ **중복 방지**: 기존 단어 자동 감지, 명확한 에러 메시지
+- ✅ **입력 검증**: 실시간 필드 검증, 에러 메시지
+- ✅ **성공 피드백**: Snackbar 알림 + 자동 화면 복귀
+- ✅ **스택형 FAB**: 메인 화면에 작은 + FAB (단어 추가) + 큰 FAB (복습)
+
+**기술 구현:**
+- `VocabularyRepository.addCustomVocabulary()`: 향상된 메서드 (중복 검사, 복습 큐)
+- `AddVocabularyViewModel`: 폼 상태, 클립보드 관리, 검증
+- `AddVocabularyScreen`: 아름다운 폼 UI, 클립보드 배너
+- `ScenarioListScreen`: 스택형 FAB (Small + Extended)
+
+### 📦 생성된 파일
+
+**플래시카드 통계:**
+- ✅ `FlashcardStatsViewModel.kt` (346 lines) - 분석 계산
+- ✅ `FlashcardStatsScreen.kt` (690 lines) - 통계 UI, 히트맵
+
+**발음 히스토리:**
+- ✅ `PronunciationHistory.kt` (100 lines) - 엔티티 및 모델
+- ✅ `PronunciationHistoryDao.kt` (200 lines) - 데이터 액세스
+- ✅ `PronunciationHistoryRepository.kt` (230 lines) - 비즈니스 로직
+- ✅ `PronunciationHistoryViewModel.kt` (160 lines) - 상태 관리
+- ✅ `PronunciationHistoryScreen.kt` (560 lines) - 히스토리 UI
+
+**커스텀 단어:**
+- ✅ `AddVocabularyViewModel.kt` (220 lines) - 폼 로직
+- ✅ `AddVocabularyScreen.kt` (380 lines) - 입력 폼 UI
+
+**총 신규 코드:** ~2,886 lines
+
+### 🔄 수정된 파일
+
+**데이터베이스:**
+- ✏️ `NihongoDatabase.kt` - PronunciationHistory 엔티티, Migration 4→5
+- ✏️ `DatabaseModule.kt` - PronunciationHistoryDao 제공
+
+**UI 통합:**
+- ✏️ `FlashcardReviewScreen.kt` - 통계 버튼 추가
+- ✏️ `PronunciationPracticeSheet.kt` - 이전 베스트, 향상도 표시
+- ✏️ `ScenarioListScreen.kt` - 스택형 FAB (단어 추가 + 복습)
+- ✏️ `VocabularyRepository.kt` - addCustomVocabulary() 향상
+
+**네비게이션:**
+- ✏️ `NihongoNavHost.kt` - 3개 새 라우트 (FlashcardStats, PronunciationHistory, AddVocabulary)
+
+### 🎯 사용 방법
+
+**플래시카드 통계 보기:**
+1. 플래시카드 복습 화면 상단 "통계" 아이콘 클릭
+2. 또는 세션 완료 후 "상세 통계 보기" 버튼
+3. 30일 히트맵, 스트릭, 차트, 베스트 기록 확인
+4. 향상 필요 단어 및 마스터 단어 파악
+
+**발음 히스토리 확인:**
+1. 발음 연습 시 자동으로 기록 저장
+2. 발음 히스토리 화면에서 전체 기록 확인
+3. 필터/정렬로 약점 분석
+4. 약한 문구 클릭으로 재연습
+
+**커스텀 단어 추가:**
+1. 메인 화면 작은 + FAB 클릭
+2. 클립보드에 텍스트 있으면 임포트 제안
+3. 단어, 의미 입력 (필수)
+4. 읽기, 예문 추가 (선택)
+5. 난이도 설정 (1-5)
+6. "즉시 복습 추가" 토글
+7. "단어를 추가" 버튼
+8. 플래시카드에서 즉시 복습 가능!
+
+### 🏗️ 아키텍처 업데이트
+
+```
+presentation/
+├── flashcard/         # 플래시카드 복습 + 통계
+│   ├── FlashcardReviewViewModel.kt
+│   ├── FlashcardReviewScreen.kt
+│   ├── FlashcardStatsViewModel.kt    # NEW
+│   └── FlashcardStatsScreen.kt       # NEW
+├── pronunciation/     # 발음 히스토리 (NEW)
+│   ├── PronunciationHistoryViewModel.kt
+│   └── PronunciationHistoryScreen.kt
+└── vocabulary/        # 커스텀 단어 (NEW)
+    ├── AddVocabularyViewModel.kt
+    └── AddVocabularyScreen.kt
+```
+
+### 📊 데이터베이스 업데이트
+
+**Migration 4→5:**
+```sql
+CREATE TABLE pronunciation_history (
+    id, userId, messageId, vocabularyId,
+    expectedText, recognizedText, accuracyScore,
+    wordComparisonJson, practicedAt, durationMs,
+    attemptNumber, source,
+    FOREIGN KEY(userId) REFERENCES users(id),
+    FOREIGN KEY(messageId) REFERENCES messages(id),
+    FOREIGN KEY(vocabularyId) REFERENCES vocabulary_entries(id)
+)
+-- 6개 인덱스 (userId, messageId, vocabularyId, practicedAt 등)
+```
+
+### 🚀 성능 최적화
+
+**플래시카드 통계:**
+- 📊 효율적인 집계 쿼리 (GROUP BY, AVG, COUNT)
+- 🎨 커스텀 Canvas 히트맵 (GPU 가속)
+- 💾 상태 기반 렌더링 (StateFlow)
+
+**발음 히스토리:**
+- 🔍 복합 인덱스로 빠른 쿼리 (userId + practicedAt)
+- 📈 효율적인 통계 계산 (SQL 집계)
+- 🎯 페이징 준비 (Limit 파라미터)
+
+**커스텀 단어:**
+- ✅ 중복 검사 (인덱스 활용)
+- 📋 ClipboardManager 최적화
+- 💾 즉각적인 DataStore 저장
+
+### 🎉 요약
+
+**Phase 5 완료!**
+- ✅ 플래시카드 통계 차트 완성
+- ✅ 발음 히스토리 추적 완성
+- ✅ 커스텀 단어 추가 완성
+
+**총 추가:**
+- 📄 8개 새 파일 (~2,886 lines)
+- 🔄 8개 수정 파일
+- 📊 1개 새 데이터베이스 테이블
+- 🎨 3개 새 화면
+
+**빌드 상태:** ✅ SUCCESS
+**문서화:** ✅ COMPLETE
+**프로덕션 준비:** ✅ YES
 
 ## 🌐 최신 업데이트 (2025-10-29 Part 7) - 네트워크 성능 최적화
 
@@ -1785,9 +2013,9 @@ android {
 
 ### 📅 Phase 5: 향후 계획
 - [x] 플래시카드 복습 UI (FlashcardReviewScreen, ViewModel) ✅
-- [ ] 플래시카드 통계 차트
-- [ ] 발음 평가 히스토리 추적
-- [ ] 커스텀 어휘 추가 기능
+- [x] 플래시카드 통계 차트 (FlashcardStatsScreen, 캘린더 히트맵) ✅
+- [x] 발음 평가 히스토리 추적 (PronunciationHistory DB, HistoryScreen) ✅
+- [x] 커스텀 어휘 추가 기능 (AddVocabularyScreen, 클립보드 임포트) ✅
 - [ ] 오프라인 모드 (로컬 TTS)
 - [ ] 위젯 (학습 진도 표시)
 
