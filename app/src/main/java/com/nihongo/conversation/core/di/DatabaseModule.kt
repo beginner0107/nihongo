@@ -26,7 +26,8 @@ object DatabaseModule {
         )
             .addMigrations(
                 NihongoDatabase.MIGRATION_1_2,
-                NihongoDatabase.MIGRATION_5_6
+                NihongoDatabase.MIGRATION_5_6,
+                NihongoDatabase.MIGRATION_6_7
                 // Removed MIGRATION_2_3 and MIGRATION_3_4 due to SQL formatting issues
                 // These migrations will fallback to destructive migration
             )
@@ -59,4 +60,16 @@ object DatabaseModule {
     @Provides
     fun provideGrammarFeedbackDao(database: NihongoDatabase): GrammarFeedbackDao =
         database.grammarFeedbackDao()
+
+    @Provides
+    fun provideScenarioGoalDao(database: NihongoDatabase): ScenarioGoalDao =
+        database.scenarioGoalDao()
+
+    @Provides
+    fun provideScenarioOutcomeDao(database: NihongoDatabase): ScenarioOutcomeDao =
+        database.scenarioOutcomeDao()
+
+    @Provides
+    fun provideScenarioBranchDao(database: NihongoDatabase): ScenarioBranchDao =
+        database.scenarioBranchDao()
 }

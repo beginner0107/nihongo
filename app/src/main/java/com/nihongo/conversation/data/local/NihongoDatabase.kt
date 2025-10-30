@@ -11,6 +11,9 @@ import com.nihongo.conversation.domain.model.Message
 import com.nihongo.conversation.domain.model.PronunciationHistory
 import com.nihongo.conversation.domain.model.ReviewHistory
 import com.nihongo.conversation.domain.model.Scenario
+import com.nihongo.conversation.domain.model.ScenarioBranch
+import com.nihongo.conversation.domain.model.ScenarioGoal
+import com.nihongo.conversation.domain.model.ScenarioOutcome
 import com.nihongo.conversation.domain.model.User
 import com.nihongo.conversation.domain.model.VocabularyEntry
 
@@ -23,12 +26,15 @@ import com.nihongo.conversation.domain.model.VocabularyEntry
         VocabularyEntry::class,
         ReviewHistory::class,
         PronunciationHistory::class,
-        GrammarFeedback::class
+        GrammarFeedback::class,
+        ScenarioGoal::class,
+        ScenarioOutcome::class,
+        ScenarioBranch::class
     ],
     views = [
         ConversationStats::class
     ],
-    version = 6,
+    version = 7,
     exportSchema = false
 )
 abstract class NihongoDatabase : RoomDatabase() {
@@ -39,6 +45,9 @@ abstract class NihongoDatabase : RoomDatabase() {
     abstract fun vocabularyDao(): VocabularyDao
     abstract fun pronunciationHistoryDao(): PronunciationHistoryDao
     abstract fun grammarFeedbackDao(): GrammarFeedbackDao
+    abstract fun scenarioGoalDao(): ScenarioGoalDao
+    abstract fun scenarioOutcomeDao(): ScenarioOutcomeDao
+    abstract fun scenarioBranchDao(): ScenarioBranchDao
 
     companion object {
         val MIGRATION_1_2 = object : Migration(1, 2) {
@@ -204,6 +213,82 @@ abstract class NihongoDatabase : RoomDatabase() {
                 database.execSQL("CREATE INDEX IF NOT EXISTS index_grammar_feedback_severity ON grammar_feedback(severity)")
                 database.execSQL("CREATE INDEX IF NOT EXISTS idx_grammar_user_type ON grammar_feedback(userId, feedbackType)")
                 database.execSQL("CREATE INDEX IF NOT EXISTS idx_grammar_user_date ON grammar_feedback(userId, createdAt)")
+            }
+        }
+
+        val MIGRATION_6_7 = object : Migration(6, 7) {
+            override fun migrate(database: SupportSQLiteDatabase) {
+                // Add new columns to scenarios table
+                database.execSQL("ALTER TABLE scenarios ADD COLUMN category TEXT NOT NULL DEFAULT 'DAILY_CONVERSATION'")
+                database.execSQL("ALTER TABLE scenarios ADD COLUMN estimatedDuration INTEGER NOT NULL DEFAULT 10")
+                database.execSQL("ALTER TABLE scenarios ADD COLUMN hasGoals INTEGER NOT NULL DEFAULT 0")
+                database.execSQL("ALTER TABLE scenarios ADD COLUMN hasBranching INTEGER NOT NULL DEFAULT 0")
+                database.execSQL("ALTER TABLE scenarios ADD COLUMN replayValue INTEGER NOT NULL DEFAULT 1")
+                database.execSQL("ALTER TABLE scenarios ADD COLUMN thumbnailEmoji TEXT NOT NULL DEFAULT '💬'")
+
+                // Create scenario_goals table
+                database.execSQL("""
+                    CREATE TABLE IF NOT EXISTS scenario_goals (
+                        id INTEGER PRIMARY KEY AUTOINCREMENT NOT NULL,
+                        scenarioId INTEGER NOT NULL,
+                        goalType TEXT NOT NULL,
+                        description TEXT NOT NULL,
+                        descriptionKorean TEXT NOT NULL,
+                        targetValue INTEGER NOT NULL DEFAULT 1,
+                        keywords TEXT,
+                        isRequired INTEGER NOT NULL DEFAULT 1,
+                        points INTEGER NOT NULL DEFAULT 10,
+                        `order` INTEGER NOT NULL DEFAULT 0,
+                        FOREIGN KEY(scenarioId) REFERENCES scenarios(id) ON DELETE CASCADE
+                    )
+                """)
+
+                database.execSQL("CREATE INDEX IF NOT EXISTS index_scenario_goals_scenarioId ON scenario_goals(scenarioId)")
+                database.execSQL("CREATE INDEX IF NOT EXISTS index_scenario_goals_isRequired ON scenario_goals(isRequired)")
+
+                // Create scenario_outcomes table
+                database.execSQL("""
+                    CREATE TABLE IF NOT EXISTS scenario_outcomes (
+                        id INTEGER PRIMARY KEY AUTOINCREMENT NOT NULL,
+                        scenarioId INTEGER NOT NULL,
+                        outcomeType TEXT NOT NULL,
+                        title TEXT NOT NULL,
+                        titleKorean TEXT NOT NULL,
+                        description TEXT NOT NULL,
+                        descriptionKorean TEXT NOT NULL,
+                        requiredGoals TEXT,
+                        minScore INTEGER NOT NULL DEFAULT 0,
+                        maxScore INTEGER NOT NULL DEFAULT 100,
+                        triggerKeywords TEXT,
+                        FOREIGN KEY(scenarioId) REFERENCES scenarios(id) ON DELETE CASCADE
+                    )
+                """)
+
+                database.execSQL("CREATE INDEX IF NOT EXISTS index_scenario_outcomes_scenarioId ON scenario_outcomes(scenarioId)")
+                database.execSQL("CREATE INDEX IF NOT EXISTS index_scenario_outcomes_outcomeType ON scenario_outcomes(outcomeType)")
+
+                // Create scenario_branches table
+                database.execSQL("""
+                    CREATE TABLE IF NOT EXISTS scenario_branches (
+                        id INTEGER PRIMARY KEY AUTOINCREMENT NOT NULL,
+                        scenarioId INTEGER NOT NULL,
+                        triggerPoint INTEGER NOT NULL,
+                        triggerKeywords TEXT,
+                        pathAPrompt TEXT NOT NULL,
+                        pathADescription TEXT NOT NULL,
+                        pathADescriptionKorean TEXT NOT NULL,
+                        pathBPrompt TEXT NOT NULL,
+                        pathBDescription TEXT NOT NULL,
+                        pathBDescriptionKorean TEXT NOT NULL,
+                        pathCPrompt TEXT,
+                        pathCDescription TEXT,
+                        pathCDescriptionKorean TEXT,
+                        FOREIGN KEY(scenarioId) REFERENCES scenarios(id) ON DELETE CASCADE
+                    )
+                """)
+
+                database.execSQL("CREATE INDEX IF NOT EXISTS index_scenario_branches_scenarioId ON scenario_branches(scenarioId)")
+                database.execSQL("CREATE INDEX IF NOT EXISTS index_scenario_branches_triggerPoint ON scenario_branches(triggerPoint)")
             }
         }
     }
