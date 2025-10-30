@@ -27,7 +27,8 @@ object DatabaseModule {
             .addMigrations(
                 NihongoDatabase.MIGRATION_1_2,
                 NihongoDatabase.MIGRATION_5_6,
-                NihongoDatabase.MIGRATION_6_7
+                NihongoDatabase.MIGRATION_6_7,
+                NihongoDatabase.MIGRATION_8_9
                 // Removed MIGRATION_2_3 and MIGRATION_3_4 due to SQL formatting issues
                 // These migrations will fallback to destructive migration
             )
@@ -72,4 +73,20 @@ object DatabaseModule {
     @Provides
     fun provideScenarioBranchDao(database: NihongoDatabase): ScenarioBranchDao =
         database.scenarioBranchDao()
+
+    @Provides
+    fun provideSentenceCardDao(database: NihongoDatabase): SentenceCardDao =
+        database.sentenceCardDao()
+
+    @Provides
+    fun provideConversationPatternDao(database: NihongoDatabase): ConversationPatternDao =
+        database.conversationPatternDao()
+
+    @Provides
+    fun provideCachedResponseDao(database: NihongoDatabase): CachedResponseDao =
+        database.cachedResponseDao()
+
+    @Provides
+    fun provideCacheAnalyticsDao(database: NihongoDatabase): CacheAnalyticsDao =
+        database.cacheAnalyticsDao()
 }

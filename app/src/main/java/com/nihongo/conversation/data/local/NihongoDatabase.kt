@@ -31,12 +31,15 @@ import com.nihongo.conversation.domain.model.VocabularyEntry
         ScenarioGoal::class,
         ScenarioOutcome::class,
         ScenarioBranch::class,
-        SentenceCard::class
+        SentenceCard::class,
+        com.nihongo.conversation.domain.model.ConversationPattern::class,
+        com.nihongo.conversation.domain.model.CachedResponse::class,
+        com.nihongo.conversation.domain.model.CacheAnalytics::class
     ],
     views = [
         ConversationStats::class
     ],
-    version = 8,
+    version = 9,
     exportSchema = false
 )
 abstract class NihongoDatabase : RoomDatabase() {
@@ -51,6 +54,9 @@ abstract class NihongoDatabase : RoomDatabase() {
     abstract fun scenarioOutcomeDao(): ScenarioOutcomeDao
     abstract fun scenarioBranchDao(): ScenarioBranchDao
     abstract fun sentenceCardDao(): SentenceCardDao
+    abstract fun conversationPatternDao(): ConversationPatternDao
+    abstract fun cachedResponseDao(): CachedResponseDao
+    abstract fun cacheAnalyticsDao(): CacheAnalyticsDao
 
     companion object {
         val MIGRATION_1_2 = object : Migration(1, 2) {
@@ -340,6 +346,82 @@ abstract class NihongoDatabase : RoomDatabase() {
                 database.execSQL("CREATE INDEX IF NOT EXISTS index_sentence_cards_conversationId ON sentence_cards(conversationId)")
                 database.execSQL("CREATE INDEX IF NOT EXISTS index_sentence_cards_pattern ON sentence_cards(pattern)")
                 database.execSQL("CREATE INDEX IF NOT EXISTS index_sentence_cards_nextReviewDate ON sentence_cards(nextReviewDate)")
+            }
+        }
+
+        val MIGRATION_8_9 = object : Migration(8, 9) {
+            override fun migrate(database: SupportSQLiteDatabase) {
+                // Create conversation_patterns table for caching system
+                database.execSQL("""
+                    CREATE TABLE IF NOT EXISTS conversation_patterns (
+                        id INTEGER PRIMARY KEY AUTOINCREMENT NOT NULL,
+                        pattern TEXT NOT NULL,
+                        scenarioId INTEGER NOT NULL,
+                        difficultyLevel INTEGER NOT NULL,
+                        category TEXT NOT NULL,
+                        conversationTurn INTEGER NOT NULL DEFAULT 0,
+                        keywords TEXT NOT NULL DEFAULT '',
+                        usageCount INTEGER NOT NULL DEFAULT 0,
+                        lastUsedTimestamp INTEGER NOT NULL,
+                        successRate REAL NOT NULL DEFAULT 1.0,
+                        averageSimilarity REAL NOT NULL DEFAULT 0.0,
+                        createdAt INTEGER NOT NULL,
+                        updatedAt INTEGER NOT NULL
+                    )
+                """)
+
+                // Create cached_responses table
+                database.execSQL("""
+                    CREATE TABLE IF NOT EXISTS cached_responses (
+                        id INTEGER PRIMARY KEY AUTOINCREMENT NOT NULL,
+                        patternId INTEGER NOT NULL,
+                        response TEXT NOT NULL,
+                        variation INTEGER NOT NULL DEFAULT 0,
+                        complexityScore INTEGER NOT NULL DEFAULT 0,
+                        characterCount INTEGER NOT NULL,
+                        wordCount INTEGER NOT NULL,
+                        usageCount INTEGER NOT NULL DEFAULT 0,
+                        lastUsedTimestamp INTEGER NOT NULL,
+                        userSatisfactionScore REAL NOT NULL DEFAULT 0.0,
+                        isVerified INTEGER NOT NULL DEFAULT 0,
+                        generatedByApi INTEGER NOT NULL DEFAULT 1,
+                        createdAt INTEGER NOT NULL,
+                        FOREIGN KEY(patternId) REFERENCES conversation_patterns(id) ON DELETE CASCADE
+                    )
+                """)
+
+                // Create cache_analytics table
+                database.execSQL("""
+                    CREATE TABLE IF NOT EXISTS cache_analytics (
+                        id INTEGER PRIMARY KEY AUTOINCREMENT NOT NULL,
+                        date TEXT NOT NULL,
+                        userId INTEGER NOT NULL,
+                        scenarioId INTEGER NOT NULL,
+                        cacheHits INTEGER NOT NULL DEFAULT 0,
+                        cacheMisses INTEGER NOT NULL DEFAULT 0,
+                        apiCalls INTEGER NOT NULL DEFAULT 0,
+                        averageSimilarityScore REAL NOT NULL DEFAULT 0.0,
+                        averageResponseTime INTEGER NOT NULL DEFAULT 0,
+                        userContinuationRate REAL NOT NULL DEFAULT 0.0,
+                        tokensSaved INTEGER NOT NULL DEFAULT 0,
+                        estimatedCostSaved REAL NOT NULL DEFAULT 0.0,
+                        createdAt INTEGER NOT NULL
+                    )
+                """)
+
+                // Create indices for conversation_patterns
+                database.execSQL("CREATE INDEX IF NOT EXISTS index_conversation_patterns_scenarioId ON conversation_patterns(scenarioId)")
+                database.execSQL("CREATE INDEX IF NOT EXISTS index_conversation_patterns_difficultyLevel ON conversation_patterns(difficultyLevel)")
+                database.execSQL("CREATE INDEX IF NOT EXISTS index_conversation_patterns_category ON conversation_patterns(category)")
+                database.execSQL("CREATE INDEX IF NOT EXISTS index_conversation_patterns_usageCount ON conversation_patterns(usageCount)")
+
+                // Create indices for cached_responses
+                database.execSQL("CREATE INDEX IF NOT EXISTS index_cached_responses_patternId ON cached_responses(patternId)")
+
+                // Create indices for cache_analytics
+                database.execSQL("CREATE INDEX IF NOT EXISTS index_cache_analytics_userId ON cache_analytics(userId)")
+                database.execSQL("CREATE INDEX IF NOT EXISTS index_cache_analytics_scenarioId ON cache_analytics(scenarioId)")
+                database.execSQL("CREATE INDEX IF NOT EXISTS index_cache_analytics_date ON cache_analytics(date)")
             }
         }
     }

@@ -218,6 +218,24 @@ class ChatViewModel @Inject constructor(
             // Create conversation on first message if it doesn't exist
             if (currentConversationId == null) {
                 currentConversationId = repository.getOrCreateConversation(currentUserId, currentScenarioId)
+
+                // Set up message flow for the newly created conversation
+                val newConversationId = currentConversationId
+                if (newConversationId != null) {
+                    messagesFlowJob?.cancel()
+                    messagesFlowJob = viewModelScope.launch {
+                        repository.getMessages(newConversationId)
+                            .collect { messages ->
+                                // Limit message history based on device memory
+                                val limitedMessages = if (messages.size > memoryConfig.maxMessageHistory) {
+                                    messages.takeLast(memoryConfig.maxMessageHistory)
+                                } else {
+                                    messages
+                                }
+                                _uiState.update { it.copy(messages = limitedMessages.toImmutableList()) }
+                            }
+                    }
+                }
             }
 
             val conversationId = currentConversationId ?: run {

@@ -9,7 +9,8 @@ import javax.inject.Singleton
 
 @Singleton
 class DataInitializer @Inject constructor(
-    private val repository: ConversationRepository
+    private val repository: ConversationRepository,
+    private val cacheInitializer: com.nihongo.conversation.core.cache.CacheInitializer
 ) {
     suspend fun initializeDefaultData() {
         // Check if user already exists
@@ -26,6 +27,9 @@ class DataInitializer @Inject constructor(
 
         // Initialize all scenarios
         initializeScenarios()
+
+        // Initialize response cache
+        cacheInitializer.initializeCache()
     }
 
     private suspend fun initializeScenarios() {
