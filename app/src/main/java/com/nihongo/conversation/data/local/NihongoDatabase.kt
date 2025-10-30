@@ -14,6 +14,7 @@ import com.nihongo.conversation.domain.model.Scenario
 import com.nihongo.conversation.domain.model.ScenarioBranch
 import com.nihongo.conversation.domain.model.ScenarioGoal
 import com.nihongo.conversation.domain.model.ScenarioOutcome
+import com.nihongo.conversation.domain.model.SentenceCard
 import com.nihongo.conversation.domain.model.User
 import com.nihongo.conversation.domain.model.VocabularyEntry
 
@@ -29,12 +30,13 @@ import com.nihongo.conversation.domain.model.VocabularyEntry
         GrammarFeedback::class,
         ScenarioGoal::class,
         ScenarioOutcome::class,
-        ScenarioBranch::class
+        ScenarioBranch::class,
+        SentenceCard::class
     ],
     views = [
         ConversationStats::class
     ],
-    version = 7,
+    version = 8,
     exportSchema = false
 )
 abstract class NihongoDatabase : RoomDatabase() {
@@ -48,6 +50,7 @@ abstract class NihongoDatabase : RoomDatabase() {
     abstract fun scenarioGoalDao(): ScenarioGoalDao
     abstract fun scenarioOutcomeDao(): ScenarioOutcomeDao
     abstract fun scenarioBranchDao(): ScenarioBranchDao
+    abstract fun sentenceCardDao(): SentenceCardDao
 
     companion object {
         val MIGRATION_1_2 = object : Migration(1, 2) {
@@ -289,6 +292,54 @@ abstract class NihongoDatabase : RoomDatabase() {
 
                 database.execSQL("CREATE INDEX IF NOT EXISTS index_scenario_branches_scenarioId ON scenario_branches(scenarioId)")
                 database.execSQL("CREATE INDEX IF NOT EXISTS index_scenario_branches_triggerPoint ON scenario_branches(triggerPoint)")
+            }
+        }
+
+        val MIGRATION_7_8 = object : Migration(7, 8) {
+            override fun migrate(database: SupportSQLiteDatabase) {
+                // Create sentence_cards table for sentence-based flashcards
+                database.execSQL("""
+                    CREATE TABLE IF NOT EXISTS sentence_cards (
+                        id INTEGER PRIMARY KEY AUTOINCREMENT NOT NULL,
+                        userId INTEGER NOT NULL,
+                        messageId INTEGER,
+                        conversationId INTEGER,
+                        scenarioTitle TEXT,
+                        sentence TEXT NOT NULL,
+                        translation TEXT NOT NULL,
+                        romanization TEXT,
+                        conversationContext TEXT,
+                        situationDescription TEXT,
+                        pattern TEXT,
+                        patternExplanation TEXT,
+                        audioUrl TEXT,
+                        hasAudio INTEGER NOT NULL DEFAULT 0,
+                        difficulty TEXT NOT NULL DEFAULT 'NORMAL',
+                        tags TEXT NOT NULL DEFAULT '',
+                        repetitions INTEGER NOT NULL DEFAULT 0,
+                        easeFactor REAL NOT NULL DEFAULT 2.5,
+                        `interval` INTEGER NOT NULL DEFAULT 1,
+                        nextReviewDate INTEGER NOT NULL,
+                        correctCount INTEGER NOT NULL DEFAULT 0,
+                        incorrectCount INTEGER NOT NULL DEFAULT 0,
+                        lastReviewedAt INTEGER,
+                        createdAt INTEGER NOT NULL,
+                        hasCompletedReading INTEGER NOT NULL DEFAULT 0,
+                        hasCompletedListening INTEGER NOT NULL DEFAULT 0,
+                        hasCompletedFillInBlank INTEGER NOT NULL DEFAULT 0,
+                        hasCompletedSpeaking INTEGER NOT NULL DEFAULT 0,
+                        FOREIGN KEY(userId) REFERENCES users(id) ON DELETE CASCADE,
+                        FOREIGN KEY(messageId) REFERENCES messages(id) ON DELETE SET NULL,
+                        FOREIGN KEY(conversationId) REFERENCES conversations(id) ON DELETE SET NULL
+                    )
+                """)
+
+                // Create indices for sentence_cards
+                database.execSQL("CREATE INDEX IF NOT EXISTS index_sentence_cards_userId ON sentence_cards(userId)")
+                database.execSQL("CREATE INDEX IF NOT EXISTS index_sentence_cards_messageId ON sentence_cards(messageId)")
+                database.execSQL("CREATE INDEX IF NOT EXISTS index_sentence_cards_conversationId ON sentence_cards(conversationId)")
+                database.execSQL("CREATE INDEX IF NOT EXISTS index_sentence_cards_pattern ON sentence_cards(pattern)")
+                database.execSQL("CREATE INDEX IF NOT EXISTS index_sentence_cards_nextReviewDate ON sentence_cards(nextReviewDate)")
             }
         }
     }
