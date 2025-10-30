@@ -237,8 +237,8 @@ class ChatViewModel @Inject constructor(
             val enhancedPrompt = scenario.systemPrompt + personalizedPrefix + difficultyPrompt
 
             // Use streaming API for instant response feel
-            var autoSpeakTriggered = false
             var userMessageId: Long? = null
+            var finalAiMessage: String? = null
 
             repository.sendMessageStream(
                 conversationId = conversationId,
@@ -251,11 +251,8 @@ class ChatViewModel @Inject constructor(
                         _uiState.update { it.copy(isLoading = true) }
                     }
                     is Result.Success -> {
-                        // Auto-speak once when first chunk arrives
-                        if (!autoSpeakTriggered && _uiState.value.autoSpeak && result.data.content.length > 10) {
-                            voiceManager.speak(result.data.content, speed = _uiState.value.speechSpeed)
-                            autoSpeakTriggered = true
-                        }
+                        // Store the latest AI message content
+                        finalAiMessage = result.data.content
 
                         // Store user message ID for feedback analysis
                         // User message is typically the second-to-last message
@@ -279,6 +276,13 @@ class ChatViewModel @Inject constructor(
                             )
                         }
                     }
+                }
+            }
+
+            // After streaming is complete, speak the full AI message
+            finalAiMessage?.let { aiMsg ->
+                if (_uiState.value.autoSpeak && aiMsg.isNotEmpty()) {
+                    voiceManager.speak(aiMsg, speed = _uiState.value.speechSpeed)
                 }
             }
 

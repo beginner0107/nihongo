@@ -395,56 +395,103 @@ class GeminiApiService @Inject constructor(
         conversationExamples: List<String>,
         userLevel: Int
     ): GrammarExplanation {
-        return try {
-            val prompt = """
-                다음 일본어 문장의 문법을 한국어로 쉽게 설명해주세요.
-                사용자 레벨: $userLevel (1=초급, 2=중급, 3=고급)
+        val prompt = """
+            다음 일본어 문장의 문법을 한국어로 쉽게 설명해주세요.
+            사용자 레벨: $userLevel (1=초급, 2=중급, 3=고급)
 
-                문장: $sentence
+            문장: $sentence
 
-                다음 JSON 형식으로 응답하세요:
+            다음 JSON 형식으로 응답하세요:
+            {
+              "overallExplanation": "문장 전체의 간단한 설명 (1-2문장)",
+              "detailedExplanation": "문법 구조에 대한 상세한 설명",
+              "components": [
                 {
-                  "overallExplanation": "문장 전체의 간단한 설명 (1-2문장)",
-                  "detailedExplanation": "문법 구조에 대한 상세한 설명",
-                  "components": [
-                    {
-                      "text": "문법 요소 (예: を, ます)",
-                      "type": "PARTICLE|VERB|ADJECTIVE|NOUN|AUXILIARY|CONJUNCTION|ADVERB|EXPRESSION",
-                      "explanation": "이 문법 요소에 대한 한국어 설명",
-                      "startIndex": 시작위치,
-                      "endIndex": 끝위치
-                    }
-                  ],
-                  "examples": [
-                    ${conversationExamples.joinToString(",\n") { "\"$it\"" }}
-                  ],
-                  "relatedPatterns": [
-                    "관련 문법 패턴 1",
-                    "관련 문법 패턴 2"
-                  ]
+                  "text": "문법 요소 (예: を, ます)",
+                  "type": "PARTICLE|VERB|ADJECTIVE|NOUN|AUXILIARY|CONJUNCTION|ADVERB|EXPRESSION",
+                  "explanation": "이 문법 요소에 대한 한국어 설명",
+                  "startIndex": 시작위치,
+                  "endIndex": 끝위치
+                }
+              ],
+              "examples": [
+                ${conversationExamples.joinToString(",\n") { "\"$it\"" }}
+              ],
+              "relatedPatterns": [
+                "관련 문법 패턴 1",
+                "관련 문법 패턴 2"
+              ]
+            }
+
+            주의사항:
+            - components는 문장의 모든 주요 문법 요소를 포함해야 합니다
+            - startIndex와 endIndex는 실제 문자열 위치를 정확히 지정하세요
+            - type은 반드시 제시된 타입 중 하나여야 합니다
+            - 사용자 레벨에 맞는 쉬운 설명을 제공하세요
+            - examples는 대화 내용에서 관련된 문장들입니다
+
+            응답은 반드시 JSON만 포함하고, 다른 텍스트는 포함하지 마세요.
+        """.trimIndent()
+
+        return try {
+            // Add timeout to prevent hanging
+            kotlinx.coroutines.withTimeout(15000) {
+                val response = model.generateContent(prompt)
+
+                // Safely get text
+                val jsonText = try {
+                    response.text?.trim()
+                } catch (e: Exception) {
+                    // Response blocked by safety filters
+                    return@withTimeout GrammarExplanation(
+                        originalText = sentence,
+                        components = emptyList(),
+                        overallExplanation = "문법 분석 차단됨",
+                        detailedExplanation = "콘텐츠가 안전 필터에 의해 차단되었습니다.",
+                        examples = conversationExamples,
+                        relatedPatterns = emptyList()
+                    )
                 }
 
-                주의사항:
-                - components는 문장의 모든 주요 문법 요소를 포함해야 합니다
-                - startIndex와 endIndex는 실제 문자열 위치를 정확히 지정하세요
-                - type은 반드시 제시된 타입 중 하나여야 합니다
-                - 사용자 레벨에 맞는 쉬운 설명을 제공하세요
-                - examples는 대화 내용에서 관련된 문장들입니다
-
-                응답은 반드시 JSON만 포함하고, 다른 텍스트는 포함하지 마세요.
-            """.trimIndent()
-
-            val response = model.generateContent(prompt)
-            val jsonText = response.text?.trim() ?: "{}"
-
-            parseGrammarExplanationFromJson(jsonText, sentence)
-        } catch (e: Exception) {
-            // Fallback grammar explanation
+                if (!jsonText.isNullOrEmpty() && jsonText != "{}") {
+                    parseGrammarExplanationFromJson(jsonText, sentence, conversationExamples)
+                } else {
+                    GrammarExplanation(
+                        originalText = sentence,
+                        components = emptyList(),
+                        overallExplanation = "문법 분석 결과 없음",
+                        detailedExplanation = "응답이 비어있습니다.",
+                        examples = conversationExamples,
+                        relatedPatterns = emptyList()
+                    )
+                }
+            }
+        } catch (e: kotlinx.coroutines.TimeoutCancellationException) {
             GrammarExplanation(
                 originalText = sentence,
                 components = emptyList(),
-                overallExplanation = "문법 분석을 가져오는 중 오류가 발생했습니다.",
-                detailedExplanation = "다시 시도해주세요.",
+                overallExplanation = "요청 시간 초과",
+                detailedExplanation = "15초 내에 응답을 받지 못했습니다. 다시 시도해주세요.",
+                examples = conversationExamples,
+                relatedPatterns = emptyList()
+            )
+        } catch (e: Exception) {
+            GrammarExplanation(
+                originalText = sentence,
+                components = emptyList(),
+                overallExplanation = "문법 분석 실패",
+                detailedExplanation = when {
+                    e.message?.contains("quota", ignoreCase = true) == true ->
+                        "API 한도 초과"
+                    e.message?.contains("blocked", ignoreCase = true) == true ||
+                    e.message?.contains("SAFETY", ignoreCase = true) == true ->
+                        "콘텐츠 차단됨"
+                    e.message?.contains("network", ignoreCase = true) == true ||
+                    e.message?.contains("Unable to resolve host", ignoreCase = true) == true ->
+                        "네트워크 오류"
+                    else ->
+                        "오류: ${e.message?.take(50) ?: "알 수 없음"}"
+                },
                 examples = conversationExamples,
                 relatedPatterns = emptyList()
             )
@@ -453,7 +500,8 @@ class GeminiApiService @Inject constructor(
 
     private fun parseGrammarExplanationFromJson(
         jsonText: String,
-        originalText: String
+        originalText: String,
+        fallbackExamples: List<String> = emptyList()
     ): GrammarExplanation {
         return try {
             val cleanJson = jsonText
@@ -504,7 +552,7 @@ class GeminiApiService @Inject constructor(
                 components = emptyList(),
                 overallExplanation = "문법 분석을 파싱하는 중 오류가 발생했습니다.",
                 detailedExplanation = e.message ?: "알 수 없는 오류",
-                examples = emptyList(),
+                examples = fallbackExamples,
                 relatedPatterns = emptyList()
             )
         }
@@ -540,21 +588,63 @@ class GeminiApiService @Inject constructor(
     }
 
     suspend fun translateToKorean(japaneseText: String): String {
+        // Handle empty text
+        if (japaneseText.isBlank()) {
+            return "번역할 텍스트가 없습니다"
+        }
+
+        // Truncate if too long (Gemini has token limits)
+        val truncatedText = if (japaneseText.length > 2000) {
+            japaneseText.substring(0, 2000) + "..."
+        } else {
+            japaneseText
+        }
+
+        val prompt = """
+            다음 일본어 문장을 자연스러운 한국어로 번역해주세요.
+            문장: $truncatedText
+
+            주의사항:
+            - 번역문만 출력하세요 (설명이나 다른 텍스트 없이)
+            - 자연스러운 한국어 표현을 사용하세요
+            - 존댓말로 번역하세요
+        """.trimIndent()
+
         return try {
-            val prompt = """
-                다음 일본어 문장을 자연스러운 한국어로 번역해주세요.
-                문장: $japaneseText
+            // Add timeout to prevent hanging
+            kotlinx.coroutines.withTimeout(10000) {
+                val response = model.generateContent(prompt)
 
-                주의사항:
-                - 번역문만 출력하세요 (설명이나 다른 텍스트 없이)
-                - 자연스러운 한국어 표현을 사용하세요
-                - 존댓말로 번역하세요
-            """.trimIndent()
+                // Safely get text
+                val translatedText = try {
+                    response.text?.trim()
+                } catch (e: Exception) {
+                    // Response blocked by safety filters
+                    return@withTimeout "번역 차단됨"
+                }
 
-            val response = model.generateContent(prompt)
-            response.text?.trim() ?: "번역 실패"
+                if (!translatedText.isNullOrEmpty()) {
+                    translatedText
+                } else {
+                    "번역 결과 없음"
+                }
+            }
+        } catch (e: kotlinx.coroutines.TimeoutCancellationException) {
+            "요청 시간 초과 (10초)"
         } catch (e: Exception) {
-            "번역 오류: ${e.message}"
+            when {
+                e.message?.contains("quota", ignoreCase = true) == true ->
+                    "API 한도 초과"
+                e.message?.contains("blocked", ignoreCase = true) == true ->
+                    "콘텐츠 차단됨"
+                e.message?.contains("SAFETY", ignoreCase = true) == true ->
+                    "안전 필터링됨"
+                e.message?.contains("network", ignoreCase = true) == true ||
+                e.message?.contains("Unable to resolve host", ignoreCase = true) == true ->
+                    "네트워크 오류"
+                else ->
+                    "번역 실패: ${e.message?.take(50) ?: "알 수 없음"}"
+            }
         }
     }
 

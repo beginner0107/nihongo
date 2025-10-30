@@ -239,19 +239,110 @@ class VoiceManager @Inject constructor(
         // Speak immediately if initialized
         try {
             tts.setSpeechRate(speed.coerceIn(0.5f, 2.0f))
-            val result = tts.speak(cleanText, TextToSpeech.QUEUE_FLUSH, null, utteranceId)
 
-            when (result) {
-                TextToSpeech.ERROR -> {
+            // Android TTS has a character limit (~4000 chars)
+            // Split long text into sentences and queue them
+            val sentences = splitIntoSentences(cleanText)
+
+            sentences.forEachIndexed { index, sentence ->
+                val queueMode = if (index == 0) TextToSpeech.QUEUE_FLUSH else TextToSpeech.QUEUE_ADD
+                val sentenceId = "${utteranceId}_$index"
+                val result = tts.speak(sentence, queueMode, null, sentenceId)
+
+                if (result == TextToSpeech.ERROR) {
                     _events.trySend(VoiceEvent.Error("音声再生エラー。音量を確認してください。"))
-                }
-                TextToSpeech.SUCCESS -> {
-                    // Success - state will be updated by listener
+                    return
                 }
             }
         } catch (e: Exception) {
             _events.trySend(VoiceEvent.Error("TTSエラー: ${e.message}"))
         }
+    }
+
+    /**
+     * Split text into sentences for TTS processing
+     * Android TTS has a character limit (~4000 chars), so we need to split long texts
+     */
+    private fun splitIntoSentences(text: String): List<String> {
+        val maxChunkSize = 3500
+        val result = mutableListOf<String>()
+
+        // First, split by newlines to handle paragraph breaks
+        val paragraphs = text.split("\n").filter { it.isNotBlank() }
+
+        for (paragraph in paragraphs) {
+            // If paragraph is short enough, add it directly
+            if (paragraph.length <= maxChunkSize) {
+                result.add(paragraph)
+                continue
+            }
+
+            // Split long paragraphs by sentence delimiters (。！？)
+            val sentencePattern = Regex("[。！？]")
+            val sentences = mutableListOf<String>()
+            var currentPos = 0
+
+            sentencePattern.findAll(paragraph).forEach { match ->
+                val sentence = paragraph.substring(currentPos, match.range.last + 1)
+                if (sentence.isNotBlank()) {
+                    sentences.add(sentence)
+                }
+                currentPos = match.range.last + 1
+            }
+
+            // Add remaining text if any
+            if (currentPos < paragraph.length) {
+                val remaining = paragraph.substring(currentPos)
+                if (remaining.isNotBlank()) {
+                    sentences.add(remaining)
+                }
+            }
+
+            // If still no sentences found, force split by character limit
+            if (sentences.isEmpty()) {
+                var remaining = paragraph
+                while (remaining.length > maxChunkSize) {
+                    result.add(remaining.substring(0, maxChunkSize))
+                    remaining = remaining.substring(maxChunkSize)
+                }
+                if (remaining.isNotEmpty()) {
+                    result.add(remaining)
+                }
+            } else {
+                // Add sentences, combining short ones if possible
+                var currentChunk = ""
+                for (sentence in sentences) {
+                    if (sentence.length > maxChunkSize) {
+                        // Single sentence too long - force split
+                        if (currentChunk.isNotEmpty()) {
+                            result.add(currentChunk)
+                            currentChunk = ""
+                        }
+                        var remaining = sentence
+                        while (remaining.length > maxChunkSize) {
+                            result.add(remaining.substring(0, maxChunkSize))
+                            remaining = remaining.substring(maxChunkSize)
+                        }
+                        if (remaining.isNotEmpty()) {
+                            currentChunk = remaining
+                        }
+                    } else if (currentChunk.length + sentence.length > maxChunkSize) {
+                        // Adding this sentence would exceed limit
+                        result.add(currentChunk)
+                        currentChunk = sentence
+                    } else {
+                        // Add to current chunk
+                        currentChunk += sentence
+                    }
+                }
+                if (currentChunk.isNotEmpty()) {
+                    result.add(currentChunk)
+                }
+            }
+        }
+
+        // Return at least one item (original text if all else fails)
+        return if (result.isEmpty()) listOf(text) else result
     }
 
     fun setSpeechSpeed(speed: Float) {
