@@ -164,11 +164,15 @@ fun ChatScreen(
                             onLongPress = { viewModel.requestGrammarExplanation(message.content) },
                             isTranslationExpanded = message.id in uiState.expandedTranslations,
                             translation = uiState.translations[message.id],
+                            translationError = uiState.translationErrors[message.id],
                             onToggleTranslation = if (!message.isUser) {
                                 { viewModel.toggleMessageTranslation(message.id) }
                             } else null,
                             onRequestTranslation = if (!message.isUser) {
                                 { viewModel.requestTranslation(message.id, message.content) }
+                            } else null,
+                            onRetryTranslation = if (!message.isUser) {
+                                { viewModel.retryTranslation(message.id, message.content) }
                             } else null,
                             onPracticePronunciation = if (!message.isUser) {
                                 { viewModel.startPronunciationPractice(message.content) }
@@ -294,19 +298,19 @@ fun ChatScreen(
                     )
                 },
                 title = {
-                    Text("チャットを終了しますか？")
+                    Text("채팅을 종료하시겠습니까?")
                 },
                 text = {
-                    Text("現在の会話を履歴に保存して新しいチャットを始めます。")
+                    Text("현재 대화를 기록에 저장하고 새로운 채팅을 시작합니다.")
                 },
                 confirmButton = {
                     TextButton(onClick = viewModel::confirmEndChat) {
-                        Text("終了")
+                        Text("종료")
                     }
                 },
                 dismissButton = {
                     TextButton(onClick = viewModel::dismissEndChatDialog) {
-                        Text("キャンセル")
+                        Text("취소")
                     }
                 }
             )
@@ -338,8 +342,10 @@ fun MessageBubble(
     onLongPress: () -> Unit = {},
     isTranslationExpanded: Boolean = false,
     translation: String? = null,
+    translationError: String? = null,
     onToggleTranslation: (() -> Unit)? = null,
     onRequestTranslation: (() -> Unit)? = null,
+    onRetryTranslation: (() -> Unit)? = null,
     onPracticePronunciation: (() -> Unit)? = null
 ) {
     val timeFormatter = remember {
@@ -408,26 +414,73 @@ fun MessageBubble(
 
                     // Show translation when expanded
                     if (isTranslationExpanded) {
-                        if (translation != null) {
-                            HorizontalDivider(
-                                modifier = Modifier.padding(vertical = 4.dp),
-                                color = MaterialTheme.colorScheme.onSecondaryContainer.copy(alpha = 0.2f)
-                            )
-                            Text(
-                                text = translation,
-                                style = MaterialTheme.typography.bodySmall,
-                                color = MaterialTheme.colorScheme.onSecondaryContainer.copy(alpha = 0.8f)
-                            )
-                        } else {
-                            // Auto-request translation when expanded
-                            LaunchedEffect(message.id) {
-                                onRequestTranslation()
+                        when {
+                            translation != null -> {
+                                // Success - show translation
+                                HorizontalDivider(
+                                    modifier = Modifier.padding(vertical = 4.dp),
+                                    color = MaterialTheme.colorScheme.onSecondaryContainer.copy(alpha = 0.2f)
+                                )
+                                Text(
+                                    text = translation,
+                                    style = MaterialTheme.typography.bodySmall,
+                                    color = MaterialTheme.colorScheme.onSecondaryContainer.copy(alpha = 0.8f)
+                                )
                             }
-                            Text(
-                                text = "번역 중...",
-                                style = MaterialTheme.typography.bodySmall,
-                                color = MaterialTheme.colorScheme.onSecondaryContainer.copy(alpha = 0.5f)
-                            )
+                            translationError != null && onRetryTranslation != null -> {
+                                // Error - show error message and retry button
+                                HorizontalDivider(
+                                    modifier = Modifier.padding(vertical = 4.dp),
+                                    color = MaterialTheme.colorScheme.onSecondaryContainer.copy(alpha = 0.2f)
+                                )
+                                Column(
+                                    verticalArrangement = Arrangement.spacedBy(4.dp)
+                                ) {
+                                    Row(
+                                        horizontalArrangement = Arrangement.spacedBy(4.dp),
+                                        verticalAlignment = Alignment.CenterVertically
+                                    ) {
+                                        Icon(
+                                            imageVector = Icons.Default.ErrorOutline,
+                                            contentDescription = null,
+                                            tint = MaterialTheme.colorScheme.error,
+                                            modifier = Modifier.size(14.dp)
+                                        )
+                                        Text(
+                                            text = translationError,
+                                            style = MaterialTheme.typography.bodySmall,
+                                            color = MaterialTheme.colorScheme.error
+                                        )
+                                    }
+                                    TextButton(
+                                        onClick = onRetryTranslation,
+                                        contentPadding = PaddingValues(horizontal = 8.dp, vertical = 2.dp),
+                                        modifier = Modifier.height(28.dp)
+                                    ) {
+                                        Icon(
+                                            imageVector = Icons.Default.Refresh,
+                                            contentDescription = "다시 시도",
+                                            modifier = Modifier.size(14.dp)
+                                        )
+                                        Spacer(modifier = Modifier.width(4.dp))
+                                        Text(
+                                            text = "다시 시도",
+                                            style = MaterialTheme.typography.labelSmall
+                                        )
+                                    }
+                                }
+                            }
+                            else -> {
+                                // Loading - request translation
+                                LaunchedEffect(message.id) {
+                                    onRequestTranslation?.invoke()
+                                }
+                                Text(
+                                    text = "번역 중...",
+                                    style = MaterialTheme.typography.bodySmall,
+                                    color = MaterialTheme.colorScheme.onSecondaryContainer.copy(alpha = 0.5f)
+                                )
+                            }
                         }
                     }
 
@@ -506,7 +559,7 @@ fun MessageInput(
                 value = text,
                 onValueChange = onTextChange,
                 modifier = Modifier.weight(1f),
-                placeholder = { Text("メッセージを入力...") },
+                placeholder = { Text("메시지를 입력하세요...") },
                 enabled = enabled,
                 maxLines = 4,
                 keyboardOptions = KeyboardOptions(imeAction = ImeAction.Send),
@@ -524,7 +577,7 @@ fun MessageInput(
                 onClick = onSend,
                 enabled = enabled && text.isNotBlank()
             ) {
-                Text("送信")
+                Text("전송")
             }
         }
 

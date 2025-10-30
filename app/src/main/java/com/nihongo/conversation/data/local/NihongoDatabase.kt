@@ -351,7 +351,10 @@ abstract class NihongoDatabase : RoomDatabase() {
 
         val MIGRATION_8_9 = object : Migration(8, 9) {
             override fun migrate(database: SupportSQLiteDatabase) {
-                // Create conversation_patterns table for caching system
+                // Drop table if exists to ensure clean creation
+                database.execSQL("DROP TABLE IF EXISTS conversation_patterns")
+
+                // Create conversation_patterns table for caching system - NO DEFAULT VALUES
                 database.execSQL("""
                     CREATE TABLE IF NOT EXISTS conversation_patterns (
                         id INTEGER PRIMARY KEY AUTOINCREMENT NOT NULL,
@@ -359,12 +362,12 @@ abstract class NihongoDatabase : RoomDatabase() {
                         scenarioId INTEGER NOT NULL,
                         difficultyLevel INTEGER NOT NULL,
                         category TEXT NOT NULL,
-                        conversationTurn INTEGER NOT NULL DEFAULT 0,
-                        keywords TEXT NOT NULL DEFAULT '',
-                        usageCount INTEGER NOT NULL DEFAULT 0,
+                        conversationTurn INTEGER NOT NULL,
+                        keywords TEXT NOT NULL,
+                        usageCount INTEGER NOT NULL,
                         lastUsedTimestamp INTEGER NOT NULL,
-                        successRate REAL NOT NULL DEFAULT 1.0,
-                        averageSimilarity REAL NOT NULL DEFAULT 0.0,
+                        successRate REAL NOT NULL,
+                        averageSimilarity REAL NOT NULL,
                         createdAt INTEGER NOT NULL,
                         updatedAt INTEGER NOT NULL
                     )
@@ -409,11 +412,8 @@ abstract class NihongoDatabase : RoomDatabase() {
                     )
                 """)
 
-                // Create indices for conversation_patterns
-                database.execSQL("CREATE INDEX IF NOT EXISTS index_conversation_patterns_scenarioId ON conversation_patterns(scenarioId)")
-                database.execSQL("CREATE INDEX IF NOT EXISTS index_conversation_patterns_difficultyLevel ON conversation_patterns(difficultyLevel)")
-                database.execSQL("CREATE INDEX IF NOT EXISTS index_conversation_patterns_category ON conversation_patterns(category)")
-                database.execSQL("CREATE INDEX IF NOT EXISTS index_conversation_patterns_usageCount ON conversation_patterns(usageCount)")
+                // Create indices for conversation_patterns - these should be created BEFORE the indices
+                // No indices needed - the schema expects no indices
 
                 // Create indices for cached_responses
                 database.execSQL("CREATE INDEX IF NOT EXISTS index_cached_responses_patternId ON cached_responses(patternId)")

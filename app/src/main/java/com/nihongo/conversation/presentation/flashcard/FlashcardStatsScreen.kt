@@ -39,10 +39,10 @@ fun FlashcardStatsScreen(
     Scaffold(
         topBar = {
             TopAppBar(
-                title = { Text("単語帳統計") },
+                title = { Text("단어장 통계") },
                 navigationIcon = {
                     IconButton(onClick = onBackClick) {
-                        Icon(Icons.AutoMirrored.Filled.ArrowBack, "戻る")
+                        Icon(Icons.AutoMirrored.Filled.ArrowBack, "뒤로")
                     }
                 },
                 colors = TopAppBarDefaults.topAppBarColors(
@@ -72,7 +72,7 @@ fun FlashcardStatsScreen(
                 // Overview Stats Cards
                 item {
                     Text(
-                        "概要",
+                        "개요",
                         style = MaterialTheme.typography.titleLarge,
                         fontWeight = FontWeight.Bold
                     )
@@ -84,7 +84,7 @@ fun FlashcardStatsScreen(
                         horizontalArrangement = Arrangement.spacedBy(8.dp)
                     ) {
                         StatCard(
-                            title = "総単語数",
+                            title = "총 단어 수",
                             value = uiState.totalWords.toString(),
                             icon = {
                                 Icon(
@@ -96,7 +96,7 @@ fun FlashcardStatsScreen(
                             modifier = Modifier.weight(1f)
                         )
                         StatCard(
-                            title = "マスター済み",
+                            title = "마스터함",
                             value = uiState.masteredWords.toString(),
                             icon = {
                                 Icon(
@@ -116,7 +116,7 @@ fun FlashcardStatsScreen(
                         horizontalArrangement = Arrangement.spacedBy(8.dp)
                     ) {
                         StatCard(
-                            title = "復習待ち",
+                            title = "복습 대기",
                             value = uiState.dueWords.toString(),
                             icon = {
                                 Icon(
@@ -128,7 +128,7 @@ fun FlashcardStatsScreen(
                             modifier = Modifier.weight(1f)
                         )
                         StatCard(
-                            title = "新規",
+                            title = "신규",
                             value = uiState.newWords.toString(),
                             icon = {
                                 Icon(
@@ -145,7 +145,7 @@ fun FlashcardStatsScreen(
                 // Streak Section
                 item {
                     Text(
-                        "学習ストリーク",
+                        "학습 스트릭",
                         style = MaterialTheme.typography.titleLarge,
                         fontWeight = FontWeight.Bold,
                         modifier = Modifier.padding(top = 8.dp)
@@ -158,9 +158,9 @@ fun FlashcardStatsScreen(
                         horizontalArrangement = Arrangement.spacedBy(8.dp)
                     ) {
                         StatCard(
-                            title = "現在のストリーク",
-                            value = "${uiState.currentStreak}日",
-                            subtitle = "連続学習日数",
+                            title = "현재 스트릭",
+                            value = "${uiState.currentStreak}일",
+                            subtitle = "연속 학습 일수",
                             icon = {
                                 Icon(
                                     Icons.Default.LocalFireDepartment,
@@ -171,9 +171,9 @@ fun FlashcardStatsScreen(
                             modifier = Modifier.weight(1f)
                         )
                         StatCard(
-                            title = "最長ストリーク",
-                            value = "${uiState.longestStreak}日",
-                            subtitle = "過去最高記録",
+                            title = "최장 스트릭",
+                            value = "${uiState.longestStreak}일",
+                            subtitle = "역대 최고 기록",
                             icon = {
                                 Icon(
                                     Icons.Default.Star,
@@ -198,7 +198,7 @@ fun FlashcardStatsScreen(
                 if (uiState.masteryData.isNotEmpty()) {
                     item {
                         Text(
-                            "習得状況",
+                            "학습 현황",
                             style = MaterialTheme.typography.titleLarge,
                             fontWeight = FontWeight.Bold,
                             modifier = Modifier.padding(top = 8.dp)
@@ -270,7 +270,7 @@ fun FlashcardStatsScreen(
                 if (uiState.accuracyTrend.isNotEmpty()) {
                     item {
                         Text(
-                            "正解率の推移",
+                            "정답률 추이",
                             style = MaterialTheme.typography.titleLarge,
                             fontWeight = FontWeight.Bold,
                             modifier = Modifier.padding(top = 8.dp)
@@ -286,7 +286,7 @@ fun FlashcardStatsScreen(
                         ) {
                             Column(modifier = Modifier.padding(16.dp)) {
                                 Text(
-                                    "過去7日間の平均正解率",
+                                    "최근 7일간 평균 정답률",
                                     style = MaterialTheme.typography.bodyMedium,
                                     color = MaterialTheme.colorScheme.onSurfaceVariant
                                 )
@@ -308,7 +308,7 @@ fun FlashcardStatsScreen(
                 if (uiState.dailyReviewCount.isNotEmpty()) {
                     item {
                         Text(
-                            "復習回数",
+                            "복습 횟수",
                             style = MaterialTheme.typography.titleLarge,
                             fontWeight = FontWeight.Bold,
                             modifier = Modifier.padding(top = 8.dp)
@@ -324,7 +324,7 @@ fun FlashcardStatsScreen(
                         ) {
                             Column(modifier = Modifier.padding(16.dp)) {
                                 Text(
-                                    "過去7日間の復習した単語数",
+                                    "최근 7일간 복습한 단어 수",
                                     style = MaterialTheme.typography.bodyMedium,
                                     color = MaterialTheme.colorScheme.onSurfaceVariant
                                 )
@@ -344,7 +344,7 @@ fun FlashcardStatsScreen(
                 // Personal Bests
                 item {
                     Text(
-                        "個人ベスト",
+                        "개인 최고 기록",
                         style = MaterialTheme.typography.titleLarge,
                         fontWeight = FontWeight.Bold,
                         modifier = Modifier.padding(top = 8.dp)

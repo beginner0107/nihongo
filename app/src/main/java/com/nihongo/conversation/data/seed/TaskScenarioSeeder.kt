@@ -39,8 +39,8 @@ class TaskScenarioSeeder @Inject constructor(
     private suspend fun seedJobInterview() {
         val scenario = Scenario(
             id = 10L,
-            title = "就職面接",
-            description = "日本企業の面接に挑戦しましょう",
+            title = "취업 면접",
+            description = "일본 기업 면접에 도전해 보세요",
             difficulty = 3,
             systemPrompt = """
                 あなたは日本の大手IT企業の人事担当者です。
@@ -175,8 +175,8 @@ class TaskScenarioSeeder @Inject constructor(
     private suspend fun seedComplaintHandling() {
         val scenario = Scenario(
             id = 11L,
-            title = "クレーム対応",
-            description = "怒っているお客様への対応を学びましょう",
+            title = "클레임 대응",
+            description = "화난 고객 응대를 배워보세요",
             difficulty = 3,
             systemPrompt = """
                 あなたは商品に不満を持っている怒ったお客様です。
@@ -284,8 +284,8 @@ class TaskScenarioSeeder @Inject constructor(
     private suspend fun seedEmergency() {
         val scenario = Scenario(
             id = 12L,
-            title = "緊急事態",
-            description = "病院で症状を説明しましょう",
+            title = "긴급 상황",
+            description = "병원에서 증상을 설명해 보세요",
             difficulty = 2,
             systemPrompt = """
                 あなたは病院の受付スタッフです。
@@ -371,8 +371,8 @@ class TaskScenarioSeeder @Inject constructor(
     private suspend fun seedDating() {
         val scenario = Scenario(
             id = 13L,
-            title = "デートの誘い",
-            description = "好きな人をデートに誘いましょう",
+            title = "데이트 신청",
+            description = "좋아하는 사람에게 데이트를 신청해 보세요",
             difficulty = 2,
             systemPrompt = """
                 あなたは同じ大学に通う日本人の学生です。
@@ -483,8 +483,8 @@ class TaskScenarioSeeder @Inject constructor(
     private suspend fun seedBusinessPresentation() {
         val scenario = Scenario(
             id = 14L,
-            title = "ビジネスプレゼン",
-            description = "新商品のプレゼンテーションを行いましょう",
+            title = "비즈니스 프레젠테이션",
+            description = "신제품 프레젠테이션을 진행해 보세요",
             difficulty = 3,
             systemPrompt = """
                 あなたは大手企業の役員です。
@@ -620,8 +620,8 @@ class TaskScenarioSeeder @Inject constructor(
     private suspend fun seedGirlfriendConversation() {
         val scenario = Scenario(
             id = 15L,
-            title = "彼女との会話",
-            description = "日本人の彼女と楽しく話しましょう",
+            title = "여자친구와의 대화",
+            description = "일본인 여자친구와 즐겁게 대화해 보세요",
             difficulty = 1,
             systemPrompt = """
                 あなたはユーザーの日本人の彼女です。

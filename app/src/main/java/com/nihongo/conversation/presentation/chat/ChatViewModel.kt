@@ -61,6 +61,8 @@ data class ChatUiState(
     val currentGrammarSentence: String? = null, // Current sentence being analyzed
     val translations: ImmutableMap<Long, String> = ImmutableMap.empty(), // messageId -> Korean translation
     val expandedTranslations: ImmutableSet<Long> = ImmutableSet.empty(), // messageIds with translation expanded
+    val translationErrors: ImmutableMap<Long, String> = ImmutableMap.empty(), // messageId -> error message
+    val translationRetryCount: ImmutableMap<Long, Int> = ImmutableMap.empty(), // messageId -> retry count
     val grammarCache: ImmutableMap<String, GrammarExplanation> = ImmutableMap.empty(), // text -> cached grammar
     val showEndChatDialog: Boolean = false, // Show confirmation dialog for ending chat
     val showNewChatToast: Boolean = false, // Show toast when new chat starts
@@ -102,7 +104,8 @@ class ChatViewModel @Inject constructor(
     private val difficultyManager: DifficultyManager,
     private val memoryManager: MemoryManager,
     private val userSessionManager: UserSessionManager,
-    private val grammarFeedbackRepository: GrammarFeedbackRepository
+    private val grammarFeedbackRepository: GrammarFeedbackRepository,
+    private val mlKitTranslator: com.nihongo.conversation.core.translation.MLKitTranslator
 ) : ViewModel() {
 
     private val _uiState = MutableStateFlow(ChatUiState())
@@ -398,10 +401,15 @@ class ChatViewModel @Inject constructor(
     }
 
     fun requestGrammarExplanation(sentence: String, retryAttempt: Int = 0) {
+        android.util.Log.d("GrammarDebug", "=== requestGrammarExplanation START ===")
+        android.util.Log.d("GrammarDebug", "Sentence: '$sentence'")
+        android.util.Log.d("GrammarDebug", "Retry attempt: $retryAttempt")
+
         viewModelScope.launch {
             // Check cache first
             val cached = _uiState.value.grammarCache[sentence]
             if (cached != null) {
+                android.util.Log.d("GrammarDebug", "✅ Found in cache, returning cached result")
                 _uiState.update {
                     it.copy(
                         grammarExplanation = cached,
@@ -414,6 +422,47 @@ class ChatViewModel @Inject constructor(
                 return@launch
             }
 
+            val user = _uiState.value.user
+            val userLevel = user?.level ?: 1
+            android.util.Log.d("GrammarDebug", "User level: $userLevel")
+
+            // Check if we can analyze locally (simple patterns) to avoid API call
+            val canAnalyzeLocally = com.nihongo.conversation.core.grammar.LocalGrammarAnalyzer.canAnalyzeLocally(sentence)
+            android.util.Log.d("GrammarDebug", "Can analyze locally: $canAnalyzeLocally")
+
+            if (canAnalyzeLocally) {
+                android.util.Log.d("GrammarDebug", "📱 Using LOCAL analyzer for simple sentence")
+                // Use local analyzer for simple sentences
+                val localExplanation = com.nihongo.conversation.core.grammar.LocalGrammarAnalyzer.analyzeSentence(
+                    sentence = sentence,
+                    userLevel = userLevel
+                )
+                android.util.Log.d("GrammarDebug", "Local analysis completed: ${localExplanation.components.size} components found")
+
+                _uiState.update {
+                    // Cache the local result
+                    val currentCache = it.grammarCache.items
+                    val newCache = if (currentCache.size >= memoryConfig.maxCacheSize) {
+                        currentCache.entries.drop(1).associate { entry -> entry.key to entry.value } +
+                                (sentence to localExplanation)
+                    } else {
+                        currentCache + (sentence to localExplanation)
+                    }
+
+                    it.copy(
+                        grammarExplanation = localExplanation,
+                        showGrammarSheet = true,
+                        isLoadingGrammar = false,
+                        grammarCache = newCache.toImmutableMap(),
+                        grammarError = null,
+                        grammarRetryCount = 0
+                    )
+                }
+                return@launch
+            }
+
+            android.util.Log.d("GrammarDebug", "🌐 Using API for complex sentence")
+            // For complex sentences, proceed with API call
             _uiState.update {
                 it.copy(
                     isLoadingGrammar = true,
@@ -426,45 +475,19 @@ class ChatViewModel @Inject constructor(
             }
 
             try {
-                val user = _uiState.value.user
+                android.util.Log.d("GrammarDebug", "Calling repository.explainGrammar()...")
                 val grammarExplanation = repository.explainGrammar(
                     sentence = sentence,
                     conversationHistory = _uiState.value.messages.items,
-                    userLevel = user?.level ?: 1
+                    userLevel = userLevel
                 )
+                android.util.Log.d("GrammarDebug", "API response received: ${grammarExplanation.overallExplanation}")
 
-                // Check if the explanation indicates an error (from API)
-                val isErrorResponse = grammarExplanation.overallExplanation in listOf(
-                    "문법 분석 실패",
-                    "문법 분석 차단됨",
-                    "요청 시간 초과",
-                    "문법 분석 결과 없음"
-                )
+                // No retries - API service already handles fallback
+                // The GeminiApiService now automatically returns local analysis on any error
+                android.util.Log.d("GrammarDebug", "Received analysis result (may be local fallback)")
 
-                if (isErrorResponse && retryAttempt < 3) {
-                    // Retry up to 3 times
-                    kotlinx.coroutines.delay(1000L * (retryAttempt + 1)) // Exponential backoff
-                    requestGrammarExplanation(sentence, retryAttempt + 1)
-                    return@launch
-                }
-
-                if (isErrorResponse && retryAttempt >= 3) {
-                    // Max retries reached - use local fallback
-                    val fallbackExplanation = com.nihongo.conversation.core.grammar.LocalGrammarAnalyzer.analyzeSentence(
-                        sentence = sentence,
-                        userLevel = user?.level ?: 1
-                    )
-
-                    _uiState.update {
-                        it.copy(
-                            grammarExplanation = fallbackExplanation,
-                            isLoadingGrammar = false,
-                            grammarError = "API 연결 실패 - 오프라인 분석 사용",
-                            grammarRetryCount = retryAttempt
-                        )
-                    }
-                    return@launch
-                }
+                // Even if it's an error message, we already have local analysis from the API service
 
                 _uiState.update {
                     // Limit grammar cache size based on memory config
@@ -486,26 +509,34 @@ class ChatViewModel @Inject constructor(
                     )
                 }
             } catch (e: Exception) {
-                // Retry on exception
-                if (retryAttempt < 3) {
-                    kotlinx.coroutines.delay(1000L * (retryAttempt + 1))
-                    requestGrammarExplanation(sentence, retryAttempt + 1)
-                } else {
-                    // Max retries - use local fallback
-                    val user = _uiState.value.user
-                    val fallbackExplanation = com.nihongo.conversation.core.grammar.LocalGrammarAnalyzer.analyzeSentence(
-                        sentence = sentence,
-                        userLevel = user?.level ?: 1
-                    )
+                android.util.Log.e("GrammarDebug", "❌ Exception in grammar analysis: ${e.message}", e)
+                android.util.Log.e("GrammarDebug", "Exception type: ${e.javaClass.simpleName}")
+                android.util.Log.e("GrammarDebug", "Stack trace:", e)
 
-                    _uiState.update {
-                        it.copy(
-                            grammarExplanation = fallbackExplanation,
-                            isLoadingGrammar = false,
-                            grammarError = "문법 분석 오류 - 기본 분석 제공",
-                            grammarRetryCount = retryAttempt
-                        )
+                // Immediately fallback to local analyzer on exception (no retries)
+                android.util.Log.d("GrammarDebug", "Falling back to LOCAL analyzer due to exception")
+                val fallbackExplanation = com.nihongo.conversation.core.grammar.LocalGrammarAnalyzer.analyzeSentence(
+                    sentence = sentence,
+                    userLevel = userLevel
+                )
+
+                _uiState.update {
+                    // Cache the fallback result
+                    val currentCache = it.grammarCache.items
+                    val newCache = if (currentCache.size >= memoryConfig.maxCacheSize) {
+                        currentCache.entries.drop(1).associate { entry -> entry.key to entry.value } +
+                                (sentence to fallbackExplanation)
+                    } else {
+                        currentCache + (sentence to fallbackExplanation)
                     }
+
+                    it.copy(
+                        grammarExplanation = fallbackExplanation,
+                        isLoadingGrammar = false,
+                        grammarCache = newCache.toImmutableMap(),
+                        grammarError = "로컬 분석 모드 (에러: ${e.message})",
+                        grammarRetryCount = 0
+                    )
                 }
             }
         }
@@ -519,22 +550,115 @@ class ChatViewModel @Inject constructor(
         }
     }
 
-    fun requestTranslation(messageId: Long, japaneseText: String) {
+    fun requestTranslation(messageId: Long, japaneseText: String, retryAttempt: Int = 0) {
         viewModelScope.launch {
-            // Check if already translated
-            if (_uiState.value.translations.containsKey(messageId)) return@launch
+            android.util.Log.d("ChatViewModel", "=== Translation Request ===")
+            android.util.Log.d("ChatViewModel", "MessageId: $messageId")
+            android.util.Log.d("ChatViewModel", "Text: '$japaneseText'")
+            android.util.Log.d("ChatViewModel", "Retry attempt: $retryAttempt")
+
+            // Check if already translated successfully
+            if (_uiState.value.translations.containsKey(messageId)) {
+                android.util.Log.d("ChatViewModel", "Already translated, skipping")
+                return@launch
+            }
+
+            // Update retry count in UI state
+            _uiState.update {
+                it.copy(
+                    translationRetryCount = (it.translationRetryCount.items + (messageId to retryAttempt)).toImmutableMap(),
+                    translationErrors = (it.translationErrors.items - messageId).toImmutableMap() // Clear error
+                )
+            }
 
             try {
+                // Step 1: Try local dictionary first (instant, no API call)
+                val localTranslation = com.nihongo.conversation.core.translation.LocalTranslationDictionary.translate(japaneseText)
+                if (localTranslation != null) {
+                    android.util.Log.d("ChatViewModel", "Local dictionary hit: '$localTranslation'")
+                    _uiState.update {
+                        it.copy(
+                            translations = (it.translations.items + (messageId to localTranslation)).toImmutableMap(),
+                            translationRetryCount = (it.translationRetryCount.items - messageId).toImmutableMap()
+                        )
+                    }
+                    return@launch
+                }
+
+                // Step 2: Try ML Kit translation (fast, on-device)
+                try {
+                    android.util.Log.d("ChatViewModel", "No local match, trying ML Kit...")
+                    val mlTranslation = mlKitTranslator.translate(japaneseText)
+                    android.util.Log.d("ChatViewModel", "ML Kit translation success: '$mlTranslation'")
+
+                    _uiState.update {
+                        it.copy(
+                            translations = (it.translations.items + (messageId to mlTranslation)).toImmutableMap(),
+                            translationRetryCount = (it.translationRetryCount.items - messageId).toImmutableMap(),
+                            translationErrors = (it.translationErrors.items - messageId).toImmutableMap()
+                        )
+                    }
+                    return@launch
+                } catch (mlError: Exception) {
+                    android.util.Log.w("ChatViewModel", "ML Kit failed, falling back to API: ${mlError.message}")
+                }
+
+                // Step 3: Fallback to Gemini API translation (slow but reliable)
+                android.util.Log.d("ChatViewModel", "ML Kit failed, calling Gemini API...")
                 val translation = repository.translateToKorean(japaneseText)
+                android.util.Log.d("ChatViewModel", "API translation success: '$translation'")
+
                 _uiState.update {
-                    it.copy(translations = (it.translations.items + (messageId to translation)).toImmutableMap())
+                    it.copy(
+                        translations = (it.translations.items + (messageId to translation)).toImmutableMap(),
+                        translationRetryCount = (it.translationRetryCount.items - messageId).toImmutableMap(),
+                        translationErrors = (it.translationErrors.items - messageId).toImmutableMap()
+                    )
                 }
             } catch (e: Exception) {
-                _uiState.update {
-                    it.copy(error = "번역 실패: ${e.message}")
+                android.util.Log.e("ChatViewModel", "Translation failed", e)
+                android.util.Log.e("ChatViewModel", "Error type: ${e.javaClass.simpleName}")
+                android.util.Log.e("ChatViewModel", "Error message: ${e.message}")
+
+                // Retry logic with exponential backoff
+                if (retryAttempt < 3) {
+                    val delayMs = 1000L * (retryAttempt + 1) // 1s, 2s, 3s
+                    android.util.Log.d("ChatViewModel", "Retrying after ${delayMs}ms (attempt ${retryAttempt + 1}/3)")
+
+                    kotlinx.coroutines.delay(delayMs)
+                    requestTranslation(messageId, japaneseText, retryAttempt + 1)
+                } else {
+                    // Max retries reached - show error
+                    android.util.Log.e("ChatViewModel", "Max retries reached, showing error")
+
+                    val errorMessage = when {
+                        e.message?.contains("한도", ignoreCase = true) == true -> "API 한도 초과"
+                        e.message?.contains("시간 초과", ignoreCase = true) == true -> "시간 초과 - 다시 시도하세요"
+                        e.message?.contains("네트워크", ignoreCase = true) == true -> "네트워크 오류"
+                        else -> "번역 실패 - 다시 시도하세요"
+                    }
+
+                    _uiState.update {
+                        it.copy(
+                            translationErrors = (it.translationErrors.items + (messageId to errorMessage)).toImmutableMap(),
+                            translationRetryCount = (it.translationRetryCount.items - messageId).toImmutableMap()
+                        )
+                    }
                 }
             }
         }
+    }
+
+    fun retryTranslation(messageId: Long, japaneseText: String) {
+        android.util.Log.d("ChatViewModel", "Manual retry requested for message $messageId")
+        // Clear error and retry from scratch
+        _uiState.update {
+            it.copy(
+                translationErrors = (it.translationErrors.items - messageId).toImmutableMap(),
+                translationRetryCount = (it.translationRetryCount.items - messageId).toImmutableMap()
+            )
+        }
+        requestTranslation(messageId, japaneseText, retryAttempt = 0)
     }
 
     fun toggleMessageTranslation(messageId: Long) {

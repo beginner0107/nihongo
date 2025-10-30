@@ -39,11 +39,11 @@ fun ProfileScreen(
                 title = {
                     Column {
                         Text(
-                            text = "プロフィール",
+                            text = "프로필",
                             style = MaterialTheme.typography.titleLarge
                         )
                         Text(
-                            text = "あなたの情報を設定しましょう",
+                            text = "당신의 정보를 설정하세요",
                             style = MaterialTheme.typography.bodySmall,
                             color = MaterialTheme.colorScheme.onSurfaceVariant
                         )
@@ -53,7 +53,7 @@ fun ProfileScreen(
                     IconButton(onClick = onBackClick) {
                         Icon(
                             imageVector = Icons.AutoMirrored.Filled.ArrowBack,
-                            contentDescription = "戻る"
+                            contentDescription = "뒤로"
                         )
                     }
                 },
@@ -70,7 +70,7 @@ fun ProfileScreen(
                         } else {
                             Icon(
                                 imageVector = Icons.Default.Save,
-                                contentDescription = "保存"
+                                contentDescription = "저장"
                             )
                         }
                     }
@@ -102,7 +102,7 @@ fun ProfileScreen(
                 // Avatar Section
                 item {
                     ProfileSection(
-                        title = "アバター",
+                        title = "아바타",
                         icon = Icons.Default.Person
                     ) {
                         Column(
@@ -128,7 +128,7 @@ fun ProfileScreen(
                 // Basic Info Section
                 item {
                     ProfileSection(
-                        title = "基本情報",
+                        title = "기본 정보",
                         icon = Icons.Default.Info
                     ) {
                         Column(
@@ -137,8 +137,8 @@ fun ProfileScreen(
                             OutlinedTextField(
                                 value = uiState.name,
                                 onValueChange = viewModel::updateName,
-                                label = { Text("名前") },
-                                placeholder = { Text("田中太郎") },
+                                label = { Text("이름") },
+                                placeholder = { Text("홍길동") },
                                 leadingIcon = {
                                     Icon(Icons.Default.Person, contentDescription = null)
                                 },
@@ -149,8 +149,8 @@ fun ProfileScreen(
                             OutlinedTextField(
                                 value = uiState.bio,
                                 onValueChange = viewModel::updateBio,
-                                label = { Text("自己紹介") },
-                                placeholder = { Text("簡単な自己紹介を書いてください") },
+                                label = { Text("자기소개") },
+                                placeholder = { Text("간단한 자기소개를 작성해주세요") },
                                 leadingIcon = {
                                     Icon(Icons.Default.Description, contentDescription = null)
                                 },
@@ -165,14 +165,14 @@ fun ProfileScreen(
                 // Learning Goal Section
                 item {
                     ProfileSection(
-                        title = "学習目標",
+                        title = "학습 목표",
                         icon = Icons.Default.EmojiEvents
                     ) {
                         OutlinedTextField(
                             value = uiState.learningGoal,
                             onValueChange = viewModel::updateLearningGoal,
-                            label = { Text("目標") },
-                            placeholder = { Text("日本旅行のため、アニメを字幕なしで見るため...") },
+                            label = { Text("목표") },
+                            placeholder = { Text("일본 여행을 위해, 애니메이션을 자막 없이 보기 위해...") },
                             leadingIcon = {
                                 Icon(Icons.Default.Flag, contentDescription = null)
                             },
@@ -186,7 +186,7 @@ fun ProfileScreen(
                 // Level Section
                 item {
                     ProfileSection(
-                        title = "日本語レベル",
+                        title = "일본어 레벨",
                         icon = Icons.Default.TrendingUp
                     ) {
                         Column(
@@ -212,17 +212,17 @@ fun ProfileScreen(
                                 horizontalArrangement = Arrangement.SpaceBetween
                             ) {
                                 Text(
-                                    text = "初級",
+                                    text = "초급",
                                     style = MaterialTheme.typography.bodySmall,
                                     color = MaterialTheme.colorScheme.onSurfaceVariant
                                 )
                                 Text(
-                                    text = "中級",
+                                    text = "중급",
                                     style = MaterialTheme.typography.bodySmall,
                                     color = MaterialTheme.colorScheme.onSurfaceVariant
                                 )
                                 Text(
-                                    text = "上級",
+                                    text = "상급",
                                     style = MaterialTheme.typography.bodySmall,
                                     color = MaterialTheme.colorScheme.onSurfaceVariant
                                 )
@@ -234,12 +234,12 @@ fun ProfileScreen(
                 // Favorite Scenarios Section
                 item {
                     ProfileSection(
-                        title = "お気に入りシナリオ",
+                        title = "즐겨찾기 시나리오",
                         icon = Icons.Default.Favorite
                     ) {
                         if (availableScenarios.isEmpty()) {
                             Text(
-                                text = "シナリオが読み込まれていません",
+                                text = "시나리오가 로드되지 않았습니다",
                                 style = MaterialTheme.typography.bodyMedium,
                                 color = MaterialTheme.colorScheme.onSurfaceVariant
                             )
@@ -262,14 +262,14 @@ fun ProfileScreen(
                 // Native Language Section
                 item {
                     ProfileSection(
-                        title = "母語",
+                        title = "모국어",
                         icon = Icons.Default.Language
                     ) {
                         OutlinedTextField(
                             value = uiState.nativeLanguage,
                             onValueChange = viewModel::updateNativeLanguage,
-                            label = { Text("母語") },
-                            placeholder = { Text("Korean, English, etc.") },
+                            label = { Text("모국어") },
+                            placeholder = { Text("한국어, 영어 등") },
                             leadingIcon = {
                                 Icon(Icons.Default.Translate, contentDescription = null)
                             },
@@ -323,7 +323,7 @@ fun ProfileScreen(
                             modifier = Modifier.size(20.dp)
                         )
                         Spacer(modifier = Modifier.width(8.dp))
-                        Text(if (uiState.isSaving) "保存中..." else "保存する")
+                        Text(if (uiState.isSaving) "저장 중..." else "저장하기")
                     }
                 }
             }
@@ -411,10 +411,10 @@ fun ScenarioCheckbox(
 @Composable
 fun DifficultyBadge(difficulty: Int) {
     val (text, color) = when (difficulty) {
-        1 -> "初級" to MaterialTheme.colorScheme.tertiary
-        2 -> "中級" to MaterialTheme.colorScheme.secondary
-        3 -> "上級" to MaterialTheme.colorScheme.error
-        else -> "初級" to MaterialTheme.colorScheme.tertiary
+        1 -> "초급" to MaterialTheme.colorScheme.tertiary
+        2 -> "중급" to MaterialTheme.colorScheme.secondary
+        3 -> "상급" to MaterialTheme.colorScheme.error
+        else -> "초급" to MaterialTheme.colorScheme.tertiary
     }
 
     Surface(
@@ -433,9 +433,9 @@ fun DifficultyBadge(difficulty: Int) {
 
 private fun getLevelText(level: Int): String {
     return when (level) {
-        1 -> "初級 (JLPT N5-N4)"
-        2 -> "中級 (JLPT N3-N2)"
-        3 -> "上級 (JLPT N1)"
-        else -> "初級"
+        1 -> "초급 (JLPT N5-N4)"
+        2 -> "중급 (JLPT N3-N2)"
+        3 -> "상급 (JLPT N1)"
+        else -> "초급"
     }
 }

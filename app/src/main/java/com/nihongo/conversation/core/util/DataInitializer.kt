@@ -19,7 +19,7 @@ class DataInitializer @Inject constructor(
             repository.createUser(
                 User(
                     id = 1L,
-                    name = "学習者",
+                    name = "학습자",
                     level = 1
                 )
             )
@@ -36,8 +36,8 @@ class DataInitializer @Inject constructor(
         val scenarios = listOf(
             Scenario(
                 id = 1L,
-                title = "レストランでの注文",
-                description = "レストランで注文する練習をします",
+                title = "레스토랑 주문",
+                description = "레스토랑에서 주문하는 연습을 합니다",
                 difficulty = 1,
                 systemPrompt = """
                     あなたは日本のレストランの店員です。
@@ -51,8 +51,8 @@ class DataInitializer @Inject constructor(
             ),
             Scenario(
                 id = 2L,
-                title = "買い物",
-                description = "お店で買い物をする練習をします",
+                title = "쇼핑",
+                description = "가게에서 쇼핑하는 연습을 합니다",
                 difficulty = 1,
                 systemPrompt = """
                     あなたは日本のコンビニやお店の店員です。

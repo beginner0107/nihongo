@@ -29,11 +29,35 @@ class GeminiApiService @Inject constructor(
         timeout = 10.seconds
     )
 
-    private val model = GenerativeModel(
-        modelName = "gemini-2.5-flash",
-        apiKey = BuildConfig.GEMINI_API_KEY,
-        requestOptions = requestOptions
-    )
+    private val apiKey = BuildConfig.GEMINI_API_KEY
+
+    private val model: GenerativeModel? by lazy {
+        if (apiKey.isBlank()) {
+            null
+        } else {
+            GenerativeModel(
+                modelName = "gemini-2.5-flash",
+                apiKey = apiKey,
+                requestOptions = requestOptions
+            )
+        }
+    }
+
+    // Separate model for grammar analysis with longer timeout
+    private val grammarModel: GenerativeModel? by lazy {
+        if (apiKey.isBlank()) {
+            null
+        } else {
+            GenerativeModel(
+                modelName = "gemini-2.5-flash",
+                apiKey = apiKey,
+                requestOptions = RequestOptions(timeout = 15.seconds)
+            )
+        }
+    }
+
+    private val missingApiKeyMessage =
+        "Gemini APIキーが設定されていません。local.properties に GEMINI_API_KEY を追加してください。"
 
     companion object {
         // Payload optimization limits
@@ -88,8 +112,11 @@ class GeminiApiService @Inject constructor(
         conversationHistory: List<Pair<String, Boolean>>,
         systemPrompt: String
     ): String {
+        val activeModel = model
+            ?: return missingApiKeyMessage
+
         return try {
-            val chat = model.startChat(
+            val chat = activeModel.startChat(
                 history = buildHistory(conversationHistory, systemPrompt)
             )
             val response = chat.sendMessage(message)
@@ -110,6 +137,12 @@ class GeminiApiService @Inject constructor(
         conversationHistory: List<Pair<String, Boolean>>,
         systemPrompt: String
     ): Flow<String> = flow {
+        val activeModel = model
+        if (activeModel == null) {
+            emit(missingApiKeyMessage)
+            return@flow
+        }
+
         try {
             // Check cache for common greetings (instant response)
             val trimmedMessage = message.trim()
@@ -153,7 +186,7 @@ class GeminiApiService @Inject constructor(
             val optimizedPrompt = optimizeSystemPrompt(systemPrompt)
 
             // Stream from Gemini API
-            val chat = model.startChat(
+            val chat = activeModel.startChat(
                 history = buildHistory(optimizedHistory, optimizedPrompt)
             )
 
@@ -267,8 +300,8 @@ class GeminiApiService @Inject constructor(
         """.trimIndent()
 
         return try {
-            val response = model.generateContent(batchPrompt)
-            parseBatchResponse(response.text ?: "{}", sentence, conversationContext)
+            val response = model?.generateContent(batchPrompt)
+            parseBatchResponse(response?.text ?: "{}", sentence, conversationContext)
         } catch (e: Exception) {
             BatchResponse(
                 grammar = null,
@@ -361,8 +394,8 @@ class GeminiApiService @Inject constructor(
                 응답은 반드시 JSON 배열만 포함하고, 다른 텍스트는 포함하지 마세요.
             """.trimIndent()
 
-            val response = model.generateContent(prompt)
-            val jsonText = response.text?.trim() ?: "[]"
+            val response = model?.generateContent(prompt)
+            val jsonText = response?.text?.trim() ?: "[]"
 
             parseHintsFromJson(jsonText)
         } catch (e: Exception) {
@@ -395,53 +428,68 @@ class GeminiApiService @Inject constructor(
         conversationExamples: List<String>,
         userLevel: Int
     ): GrammarExplanation {
+        android.util.Log.d("GrammarAPI", "=== explainGrammar START ===")
+        android.util.Log.d("GrammarAPI", "Sentence: '$sentence'")
+        android.util.Log.d("GrammarAPI", "User level: $userLevel")
+        android.util.Log.d("GrammarAPI", "Examples count: ${conversationExamples.size}")
+        android.util.Log.d("GrammarAPI", "API Key present: ${apiKey.isNotBlank()}")
+        android.util.Log.d("GrammarAPI", "Model initialized: ${model != null}")
+        android.util.Log.d("GrammarAPI", "Grammar model initialized: ${grammarModel != null}")
+
+        // 문장이 너무 길거나 개행이 많으면 첫 줄만 분석
+        val sentenceToAnalyze = sentence.split("\n").firstOrNull()?.take(50) ?: sentence.take(50)
+        android.util.Log.d("GrammarAPI", "Original length: ${sentence.length}, Analyzing: '$sentenceToAnalyze'")
+
+        // 극도로 간결한 프롬프트 (응답 속도 최적화)
         val prompt = """
-            다음 일본어 문장의 문법을 한국어로 쉽게 설명해주세요.
-            사용자 레벨: $userLevel (1=초급, 2=중급, 3=고급)
+            日本語文法分析: "$sentenceToAnalyze"
 
-            문장: $sentence
-
-            다음 JSON 형식으로 응답하세요:
+            最小JSON応答:
             {
-              "overallExplanation": "문장 전체의 간단한 설명 (1-2문장)",
-              "detailedExplanation": "문법 구조에 대한 상세한 설명",
-              "components": [
-                {
-                  "text": "문법 요소 (예: を, ます)",
-                  "type": "PARTICLE|VERB|ADJECTIVE|NOUN|AUXILIARY|CONJUNCTION|ADVERB|EXPRESSION",
-                  "explanation": "이 문법 요소에 대한 한국어 설명",
-                  "startIndex": 시작위치,
-                  "endIndex": 끝위치
-                }
-              ],
-              "examples": [
-                ${conversationExamples.joinToString(",\n") { "\"$it\"" }}
-              ],
-              "relatedPatterns": [
-                "관련 문법 패턴 1",
-                "관련 문법 패턴 2"
-              ]
+              "overallExplanation": "${if (userLevel == 1) "초급" else "중급"} 설명",
+              "detailedExplanation": "핵심만",
+              "components": [{"text": "ます", "type": "VERB", "explanation": "동사", "startIndex": 0, "endIndex": 2}],
+              "examples": [],
+              "relatedPatterns": []
             }
 
-            주의사항:
-            - components는 문장의 모든 주요 문법 요소를 포함해야 합니다
-            - startIndex와 endIndex는 실제 문자열 위치를 정확히 지정하세요
-            - type은 반드시 제시된 타입 중 하나여야 합니다
-            - 사용자 레벨에 맞는 쉬운 설명을 제공하세요
-            - examples는 대화 내용에서 관련된 문장들입니다
-
-            응답은 반드시 JSON만 포함하고, 다른 텍스트는 포함하지 마세요.
+            JSONのみ、説明は韓国語で簡潔に。
         """.trimIndent()
 
+        android.util.Log.d("GrammarAPI", "Optimized prompt length: ${prompt.length} chars (was 1600+)")
+
         return try {
-            // Add timeout to prevent hanging
-            kotlinx.coroutines.withTimeout(15000) {
+            // Further reduced timeout for faster fallback (5 seconds)
+            kotlinx.coroutines.withTimeout(5000) {
+                android.util.Log.d("GrammarAPI", "Calling Gemini API with 5s timeout...")
+                val startTime = System.currentTimeMillis()
+
+                // Use grammar model - but if null, return immediately
+                val model = grammarModel
+                if (model == null) {
+                    android.util.Log.w("GrammarAPI", "Grammar model is null, returning fallback")
+                    return@withTimeout GrammarExplanation(
+                        originalText = sentenceToAnalyze,
+                        components = emptyList(),
+                        overallExplanation = "API 초기화 실패",
+                        detailedExplanation = "문법 분석 서비스를 사용할 수 없습니다.",
+                        examples = emptyList(),
+                        relatedPatterns = emptyList()
+                    )
+                }
+
                 val response = model.generateContent(prompt)
+
+                val elapsed = System.currentTimeMillis() - startTime
+                android.util.Log.d("GrammarAPI", "API call completed in ${elapsed}ms")
 
                 // Safely get text
                 val jsonText = try {
-                    response.text?.trim()
+                    val text = response?.text?.trim()
+                    android.util.Log.d("GrammarAPI", "Response received: ${text?.take(100)}...")
+                    text
                 } catch (e: Exception) {
+                    android.util.Log.e("GrammarAPI", "Safety filter blocked: ${e.message}", e)
                     // Response blocked by safety filters
                     return@withTimeout GrammarExplanation(
                         originalText = sentence,
@@ -454,8 +502,10 @@ class GeminiApiService @Inject constructor(
                 }
 
                 if (!jsonText.isNullOrEmpty() && jsonText != "{}") {
+                    android.util.Log.d("GrammarAPI", "Parsing JSON response...")
                     parseGrammarExplanationFromJson(jsonText, sentence, conversationExamples)
                 } else {
+                    android.util.Log.w("GrammarAPI", "Empty or null response from API")
                     GrammarExplanation(
                         originalText = sentence,
                         components = emptyList(),
@@ -467,33 +517,60 @@ class GeminiApiService @Inject constructor(
                 }
             }
         } catch (e: kotlinx.coroutines.TimeoutCancellationException) {
-            GrammarExplanation(
-                originalText = sentence,
-                components = emptyList(),
-                overallExplanation = "요청 시간 초과",
-                detailedExplanation = "15초 내에 응답을 받지 못했습니다. 다시 시도해주세요.",
-                examples = conversationExamples,
-                relatedPatterns = emptyList()
+            android.util.Log.e("GrammarAPI", "❌ Timeout after 5 seconds - using local analysis")
+            // 타임아웃 시 로컬 분석으로 즉시 폴백
+            val localAnalysis = com.nihongo.conversation.core.grammar.LocalGrammarAnalyzer.analyzeSentence(
+                sentence = sentenceToAnalyze,
+                userLevel = userLevel
             )
+            android.util.Log.d("GrammarAPI", "Returned local analysis after timeout")
+            localAnalysis
         } catch (e: Exception) {
-            GrammarExplanation(
-                originalText = sentence,
-                components = emptyList(),
-                overallExplanation = "문법 분석 실패",
-                detailedExplanation = when {
-                    e.message?.contains("quota", ignoreCase = true) == true ->
-                        "API 한도 초과"
-                    e.message?.contains("blocked", ignoreCase = true) == true ||
-                    e.message?.contains("SAFETY", ignoreCase = true) == true ->
-                        "콘텐츠 차단됨"
-                    e.message?.contains("network", ignoreCase = true) == true ||
-                    e.message?.contains("Unable to resolve host", ignoreCase = true) == true ->
-                        "네트워크 오류"
-                    else ->
-                        "오류: ${e.message?.take(50) ?: "알 수 없음"}"
-                },
-                examples = conversationExamples,
-                relatedPatterns = emptyList()
+            android.util.Log.e("GrammarAPI", "❌ Exception: ${e.message}", e)
+            android.util.Log.e("GrammarAPI", "Exception type: ${e.javaClass.simpleName}")
+
+            // Check if it's actually a timeout (wrapped in UnknownException)
+            val isTimeout = e.message?.contains("Timed out") == true ||
+                           e.cause?.message?.contains("Timed out") == true ||
+                           e.toString().contains("CancellationException")
+
+            if (isTimeout) {
+                android.util.Log.e("GrammarAPI", "Detected timeout, using local analysis")
+                // 타임아웃 시 로컬 분석으로 즉시 폴백
+                val localAnalysis = com.nihongo.conversation.core.grammar.LocalGrammarAnalyzer.analyzeSentence(
+                    sentence = sentenceToAnalyze,
+                    userLevel = userLevel
+                )
+                android.util.Log.d("GrammarAPI", "Returned local analysis after timeout exception")
+                return localAnalysis
+            }
+
+            val errorDetail = when {
+                e.message?.contains("quota", ignoreCase = true) == true -> {
+                    android.util.Log.e("GrammarAPI", "API quota exceeded")
+                    "API 한도 초과"
+                }
+                e.message?.contains("blocked", ignoreCase = true) == true ||
+                e.message?.contains("SAFETY", ignoreCase = true) == true -> {
+                    android.util.Log.e("GrammarAPI", "Content blocked by safety filter")
+                    "콘텐츠 차단됨"
+                }
+                e.message?.contains("network", ignoreCase = true) == true ||
+                e.message?.contains("Unable to resolve host", ignoreCase = true) == true -> {
+                    android.util.Log.e("GrammarAPI", "Network error")
+                    "네트워크 오류"
+                }
+                else -> {
+                    android.util.Log.e("GrammarAPI", "Unknown error: ${e.message}")
+                    "오류: ${e.message?.take(50) ?: "알 수 없음"}"
+                }
+            }
+
+            // 모든 예외에 대해 로컬 분석 폴백
+            android.util.Log.d("GrammarAPI", "Falling back to local analysis due to error")
+            com.nihongo.conversation.core.grammar.LocalGrammarAnalyzer.analyzeSentence(
+                sentence = sentenceToAnalyze,
+                userLevel = userLevel
             )
         }
     }
@@ -588,13 +665,20 @@ class GeminiApiService @Inject constructor(
     }
 
     suspend fun translateToKorean(japaneseText: String): String {
+        val startTime = System.currentTimeMillis()
+        android.util.Log.d("Translation", "=== Translation Request Start ===")
+        android.util.Log.d("Translation", "Input text: '$japaneseText'")
+        android.util.Log.d("Translation", "Input length: ${japaneseText.length}")
+
         // Handle empty text
         if (japaneseText.isBlank()) {
-            return "번역할 텍스트가 없습니다"
+            android.util.Log.w("Translation", "Empty input text")
+            throw IllegalArgumentException("번역할 텍스트가 없습니다")
         }
 
         // Truncate if too long (Gemini has token limits)
         val truncatedText = if (japaneseText.length > 2000) {
+            android.util.Log.w("Translation", "Text truncated from ${japaneseText.length} to 2000 chars")
             japaneseText.substring(0, 2000) + "..."
         } else {
             japaneseText
@@ -610,43 +694,88 @@ class GeminiApiService @Inject constructor(
             - 존댓말로 번역하세요
         """.trimIndent()
 
+        android.util.Log.d("Translation", "Prompt length: ${prompt.length}")
+
         return try {
             // Add timeout to prevent hanging
             kotlinx.coroutines.withTimeout(10000) {
-                val response = model.generateContent(prompt)
+                android.util.Log.d("Translation", "Calling Gemini API...")
+                val response = model?.generateContent(prompt)
+                android.util.Log.d("Translation", "API response received")
 
                 // Safely get text
                 val translatedText = try {
-                    response.text?.trim()
+                    response?.text?.trim()
                 } catch (e: Exception) {
                     // Response blocked by safety filters
-                    return@withTimeout "번역 차단됨"
+                    android.util.Log.e("Translation", "Response blocked by safety filter", e)
+                    throw TranslationException("번역 차단됨 (안전 필터)", cause = e)
                 }
 
                 if (!translatedText.isNullOrEmpty()) {
+                    val elapsed = System.currentTimeMillis() - startTime
+                    android.util.Log.d("Translation", "=== Translation Success ===")
+                    android.util.Log.d("Translation", "Output: '$translatedText'")
+                    android.util.Log.d("Translation", "Output length: ${translatedText.length}")
+                    android.util.Log.d("Translation", "Elapsed time: ${elapsed}ms")
                     translatedText
                 } else {
-                    "번역 결과 없음"
+                    android.util.Log.e("Translation", "Empty response from API")
+                    throw TranslationException("번역 결과 없음 (빈 응답)")
                 }
             }
         } catch (e: kotlinx.coroutines.TimeoutCancellationException) {
-            "요청 시간 초과 (10초)"
+            val elapsed = System.currentTimeMillis() - startTime
+            android.util.Log.e("Translation", "Timeout after ${elapsed}ms", e)
+            throw TranslationException("요청 시간 초과 (10초)", cause = e)
+        } catch (e: TranslationException) {
+            // Re-throw our custom exceptions
+            throw e
         } catch (e: Exception) {
-            when {
-                e.message?.contains("quota", ignoreCase = true) == true ->
+            val elapsed = System.currentTimeMillis() - startTime
+            android.util.Log.e("Translation", "Translation failed after ${elapsed}ms", e)
+            android.util.Log.e("Translation", "Error type: ${e.javaClass.simpleName}")
+            android.util.Log.e("Translation", "Error message: ${e.message}")
+
+            val errorMessage = when {
+                e.message?.contains("quota", ignoreCase = true) == true -> {
+                    android.util.Log.e("Translation", "Quota exceeded")
                     "API 한도 초과"
-                e.message?.contains("blocked", ignoreCase = true) == true ->
+                }
+                e.message?.contains("blocked", ignoreCase = true) == true -> {
+                    android.util.Log.e("Translation", "Content blocked")
                     "콘텐츠 차단됨"
-                e.message?.contains("SAFETY", ignoreCase = true) == true ->
+                }
+                e.message?.contains("SAFETY", ignoreCase = true) == true -> {
+                    android.util.Log.e("Translation", "Safety filter triggered")
                     "안전 필터링됨"
+                }
                 e.message?.contains("network", ignoreCase = true) == true ||
-                e.message?.contains("Unable to resolve host", ignoreCase = true) == true ->
+                e.message?.contains("Unable to resolve host", ignoreCase = true) == true -> {
+                    android.util.Log.e("Translation", "Network error")
                     "네트워크 오류"
-                else ->
+                }
+                e.message?.contains("rate limit", ignoreCase = true) == true -> {
+                    android.util.Log.e("Translation", "Rate limit exceeded")
+                    "요청 제한 초과 (잠시 후 다시 시도)"
+                }
+                else -> {
+                    android.util.Log.e("Translation", "Unknown error: ${e.message}")
                     "번역 실패: ${e.message?.take(50) ?: "알 수 없음"}"
+                }
             }
+
+            throw TranslationException(errorMessage, cause = e)
         }
     }
+
+    /**
+     * Custom exception for translation errors
+     */
+    class TranslationException(
+        message: String,
+        cause: Throwable? = null
+    ) : Exception(message, cause)
 
     /**
      * Analyze user message for grammar errors, unnatural expressions, and suggestions
@@ -657,63 +786,72 @@ class GeminiApiService @Inject constructor(
         conversationContext: List<String>,
         userLevel: Int
     ): String {
+        val startTime = System.currentTimeMillis()
+        android.util.Log.d("GrammarAnalysis", "=== Starting Grammar Analysis ===")
+        android.util.Log.d("GrammarAnalysis", "Message: $userMessage")
+        android.util.Log.d("GrammarAnalysis", "Level: $userLevel")
+
         return try {
+            // Simplified prompt - 15 lines instead of 40
             val prompt = """
-                일본어 학습자의 메시지를 분석하고 피드백을 제공하세요.
+                日本語学習者のメッセージを簡潔に分析してください。
 
-                사용자 메시지: $userMessage
-                사용자 레벨: $userLevel (1=초급, 2=중급, 3=고급)
-                대화 컨텍스트: ${conversationContext.takeLast(3).joinToString(" | ")}
+                メッセージ: $userMessage
+                レベル: ${if (userLevel == 1) "初級" else if (userLevel == 2) "中級" else "上級"}
 
-                다음 4가지 측면에서 분석하고, 문제가 있는 경우에만 피드백을 제공하세요:
+                重要な問題のみJSON配列で返してください:
+                [{"type":"GRAMMAR_ERROR","severity":"ERROR","explanation":"틀린 이유","correctedText":"올바른 문장"}]
 
-                1. **문법 오류** (GRAMMAR_ERROR):
-                   - 조사, 동사 활용, 문장 구조 등의 문법적 오류
-                   - severity: ERROR (틀림), WARNING (어색함), INFO (개선 가능)
+                問題なければ空配列を返す: []
 
-                2. **부자연스러운 표현** (UNNATURAL):
-                   - 한국어를 직역한 것 같은 표현 (직역체)
-                   - 일본인이 사용하지 않는 표현
-                   - severity: WARNING
+                チェック項目:
+                1. 文法エラー(助詞、動詞活用)
+                2. 不自然な表現
+                3. 敬語の間違い
 
-                3. **더 나은 표현** (BETTER_EXPRESSION):
-                   - 더 자연스럽거나 적절한 대안 표현
-                   - 상황에 더 맞는 표현
-                   - severity: INFO
-
-                4. **대화 흐름** (CONVERSATION_FLOW):
-                   - 문맥상 어색한 응답
-                   - 대화 전략 제안
-                   - severity: INFO
-
-                5. **경어 레벨** (POLITENESS_LEVEL):
-                   - 존댓말/반말 사용이 상황에 맞지 않음
-                   - severity: WARNING
-
-                JSON 형식으로 응답하세요 (문제가 없으면 빈 배열):
-                [
-                  {
-                    "type": "GRAMMAR_ERROR|UNNATURAL|BETTER_EXPRESSION|CONVERSATION_FLOW|POLITENESS_LEVEL",
-                    "severity": "ERROR|WARNING|INFO",
-                    "correctedText": "수정된 문장 (해당되는 경우)",
-                    "explanation": "한국어로 설명 (왜 틀렸는지, 왜 어색한지)",
-                    "betterExpression": "더 나은 대안 표현 (해당되는 경우)",
-                    "additionalNotes": "추가 설명이나 사용 예시 (선택적)",
-                    "grammarPattern": "문법 패턴 이름 (예: 助詞の使い方, 敬語, 時制)"
-                  }
-                ]
-
-                중요 규칙:
-                - 완벽한 문장이면 빈 배열 [] 을 반환하세요
-                - 사소한 문제는 무시하세요 (학습에 도움되는 것만)
-                - 초급자에게는 관대하게, 고급자에게는 엄격하게
-                - explanation은 친절하고 이해하기 쉽게 작성하세요
-                - JSON만 출력하고 다른 텍스트는 포함하지 마세요
+                JSONのみ出力、説明は韓国語で簡潔に。
             """.trimIndent()
 
-            val response = model.generateContent(prompt)
-            response.text?.trim() ?: "[]"
+            android.util.Log.d("GrammarAnalysis", "Sending request to Gemini...")
+
+            // Generate content with the prompt using grammar model (15s timeout)
+            val response = grammarModel?.generateContent(prompt)
+
+            val responseText = response?.text?.trim() ?: "[]"
+            val elapsed = System.currentTimeMillis() - startTime
+
+            android.util.Log.d("GrammarAnalysis", "Response received in ${elapsed}ms")
+            android.util.Log.d("GrammarAnalysis", "Response length: ${responseText.length}")
+
+            // Clean response
+            val cleanedResponse = responseText
+                .replace("```json", "")
+                .replace("```", "")
+                .trim()
+
+            // Validate JSON
+            try {
+                org.json.JSONArray(cleanedResponse)
+                cleanedResponse
+            } catch (e: Exception) {
+                android.util.Log.e("GrammarAnalysis", "Invalid JSON, returning empty array")
+                "[]"
+            }
         } catch (e: Exception) {
+            val elapsed = System.currentTimeMillis() - startTime
+            android.util.Log.e("GrammarAnalysis", "Failed after ${elapsed}ms: ${e.message}", e)
+
+            when {
+                e.message?.contains("DEADLINE_EXCEEDED") == true -> {
+                    android.util.Log.e("GrammarAnalysis", "Timeout error")
+                }
+                e.message?.contains("SAFETY") == true -> {
+                    android.util.Log.e("GrammarAnalysis", "Safety filter blocked")
+                }
+                else -> {
+                    android.util.Log.e("GrammarAnalysis", "Unknown error: ${e.javaClass.simpleName}")
+                }
+            }
             "[]" // Return empty array on error
         }
     }

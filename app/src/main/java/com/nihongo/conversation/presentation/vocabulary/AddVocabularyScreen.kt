@@ -45,10 +45,10 @@ fun AddVocabularyScreen(
     Scaffold(
         topBar = {
             TopAppBar(
-                title = { Text("単語を追加") },
+                title = { Text("단어 추가") },
                 navigationIcon = {
                     IconButton(onClick = onBackClick) {
-                        Icon(Icons.AutoMirrored.Filled.ArrowBack, "戻る")
+                        Icon(Icons.AutoMirrored.Filled.ArrowBack, "뒤로")
                     }
                 },
                 colors = TopAppBarDefaults.topAppBarColors(
@@ -94,7 +94,7 @@ fun AddVocabularyScreen(
                                 tint = MaterialTheme.colorScheme.onTertiaryContainer
                             )
                             Text(
-                                text = "クリップボード: ${uiState.clipboardText}",
+                                text = "클립보드: ${uiState.clipboardText}",
                                 style = MaterialTheme.typography.bodyMedium,
                                 color = MaterialTheme.colorScheme.onTertiaryContainer,
                                 maxLines = 1
@@ -108,7 +108,7 @@ fun AddVocabularyScreen(
                             ) {
                                 Icon(
                                     Icons.Default.Check,
-                                    contentDescription = "インポート",
+                                    contentDescription = "가져오기",
                                     tint = MaterialTheme.colorScheme.primary
                                 )
                             }
@@ -117,7 +117,7 @@ fun AddVocabularyScreen(
                             ) {
                                 Icon(
                                     Icons.Default.Close,
-                                    contentDescription = "閉じる",
+                                    contentDescription = "닫기",
                                     tint = MaterialTheme.colorScheme.onTertiaryContainer
                                 )
                             }
@@ -143,13 +143,13 @@ fun AddVocabularyScreen(
                     )
                     Column {
                         Text(
-                            text = "学びたい単語を追加しましょう",
+                            text = "학습할 단어를 추가하세요",
                             style = MaterialTheme.typography.titleSmall,
                             fontWeight = FontWeight.Bold
                         )
                         Spacer(modifier = Modifier.height(4.dp))
                         Text(
-                            text = "追加した単語は単語帳で復習できます",
+                            text = "추가한 단어는 단어장에서 복습할 수 있습니다",
                             style = MaterialTheme.typography.bodySmall,
                             color = MaterialTheme.colorScheme.onSurfaceVariant
                         )
@@ -161,12 +161,12 @@ fun AddVocabularyScreen(
             OutlinedTextField(
                 value = uiState.word,
                 onValueChange = { viewModel.onWordChanged(it) },
-                label = { Text("単語 *") },
+                label = { Text("단어 *") },
                 supportingText = {
                     if (uiState.wordError != null) {
                         Text(uiState.wordError!!)
                     } else {
-                        Text("日本語で入力してください")
+                        Text("일본어로 입력하세요")
                     }
                 },
                 isError = uiState.wordError != null,
@@ -181,8 +181,8 @@ fun AddVocabularyScreen(
             OutlinedTextField(
                 value = uiState.reading,
                 onValueChange = { viewModel.onReadingChanged(it) },
-                label = { Text("読み方") },
-                supportingText = { Text("ひらがな・カタカナで入力 (任意)") },
+                label = { Text("읽기") },
+                supportingText = { Text("히라가나·가타카나로 입력 (선택)") },
                 modifier = Modifier.fillMaxWidth(),
                 leadingIcon = {
                     Icon(Icons.Default.RecordVoiceOver, contentDescription = null)
@@ -194,12 +194,12 @@ fun AddVocabularyScreen(
             OutlinedTextField(
                 value = uiState.meaning,
                 onValueChange = { viewModel.onMeaningChanged(it) },
-                label = { Text("意味 *") },
+                label = { Text("의미 *") },
                 supportingText = {
                     if (uiState.meaningError != null) {
                         Text(uiState.meaningError!!)
                     } else {
-                        Text("韓国語で入力してください")
+                        Text("한국어로 입력하세요")
                     }
                 },
                 isError = uiState.meaningError != null,
@@ -214,8 +214,8 @@ fun AddVocabularyScreen(
             OutlinedTextField(
                 value = uiState.exampleSentence,
                 onValueChange = { viewModel.onExampleSentenceChanged(it) },
-                label = { Text("例文") },
-                supportingText = { Text("使い方の例 (任意)") },
+                label = { Text("예문") },
+                supportingText = { Text("사용 예시 (선택)") },
                 modifier = Modifier.fillMaxWidth(),
                 leadingIcon = {
                     Icon(Icons.Default.Description, contentDescription = null)
@@ -245,7 +245,7 @@ fun AddVocabularyScreen(
                             tint = MaterialTheme.colorScheme.primary
                         )
                         Text(
-                            text = "難易度",
+                            text = "난이도",
                             style = MaterialTheme.typography.titleMedium,
                             fontWeight = FontWeight.Bold
                         )
@@ -258,12 +258,12 @@ fun AddVocabularyScreen(
                     ) {
                         Text(
                             text = when (uiState.difficulty) {
-                                1 -> "⭐ とても簡単"
-                                2 -> "⭐⭐ 簡単"
-                                3 -> "⭐⭐⭐ 普通"
-                                4 -> "⭐⭐⭐⭐ 難しい"
-                                5 -> "⭐⭐⭐⭐⭐ とても難しい"
-                                else -> "普通"
+                                1 -> "⭐ 매우 쉬움"
+                                2 -> "⭐⭐ 쉬움"
+                                3 -> "⭐⭐⭐ 보통"
+                                4 -> "⭐⭐⭐⭐ 어려움"
+                                5 -> "⭐⭐⭐⭐⭐ 매우 어려움"
+                                else -> "보통"
                             },
                             style = MaterialTheme.typography.bodyLarge,
                             fontWeight = FontWeight.Medium
@@ -306,12 +306,12 @@ fun AddVocabularyScreen(
                         )
                         Column {
                             Text(
-                                text = "すぐに復習に追加",
+                                text = "즉시 복습에 추가",
                                 style = MaterialTheme.typography.titleSmall,
                                 fontWeight = FontWeight.Bold
                             )
                             Text(
-                                text = "今日から復習を開始します",
+                                text = "오늘부터 복습을 시작합니다",
                                 style = MaterialTheme.typography.bodySmall,
                                 color = MaterialTheme.colorScheme.onSurfaceVariant
                             )
@@ -341,7 +341,7 @@ fun AddVocabularyScreen(
                     Icon(Icons.Default.Add, contentDescription = null)
                     Spacer(modifier = Modifier.width(8.dp))
                     Text(
-                        "単語を追加",
+                        "단어 추가",
                         style = MaterialTheme.typography.titleMedium
                     )
                 }
@@ -355,7 +355,7 @@ fun AddVocabularyScreen(
             ) {
                 Icon(Icons.Default.Clear, contentDescription = null)
                 Spacer(modifier = Modifier.width(8.dp))
-                Text("クリア")
+                Text("초기화")
             }
 
             Spacer(modifier = Modifier.height(16.dp))

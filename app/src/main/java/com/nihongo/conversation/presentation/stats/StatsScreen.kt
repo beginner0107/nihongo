@@ -34,11 +34,11 @@ fun StatsScreen(
                 title = {
                     Column {
                         Text(
-                            text = "学習統計",
+                            text = "학습 통계",
                             style = MaterialTheme.typography.titleLarge
                         )
                         Text(
-                            text = "あなたの進歩を見ましょう",
+                            text = "당신의 진도를 확인하세요",
                             style = MaterialTheme.typography.bodySmall,
                             color = MaterialTheme.colorScheme.onSurfaceVariant
                         )
@@ -48,7 +48,7 @@ fun StatsScreen(
                     IconButton(onClick = onBackClick) {
                         Icon(
                             imageVector = Icons.AutoMirrored.Filled.ArrowBack,
-                            contentDescription = "戻る"
+                            contentDescription = "뒤로"
                         )
                     }
                 },
@@ -56,7 +56,7 @@ fun StatsScreen(
                     IconButton(onClick = { viewModel.refresh() }) {
                         Icon(
                             imageVector = Icons.Default.Refresh,
-                            contentDescription = "更新"
+                            contentDescription = "새로고침"
                         )
                     }
                 },
@@ -94,7 +94,7 @@ fun StatsScreen(
                         tint = MaterialTheme.colorScheme.error
                     )
                     Text(
-                        text = uiState.error ?: "エラーが発生しました",
+                        text = uiState.error ?: "오류가 발생했습니다",
                         style = MaterialTheme.typography.bodyMedium,
                         color = MaterialTheme.colorScheme.error
                     )
@@ -139,14 +139,14 @@ fun StatsScreen(
                     val periodStats = viewModel.getCurrentPeriodStats()
                     periodStats?.let { stats ->
                         ChartCard(
-                            title = "学習時間",
-                            subtitle = "${uiState.timePeriod.toJapanese()}の学習時間"
+                            title = "학습 시간",
+                            subtitle = "${uiState.timePeriod.toKorean()}의 학습 시간"
                         ) {
                             val chartData = prepareChartData(stats.dailyStats, uiState.timePeriod) { it.studyTimeMinutes }
                             BarChart(
                                 data = chartData,
                                 barColor = MaterialTheme.colorScheme.primary,
-                                label = "分"
+                                label = "분"
                             )
                         }
                     }
@@ -157,8 +157,8 @@ fun StatsScreen(
                     val periodStats = viewModel.getCurrentPeriodStats()
                     periodStats?.let { stats ->
                         ChartCard(
-                            title = "メッセージ数",
-                            subtitle = "${uiState.timePeriod.toJapanese()}のメッセージ数"
+                            title = "메시지 수",
+                            subtitle = "${uiState.timePeriod.toKorean()}의 메시지 수"
                         ) {
                             val chartData = prepareChartData(stats.dailyStats, uiState.timePeriod) { it.messageCount }
                             LineChart(
@@ -196,7 +196,7 @@ fun TimePeriodToggle(
         FilterChip(
             selected = selectedPeriod == TimePeriod.WEEK,
             onClick = { onPeriodChange(TimePeriod.WEEK) },
-            label = { Text("週間") },
+            label = { Text("주간") },
             leadingIcon = if (selectedPeriod == TimePeriod.WEEK) {
                 { Icon(Icons.Default.Check, contentDescription = null, modifier = Modifier.size(18.dp)) }
             } else null
@@ -205,7 +205,7 @@ fun TimePeriodToggle(
         FilterChip(
             selected = selectedPeriod == TimePeriod.MONTH,
             onClick = { onPeriodChange(TimePeriod.MONTH) },
-            label = { Text("月間") },
+            label = { Text("월간") },
             leadingIcon = if (selectedPeriod == TimePeriod.MONTH) {
                 { Icon(Icons.Default.Check, contentDescription = null, modifier = Modifier.size(18.dp)) }
             } else null
@@ -246,19 +246,19 @@ fun StreakCard(
                         modifier = Modifier.size(32.dp)
                     )
                     Text(
-                        text = "連続学習",
+                        text = "연속 학습",
                         style = MaterialTheme.typography.titleMedium,
                         fontWeight = FontWeight.Bold
                     )
                 }
                 Text(
-                    text = "${streak.currentStreak} 日間",
+                    text = "${streak.currentStreak} 일간",
                     style = MaterialTheme.typography.headlineLarge,
                     fontWeight = FontWeight.Bold,
                     color = MaterialTheme.colorScheme.primary
                 )
                 Text(
-                    text = "最長: ${streak.longestStreak}日",
+                    text = "최장: ${streak.longestStreak}일",
                     style = MaterialTheme.typography.bodyMedium,
                     color = MaterialTheme.colorScheme.onPrimaryContainer.copy(alpha = 0.7f)
                 )
@@ -286,7 +286,7 @@ fun SummaryStatsRow(
         horizontalArrangement = Arrangement.spacedBy(8.dp)
     ) {
         StatCard(
-            title = "会話数",
+            title = "대화 수",
             value = conversations.toString(),
             icon = {
                 Icon(
@@ -300,7 +300,7 @@ fun SummaryStatsRow(
         )
 
         StatCard(
-            title = "メッセージ",
+            title = "메시지",
             value = messages.toString(),
             icon = {
                 Icon(
@@ -314,8 +314,8 @@ fun SummaryStatsRow(
         )
 
         StatCard(
-            title = "学習時間",
-            value = "${minutes}分",
+            title = "학습 시간",
+            value = "${minutes}분",
             icon = {
                 Icon(
                     imageVector = Icons.Default.Timer,
@@ -386,7 +386,7 @@ fun ScenarioProgressCard(
             verticalArrangement = Arrangement.spacedBy(16.dp)
         ) {
             Text(
-                text = "シナリオ別進捗",
+                text = "시나리오별 진행도",
                 style = MaterialTheme.typography.titleMedium,
                 fontWeight = FontWeight.Bold
             )
@@ -421,7 +421,7 @@ private fun prepareChartData(
 ): List<Pair<String, Int>> {
     val calendar = Calendar.getInstance()
     val dateFormatter = SimpleDateFormat("yyyy-MM-dd", Locale.getDefault())
-    val labelFormatter = SimpleDateFormat("E", Locale.JAPANESE) // Day of week
+    val labelFormatter = SimpleDateFormat("E", Locale.KOREAN) // Day of week
 
     return when (timePeriod) {
         TimePeriod.WEEK -> {
@@ -450,9 +450,9 @@ private fun prepareChartData(
     }
 }
 
-private fun TimePeriod.toJapanese(): String {
+private fun TimePeriod.toKorean(): String {
     return when (this) {
-        TimePeriod.WEEK -> "今週"
-        TimePeriod.MONTH -> "今月"
+        TimePeriod.WEEK -> "이번 주"
+        TimePeriod.MONTH -> "이번 달"
     }
 }

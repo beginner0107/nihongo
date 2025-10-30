@@ -4,6 +4,12 @@ import androidx.room.*
 import com.nihongo.conversation.domain.model.CacheAnalytics
 import kotlinx.coroutines.flow.Flow
 
+data class TotalStats(
+    val totalHits: Int,
+    val totalMisses: Int,
+    val totalApiCalls: Int
+)
+
 @Dao
 interface CacheAnalyticsDao {
     @Query("""
@@ -89,7 +95,7 @@ interface CacheAnalyticsDao {
         FROM cache_analytics
         WHERE userId = :userId
     """)
-    suspend fun getTotalStats(userId: Long): Map<String, Int>
+    suspend fun getTotalStats(userId: Long): TotalStats?
 
     @Query("""
         SELECT AVG(CAST(cacheHits AS FLOAT) / (cacheHits + cacheMisses)) as hitRate

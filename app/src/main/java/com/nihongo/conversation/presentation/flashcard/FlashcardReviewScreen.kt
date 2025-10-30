@@ -40,19 +40,19 @@ fun FlashcardReviewScreen(
     Scaffold(
         topBar = {
             TopAppBar(
-                title = { Text("単語帳") },
+                title = { Text("단어장") },
                 navigationIcon = {
                     IconButton(onClick = onBackClick) {
-                        Icon(Icons.Default.ArrowBack, "戻る")
+                        Icon(Icons.Default.ArrowBack, "뒤로")
                     }
                 },
                 actions = {
                     IconButton(onClick = onStatsClick) {
-                        Icon(Icons.Default.BarChart, "統計")
+                        Icon(Icons.Default.BarChart, "통계")
                     }
                     if (!uiState.isSessionComplete && currentCard != null) {
                         IconButton(onClick = { viewModel.restartSession() }) {
-                            Icon(Icons.Default.Refresh, "再開始")
+                            Icon(Icons.Default.Refresh, "다시 시작")
                         }
                     }
                 }
@@ -169,7 +169,7 @@ fun ReviewSession(
             ) {
                 Icon(Icons.Default.Lightbulb, null, modifier = Modifier.size(24.dp))
                 Spacer(modifier = Modifier.width(8.dp))
-                Text("答えを表示", style = MaterialTheme.typography.titleMedium)
+                Text("답 보기", style = MaterialTheme.typography.titleMedium)
             }
         } else {
             // After flip: Show quality buttons
@@ -178,7 +178,7 @@ fun ReviewSession(
                 verticalArrangement = Arrangement.spacedBy(8.dp)
             ) {
                 Text(
-                    text = "どれくらい覚えていましたか？",
+                    text = "얼마나 기억하고 있었나요?",
                     style = MaterialTheme.typography.titleSmall,
                     modifier = Modifier.padding(bottom = 8.dp)
                 )
@@ -399,7 +399,7 @@ fun SessionCompleteScreen(
         Spacer(modifier = Modifier.height(24.dp))
 
         Text(
-            text = "完了！",
+            text = "완료!",
             style = MaterialTheme.typography.displayMedium,
             fontWeight = FontWeight.Bold
         )
@@ -407,7 +407,7 @@ fun SessionCompleteScreen(
         Spacer(modifier = Modifier.height(8.dp))
 
         Text(
-            text = "お疲れ様でした",
+            text = "수고하셨습니다",
             style = MaterialTheme.typography.titleMedium,
             color = MaterialTheme.colorScheme.onSurfaceVariant
         )
@@ -425,10 +425,10 @@ fun SessionCompleteScreen(
                 modifier = Modifier.padding(24.dp),
                 verticalArrangement = Arrangement.spacedBy(16.dp)
             ) {
-                StatRow("復習したカード", "${stats.reviewedCards} / ${stats.totalCards}")
-                StatRow("正答率", "${(stats.accuracy * 100).toInt()}%")
-                StatRow("平均評価", String.format("%.1f / 5", stats.averageQuality))
-                StatRow("所要時間", formatDuration(stats.timeSpentMs))
+                StatRow("복습한 카드", "${stats.reviewedCards} / ${stats.totalCards}")
+                StatRow("정답률", "${(stats.accuracy * 100).toInt()}%")
+                StatRow("평균 평가", String.format("%.1f / 5", stats.averageQuality))
+                StatRow("소요 시간", formatDuration(stats.timeSpentMs))
             }
         }
 
@@ -443,7 +443,7 @@ fun SessionCompleteScreen(
         ) {
             Icon(Icons.Default.Refresh, null)
             Spacer(modifier = Modifier.width(8.dp))
-            Text("もう一度", style = MaterialTheme.typography.titleMedium)
+            Text("다시 하기", style = MaterialTheme.typography.titleMedium)
         }
 
         Spacer(modifier = Modifier.height(12.dp))
@@ -456,7 +456,7 @@ fun SessionCompleteScreen(
         ) {
             Icon(Icons.Default.BarChart, null)
             Spacer(modifier = Modifier.width(8.dp))
-            Text("詳細統計を見る", style = MaterialTheme.typography.titleMedium)
+            Text("상세 통계 보기", style = MaterialTheme.typography.titleMedium)
         }
 
         Spacer(modifier = Modifier.height(12.dp))
@@ -467,7 +467,7 @@ fun SessionCompleteScreen(
                 .fillMaxWidth()
                 .height(56.dp)
         ) {
-            Text("戻る", style = MaterialTheme.typography.titleMedium)
+            Text("돌아가기", style = MaterialTheme.typography.titleMedium)
         }
     }
 }
@@ -499,7 +499,7 @@ fun LoadingState(modifier: Modifier = Modifier) {
         Column(horizontalAlignment = Alignment.CenterHorizontally) {
             CircularProgressIndicator()
             Spacer(modifier = Modifier.height(16.dp))
-            Text("カードを読み込んでいます...")
+            Text("카드를 불러오는 중...")
         }
     }
 }
@@ -526,7 +526,7 @@ fun EmptyState(
         Spacer(modifier = Modifier.height(24.dp))
 
         Text(
-            text = "復習するカードがありません",
+            text = "복습할 카드가 없습니다",
             style = MaterialTheme.typography.titleLarge,
             textAlign = TextAlign.Center
         )
@@ -534,7 +534,7 @@ fun EmptyState(
         Spacer(modifier = Modifier.height(8.dp))
 
         Text(
-            text = "新しい会話をして単語を学びましょう",
+            text = "새로운 대화를 통해 단어를 학습하세요",
             style = MaterialTheme.typography.bodyMedium,
             color = MaterialTheme.colorScheme.onSurfaceVariant,
             textAlign = TextAlign.Center
@@ -546,7 +546,7 @@ fun EmptyState(
             onClick = onBackClick,
             modifier = Modifier.fillMaxWidth()
         ) {
-            Text("戻る")
+            Text("돌아가기")
         }
     }
 }

@@ -37,11 +37,11 @@ fun ScenarioListScreen(
                 title = {
                     Column {
                         Text(
-                            text = "シナリオを選択",
+                            text = "시나리오 선택",
                             style = MaterialTheme.typography.titleLarge
                         )
                         Text(
-                            text = "学習したいシーンを選んでください",
+                            text = "학습할 상황을 선택하세요",
                             style = MaterialTheme.typography.bodySmall,
                             color = MaterialTheme.colorScheme.onSurfaceVariant
                         )
@@ -51,19 +51,19 @@ fun ScenarioListScreen(
                     IconButton(onClick = onProfileClick) {
                         Icon(
                             imageVector = Icons.Default.AccountCircle,
-                            contentDescription = "プロフィール"
+                            contentDescription = "프로필"
                         )
                     }
                     IconButton(onClick = onStatsClick) {
                         Icon(
                             imageVector = Icons.Default.BarChart,
-                            contentDescription = "統計"
+                            contentDescription = "통계"
                         )
                     }
                     IconButton(onClick = onSettingsClick) {
                         Icon(
                             imageVector = Icons.Default.Settings,
-                            contentDescription = "設定"
+                            contentDescription = "설정"
                         )
                     }
                 }
@@ -82,7 +82,7 @@ fun ScenarioListScreen(
                 ) {
                     Icon(
                         imageVector = Icons.Default.Add,
-                        contentDescription = "単語を追加"
+                        contentDescription = "단어 추가"
                     )
                 }
 
@@ -92,10 +92,10 @@ fun ScenarioListScreen(
                     icon = {
                         Icon(
                             imageVector = Icons.Default.Style,
-                            contentDescription = "単語帳"
+                            contentDescription = "단어장"
                         )
                     },
-                    text = { Text("単語帳") }
+                    text = { Text("단어장") }
                 )
             }
         }
@@ -192,7 +192,7 @@ fun ScenarioCard(
             // Arrow
             Icon(
                 imageVector = Icons.Default.ChevronRight,
-                contentDescription = "開始",
+                contentDescription = "시작",
                 tint = MaterialTheme.colorScheme.onSurfaceVariant
             )
         }
@@ -202,10 +202,10 @@ fun ScenarioCard(
 @Composable
 fun DifficultyBadge(difficulty: Int) {
     val (text, color) = when (difficulty) {
-        1 -> "初級" to MaterialTheme.colorScheme.tertiary
-        2 -> "中級" to MaterialTheme.colorScheme.secondary
-        3 -> "上級" to MaterialTheme.colorScheme.error
-        else -> "初級" to MaterialTheme.colorScheme.tertiary
+        1 -> "초급" to MaterialTheme.colorScheme.tertiary
+        2 -> "중급" to MaterialTheme.colorScheme.secondary
+        3 -> "고급" to MaterialTheme.colorScheme.error
+        else -> "초급" to MaterialTheme.colorScheme.tertiary
     }
 
     Surface(
@@ -225,12 +225,18 @@ fun DifficultyBadge(difficulty: Int) {
 @Composable
 fun getScenarioIcon(scenarioId: Long): ImageVector {
     return when (scenarioId) {
-        1L -> Icons.Default.Restaurant      // レストラン
-        2L -> Icons.Default.ShoppingCart    // 買い物
-        3L -> Icons.Default.Hotel           // ホテル
-        4L -> Icons.Default.People          // 友達
-        5L -> Icons.Default.Phone           // 電話
-        6L -> Icons.Default.MedicalServices // 病院
+        1L -> Icons.Default.Restaurant      // 레스토랑
+        2L -> Icons.Default.ShoppingCart    // 쇼핑
+        3L -> Icons.Default.Hotel           // 호텔
+        4L -> Icons.Default.People          // 친구
+        5L -> Icons.Default.Phone           // 전화
+        6L -> Icons.Default.MedicalServices // 병원
+        10L -> Icons.Default.Work           // 취업 면접
+        11L -> Icons.Default.Report         // 클레임 대응
+        12L -> Icons.Default.LocalHospital  // 긴급 상황
+        13L -> Icons.Default.Favorite       // 데이트
+        14L -> Icons.Default.BusinessCenter // 비즈니스 프레젠테이션
+        15L -> Icons.Default.Chat           // 여자친구와의 대화
         else -> Icons.Default.Chat
     }
 }

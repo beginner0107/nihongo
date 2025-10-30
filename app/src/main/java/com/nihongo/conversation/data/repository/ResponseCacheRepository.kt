@@ -109,9 +109,9 @@ class ResponseCacheRepository @Inject constructor(
             }
 
             // Step 2: Cache miss - call Gemini API
-            val apiResponse = geminiService.sendMessageStreaming(
-                userMessage = userInput,
-                conversationHistory = conversationHistory,
+            val apiResponse = geminiService.sendMessage(
+                message = userInput,
+                conversationHistory = conversationHistory.map { it.content to it.isUser },
                 systemPrompt = systemPrompt
             )
 
@@ -362,7 +362,7 @@ class ResponseCacheRepository @Inject constructor(
                 analytics.map { it.averageResponseTime }.average().toLong()
             } else 0L,
             averageSimilarity = if (totalHits > 0) {
-                analytics.sumOf { it.averageSimilarityScore * it.cacheHits } / totalHits
+                analytics.sumOf { (it.averageSimilarityScore * it.cacheHits).toDouble() }.toFloat() / totalHits
             } else 0f
         )
     }
