@@ -276,7 +276,10 @@ fun ChatScreen(
             GrammarBottomSheet(
                 grammarExplanation = uiState.grammarExplanation,
                 isLoading = uiState.isLoadingGrammar,
-                onDismiss = viewModel::dismissGrammarSheet
+                errorMessage = uiState.grammarError,
+                originalSentence = uiState.currentGrammarSentence,
+                onDismiss = viewModel::dismissGrammarSheet,
+                onRetry = viewModel::retryGrammarAnalysis
             )
         }
 

@@ -56,6 +56,9 @@ data class ChatUiState(
     val grammarExplanation: GrammarExplanation? = null,
     val isLoadingGrammar: Boolean = false,
     val showGrammarSheet: Boolean = false,
+    val grammarError: String? = null, // Error message for grammar analysis
+    val grammarRetryCount: Int = 0, // Number of retry attempts
+    val currentGrammarSentence: String? = null, // Current sentence being analyzed
     val translations: ImmutableMap<Long, String> = ImmutableMap.empty(), // messageId -> Korean translation
     val expandedTranslations: ImmutableSet<Long> = ImmutableSet.empty(), // messageIds with translation expanded
     val grammarCache: ImmutableMap<String, GrammarExplanation> = ImmutableMap.empty(), // text -> cached grammar
@@ -394,7 +397,7 @@ class ChatViewModel @Inject constructor(
         }
     }
 
-    fun requestGrammarExplanation(sentence: String) {
+    fun requestGrammarExplanation(sentence: String, retryAttempt: Int = 0) {
         viewModelScope.launch {
             // Check cache first
             val cached = _uiState.value.grammarCache[sentence]
@@ -403,7 +406,9 @@ class ChatViewModel @Inject constructor(
                     it.copy(
                         grammarExplanation = cached,
                         showGrammarSheet = true,
-                        isLoadingGrammar = false
+                        isLoadingGrammar = false,
+                        grammarError = null,
+                        grammarRetryCount = 0
                     )
                 }
                 return@launch
@@ -413,7 +418,10 @@ class ChatViewModel @Inject constructor(
                 it.copy(
                     isLoadingGrammar = true,
                     showGrammarSheet = true,
-                    grammarExplanation = null
+                    grammarExplanation = null,
+                    grammarError = null,
+                    grammarRetryCount = retryAttempt,
+                    currentGrammarSentence = sentence
                 )
             }
 
@@ -424,6 +432,39 @@ class ChatViewModel @Inject constructor(
                     conversationHistory = _uiState.value.messages.items,
                     userLevel = user?.level ?: 1
                 )
+
+                // Check if the explanation indicates an error (from API)
+                val isErrorResponse = grammarExplanation.overallExplanation in listOf(
+                    "문법 분석 실패",
+                    "문법 분석 차단됨",
+                    "요청 시간 초과",
+                    "문법 분석 결과 없음"
+                )
+
+                if (isErrorResponse && retryAttempt < 3) {
+                    // Retry up to 3 times
+                    kotlinx.coroutines.delay(1000L * (retryAttempt + 1)) // Exponential backoff
+                    requestGrammarExplanation(sentence, retryAttempt + 1)
+                    return@launch
+                }
+
+                if (isErrorResponse && retryAttempt >= 3) {
+                    // Max retries reached - use local fallback
+                    val fallbackExplanation = com.nihongo.conversation.core.grammar.LocalGrammarAnalyzer.analyzeSentence(
+                        sentence = sentence,
+                        userLevel = user?.level ?: 1
+                    )
+
+                    _uiState.update {
+                        it.copy(
+                            grammarExplanation = fallbackExplanation,
+                            isLoadingGrammar = false,
+                            grammarError = "API 연결 실패 - 오프라인 분석 사용",
+                            grammarRetryCount = retryAttempt
+                        )
+                    }
+                    return@launch
+                }
 
                 _uiState.update {
                     // Limit grammar cache size based on memory config
@@ -439,17 +480,42 @@ class ChatViewModel @Inject constructor(
                     it.copy(
                         grammarExplanation = grammarExplanation,
                         isLoadingGrammar = false,
-                        grammarCache = newCache.toImmutableMap()
+                        grammarCache = newCache.toImmutableMap(),
+                        grammarError = null,
+                        grammarRetryCount = 0
                     )
                 }
             } catch (e: Exception) {
-                _uiState.update {
-                    it.copy(
-                        isLoadingGrammar = false,
-                        error = "문법 분석을 가져오는데 실패했습니다"
+                // Retry on exception
+                if (retryAttempt < 3) {
+                    kotlinx.coroutines.delay(1000L * (retryAttempt + 1))
+                    requestGrammarExplanation(sentence, retryAttempt + 1)
+                } else {
+                    // Max retries - use local fallback
+                    val user = _uiState.value.user
+                    val fallbackExplanation = com.nihongo.conversation.core.grammar.LocalGrammarAnalyzer.analyzeSentence(
+                        sentence = sentence,
+                        userLevel = user?.level ?: 1
                     )
+
+                    _uiState.update {
+                        it.copy(
+                            grammarExplanation = fallbackExplanation,
+                            isLoadingGrammar = false,
+                            grammarError = "문법 분석 오류 - 기본 분석 제공",
+                            grammarRetryCount = retryAttempt
+                        )
+                    }
                 }
             }
+        }
+    }
+
+    fun retryGrammarAnalysis() {
+        // Reset and retry with the current sentence
+        val sentence = _uiState.value.currentGrammarSentence
+        if (sentence != null) {
+            requestGrammarExplanation(sentence, retryAttempt = 0)
         }
     }
 

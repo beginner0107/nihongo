@@ -9,6 +9,7 @@ import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Close
+import androidx.compose.material.icons.filled.ContentCopy
 import androidx.compose.material.icons.filled.ExpandMore
 import androidx.compose.material.icons.filled.Lightbulb
 import androidx.compose.material.icons.filled.MenuBook
@@ -33,43 +34,193 @@ import com.nihongo.conversation.domain.model.GrammarType
 fun GrammarBottomSheet(
     grammarExplanation: GrammarExplanation?,
     isLoading: Boolean,
-    onDismiss: () -> Unit
+    errorMessage: String? = null,
+    originalSentence: String? = null,
+    onDismiss: () -> Unit,
+    onRetry: () -> Unit = {}
 ) {
     ModalBottomSheet(
         onDismissRequest = onDismiss,
         sheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true)
     ) {
-        if (isLoading) {
-            Box(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .height(300.dp),
-                contentAlignment = Alignment.Center
+        when {
+            isLoading -> {
+                Box(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .height(300.dp),
+                    contentAlignment = Alignment.Center
+                ) {
+                    Column(
+                        horizontalAlignment = Alignment.CenterHorizontally,
+                        verticalArrangement = Arrangement.spacedBy(16.dp)
+                    ) {
+                        CircularProgressIndicator()
+                        Text(
+                            text = "문법 분석 중...",
+                            style = MaterialTheme.typography.bodyMedium
+                        )
+                    }
+                }
+            }
+
+            grammarExplanation != null -> {
+                GrammarContent(
+                    grammarExplanation = grammarExplanation,
+                    errorMessage = errorMessage,
+                    onDismiss = onDismiss,
+                    onRetry = onRetry
+                )
+            }
+
+            else -> {
+                // Error state - neither loading nor has explanation
+                GrammarErrorContent(
+                    errorMessage = errorMessage ?: "문법 분석을 불러올 수 없습니다",
+                    originalSentence = originalSentence,
+                    onDismiss = onDismiss,
+                    onRetry = onRetry
+                )
+            }
+        }
+    }
+}
+
+@Composable
+private fun GrammarErrorContent(
+    errorMessage: String,
+    originalSentence: String?,
+    onDismiss: () -> Unit,
+    onRetry: () -> Unit
+) {
+    val context = androidx.compose.ui.platform.LocalContext.current
+    val clipboardManager = androidx.compose.ui.platform.LocalClipboardManager.current
+
+    Column(
+        modifier = Modifier
+            .fillMaxWidth()
+            .padding(24.dp),
+        horizontalAlignment = Alignment.CenterHorizontally,
+        verticalArrangement = Arrangement.spacedBy(16.dp)
+    ) {
+        // Header
+        Row(
+            modifier = Modifier.fillMaxWidth(),
+            horizontalArrangement = Arrangement.SpaceBetween,
+            verticalAlignment = Alignment.CenterVertically
+        ) {
+            Text(
+                text = "문법 분석",
+                style = MaterialTheme.typography.titleLarge,
+                fontWeight = FontWeight.Bold
+            )
+            IconButton(onClick = onDismiss) {
+                Icon(
+                    imageVector = Icons.Default.Close,
+                    contentDescription = "닫기"
+                )
+            }
+        }
+
+        Spacer(modifier = Modifier.height(8.dp))
+
+        // Show original sentence if available
+        if (originalSentence != null) {
+            Surface(
+                modifier = Modifier.fillMaxWidth(),
+                shape = MaterialTheme.shapes.medium,
+                color = MaterialTheme.colorScheme.surfaceVariant,
+                tonalElevation = 2.dp
             ) {
                 Column(
-                    horizontalAlignment = Alignment.CenterHorizontally,
-                    verticalArrangement = Arrangement.spacedBy(16.dp)
+                    modifier = Modifier.padding(16.dp),
+                    verticalArrangement = Arrangement.spacedBy(8.dp)
                 ) {
-                    CircularProgressIndicator()
+                    Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        horizontalArrangement = Arrangement.SpaceBetween,
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        Text(
+                            text = "원문",
+                            style = MaterialTheme.typography.labelMedium,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant
+                        )
+                        IconButton(
+                            onClick = {
+                                clipboardManager.setText(androidx.compose.ui.text.AnnotatedString(originalSentence))
+                                android.widget.Toast.makeText(context, "복사되었습니다", android.widget.Toast.LENGTH_SHORT).show()
+                            },
+                            modifier = Modifier.size(32.dp)
+                        ) {
+                            Icon(
+                                imageVector = Icons.Default.ContentCopy,
+                                contentDescription = "복사",
+                                modifier = Modifier.size(18.dp)
+                            )
+                        }
+                    }
                     Text(
-                        text = "문법 분석 중...",
-                        style = MaterialTheme.typography.bodyMedium
+                        text = originalSentence,
+                        style = MaterialTheme.typography.bodyLarge,
+                        fontSize = 18.sp,
+                        lineHeight = 28.sp
                     )
                 }
             }
-        } else if (grammarExplanation != null) {
-            GrammarContent(
-                grammarExplanation = grammarExplanation,
-                onDismiss = onDismiss
-            )
         }
+
+        // Error icon
+        Icon(
+            imageVector = Icons.Default.Close,
+            contentDescription = null,
+            modifier = Modifier.size(64.dp),
+            tint = MaterialTheme.colorScheme.error
+        )
+
+        // Error message
+        Text(
+            text = errorMessage,
+            style = MaterialTheme.typography.bodyLarge,
+            textAlign = androidx.compose.ui.text.style.TextAlign.Center,
+            color = MaterialTheme.colorScheme.onSurface
+        )
+
+        Text(
+            text = "네트워크 연결을 확인하거나\n다시 시도해주세요",
+            style = MaterialTheme.typography.bodyMedium,
+            textAlign = androidx.compose.ui.text.style.TextAlign.Center,
+            color = MaterialTheme.colorScheme.onSurfaceVariant
+        )
+
+        Spacer(modifier = Modifier.height(8.dp))
+
+        // Retry button
+        Button(
+            onClick = onRetry,
+            modifier = Modifier.fillMaxWidth()
+        ) {
+            Text("다시 시도")
+        }
+
+        // Dismiss button
+        TextButton(
+            onClick = onDismiss,
+            modifier = Modifier.fillMaxWidth()
+        ) {
+            Text("닫기")
+        }
+
+        Spacer(modifier = Modifier.height(16.dp))
     }
 }
 
 @Composable
 private fun GrammarContent(
     grammarExplanation: GrammarExplanation,
-    onDismiss: () -> Unit
+    errorMessage: String? = null,
+    onDismiss: () -> Unit,
+    onRetry: () -> Unit = {}
 ) {
     var showDetailedExplanation by remember { mutableStateOf(false) }
 
@@ -82,32 +233,78 @@ private fun GrammarContent(
     ) {
         // Header with close button
         item {
-            Row(
-                modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.SpaceBetween,
-                verticalAlignment = Alignment.CenterVertically
+            Column(
+                verticalArrangement = Arrangement.spacedBy(8.dp)
             ) {
                 Row(
-                    horizontalArrangement = Arrangement.spacedBy(8.dp),
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.SpaceBetween,
                     verticalAlignment = Alignment.CenterVertically
                 ) {
-                    Icon(
-                        imageVector = Icons.Default.MenuBook,
-                        contentDescription = null,
-                        tint = MaterialTheme.colorScheme.primary,
-                        modifier = Modifier.size(24.dp)
-                    )
-                    Text(
-                        text = "문법 분석",
-                        style = MaterialTheme.typography.titleLarge,
-                        fontWeight = FontWeight.Bold
-                    )
+                    Row(
+                        horizontalArrangement = Arrangement.spacedBy(8.dp),
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        Icon(
+                            imageVector = Icons.Default.MenuBook,
+                            contentDescription = null,
+                            tint = MaterialTheme.colorScheme.primary,
+                            modifier = Modifier.size(24.dp)
+                        )
+                        Text(
+                            text = "문법 분석",
+                            style = MaterialTheme.typography.titleLarge,
+                            fontWeight = FontWeight.Bold
+                        )
+                    }
+                    IconButton(onClick = onDismiss) {
+                        Icon(
+                            imageVector = Icons.Default.Close,
+                            contentDescription = "닫기"
+                        )
+                    }
                 }
-                IconButton(onClick = onDismiss) {
-                    Icon(
-                        imageVector = Icons.Default.Close,
-                        contentDescription = "닫기"
-                    )
+
+                // Show error banner if there's an error message
+                if (errorMessage != null) {
+                    Surface(
+                        modifier = Modifier.fillMaxWidth(),
+                        shape = MaterialTheme.shapes.small,
+                        color = MaterialTheme.colorScheme.errorContainer
+                    ) {
+                        Row(
+                            modifier = Modifier.padding(12.dp),
+                            horizontalArrangement = Arrangement.SpaceBetween,
+                            verticalAlignment = Alignment.CenterVertically
+                        ) {
+                            Row(
+                                horizontalArrangement = Arrangement.spacedBy(8.dp),
+                                verticalAlignment = Alignment.CenterVertically,
+                                modifier = Modifier.weight(1f)
+                            ) {
+                                Icon(
+                                    imageVector = Icons.Default.Close,
+                                    contentDescription = null,
+                                    tint = MaterialTheme.colorScheme.error,
+                                    modifier = Modifier.size(16.dp)
+                                )
+                                Text(
+                                    text = errorMessage,
+                                    style = MaterialTheme.typography.bodySmall,
+                                    color = MaterialTheme.colorScheme.onErrorContainer
+                                )
+                            }
+                            TextButton(
+                                onClick = onRetry,
+                                modifier = Modifier.height(32.dp)
+                            ) {
+                                Text(
+                                    "재시도",
+                                    style = MaterialTheme.typography.labelSmall
+                                )
+                            }
+                        }
+                    }
                 }
             }
         }
