@@ -194,7 +194,211 @@ Refactor [컴포넌트]:
 - Reason: [이유]
 ```
 
-## 🆕 최근 업데이트 (2025-10)
+## 🆕 최근 업데이트 (2025-11)
+
+### UI/UX 대규모 개선 (2025-11-01)
+**전체적인 사용자 경험 및 접근성 향상**
+
+#### 1. Auto-scroll 최적화
+**파일**: `presentation/chat/ChatScreen.kt`
+
+**문제점**: 새 메시지가 올 때마다 무조건 스크롤되어 과거 메시지를 읽는 중 방해됨
+
+**해결책**:
+```kotlin
+// Smart auto-scroll: only scroll if user is near bottom
+LaunchedEffect(uiState.messages.size) {
+    if (uiState.messages.isNotEmpty()) {
+        val lastVisibleIndex = listState.layoutInfo.visibleItemsInfo.lastOrNull()?.index ?: 0
+        val lastItemIndex = uiState.messages.size - 1
+
+        // Auto-scroll only if user is within 2 items of the bottom
+        val isNearBottom = lastItemIndex - lastVisibleIndex <= 2
+
+        if (isNearBottom) {
+            listState.animateScrollToItem(lastItemIndex)
+        }
+    }
+}
+```
+
+**효과**: 사용자가 하단 근처에 있을 때만 자동 스크롤, 과거 메시지 읽기 방해 없음
+
+#### 2. Permission UX 개선
+**파일**: `presentation/chat/ChatScreen.kt`
+
+**추가된 기능**:
+1. **권한 이미 부여 시 재요청 안 함**
+   ```kotlin
+   hasRecordPermission = context.checkSelfPermission(
+       Manifest.permission.RECORD_AUDIO
+   ) == android.content.pm.PackageManager.PERMISSION_GRANTED
+
+   if (!hasRecordPermission) {
+       permissionLauncher.launch(Manifest.permission.RECORD_AUDIO)
+   }
+   ```
+
+2. **영구 거부 감지 및 설정 열기**
+   ```kotlin
+   val shouldShowRationale = activity?.shouldShowRequestPermissionRationale(
+       Manifest.permission.RECORD_AUDIO
+   ) ?: false
+
+   isPermanentlyDenied = !shouldShowRationale && activity != null
+
+   if (isPermanentlyDenied) {
+       // "설정 열기" 버튼으로 앱 설정 화면 이동
+       val intent = Intent(Settings.ACTION_APPLICATION_DETAILS_SETTINGS).apply {
+           data = Uri.fromParts("package", context.packageName, null)
+       }
+       context.startActivity(intent)
+   }
+   ```
+
+3. **명확한 설명 대화상자**
+   - 첫 거부: "마이크 권한이 필요합니다. 다시 시도하시겠습니까?"
+   - 영구 거부: "설정에서 마이크 권한을 활성화해주세요" + 설정 열기 버튼
+
+#### 3. Animation 최적화
+**파일**: `presentation/chat/ChatScreen.kt`
+
+**문제점**: 모든 메시지에 AnimatedVisibility가 visible=true로 설정되어 불필요한 리컴포지션 발생
+
+**해결책**:
+```kotlin
+// BEFORE: 불필요한 AnimatedVisibility wrapper
+items(uiState.messages, key = { it.id }) { message ->
+    AnimatedVisibility(
+        visible = true,  // 항상 true!
+        enter = messageEnterTransition,
+        exit = messageExitTransition
+    ) {
+        MessageBubble(...)
+    }
+}
+
+// AFTER: AnimatedVisibility 제거
+items(uiState.messages, key = { it.id }) { message ->
+    MessageBubble(...)  // 직접 렌더링
+}
+```
+
+**효과**:
+- 메시지 렌더링 성능 대폭 향상
+- 불필요한 애니메이션 오버헤드 제거
+- 동적 요소(voice state, error)는 애니메이션 유지
+
+#### 4. 국제화 (i18n) - 3개 언어 지원
+**파일**: `res/values/strings.xml`, `res/values-ko/strings.xml`, `res/values-en/strings.xml`
+
+**추가된 string 리소스**: 총 **345개** (일본어 115개 × 3개 언어)
+
+**적용 범위**:
+- ✅ ChatScreen: 모든 UI 텍스트, 버튼, 다이얼로그
+- ✅ Permission Dialog: 권한 요청 메시지
+- ✅ End Chat Dialog: 채팅 종료 확인
+- ✅ Context Menu: 모든 메뉴 항목
+- ✅ Translation UI: 로딩/에러 메시지
+- ✅ Voice State: 음성 상태 및 안내
+- ✅ Voice Only Mode: 세션 통계
+
+**예시**:
+```xml
+<!-- values/strings.xml (일본어) -->
+<string name="mic_permission_needed">マイク権限が必要です</string>
+<string name="copy_success">コピーしました</string>
+
+<!-- values-ko/strings.xml (한국어) -->
+<string name="mic_permission_needed">마이크 권한 필요</string>
+<string name="copy_success">복사되었습니다</string>
+
+<!-- values-en/strings.xml (영어) -->
+<string name="mic_permission_needed">Microphone Permission Required</string>
+<string name="copy_success">Copied</string>
+```
+
+**사용법**:
+```kotlin
+Text(stringResource(R.string.mic_permission_needed))
+Toast.makeText(context, context.getString(R.string.copy_success), Toast.LENGTH_SHORT).show()
+```
+
+#### 5. Context Menu 강화
+**파일**: `presentation/chat/ChatScreen.kt`
+
+**새로 추가된 메뉴 항목**:
+
+1. **천천히 읽기** (Read Slowly) ⭐
+   ```kotlin
+   DropdownMenuItem(
+       text = { Text(stringResource(R.string.read_slowly)) },
+       leadingIcon = { Icon(Icons.Default.Speed, null) },
+       onClick = {
+           onSpeakSlowly()  // 0.7x 속도로 TTS 재생
+           showContextMenu = false
+       }
+   )
+   ```
+
+2. **단어장에 추가** (Add to Vocabulary) ⭐
+   ```kotlin
+   DropdownMenuItem(
+       text = { Text(stringResource(R.string.add_to_vocabulary)) },
+       leadingIcon = { Icon(Icons.Default.BookmarkAdd, null) },
+       onClick = {
+           // TODO: 향후 Vocabulary DB 저장 구현
+           Toast.makeText(context, R.string.added_to_vocabulary, Toast.LENGTH_SHORT).show()
+           showContextMenu = false
+       }
+   )
+   ```
+
+**기존 메뉴 (i18n 적용)**:
+- 복사 (Copy)
+- 읽기 (Read Aloud)
+- 문법 분석 (Grammar Analysis)
+- 번역 표시/숨기기 (Toggle Translation)
+
+#### 6. 천천히 읽기 TTS 기능
+**파일**: `presentation/chat/ChatViewModel.kt`, `core/voice/VoiceManager.kt`
+
+**구현**:
+```kotlin
+// ChatViewModel.kt
+fun speakMessage(text: String) {
+    voiceManager.speak(text, speed = _uiState.value.speechSpeed)  // 일반 속도
+}
+
+fun speakMessageSlowly(text: String) {
+    voiceManager.speak(text, speed = 0.7f)  // 0.7x 느린 속도
+}
+
+// VoiceManager.kt (이미 speed 파라미터 지원)
+fun speak(text: String, utteranceId: String = "...", speed: Float = 1.0f) {
+    tts.setSpeechRate(speed.coerceIn(0.5f, 2.0f))
+    // ...
+}
+```
+
+**사용 시나리오**:
+- 초급 학습자가 발음을 명확히 듣고 싶을 때
+- 복잡한 문장 구조 이해를 위해
+- 쉐도잉(shadowing) 연습
+
+#### 7. 성능 및 안정성 개선
+**주요 변경사항**:
+- ✅ AnimatedVisibility 제거로 메시지 렌더링 최적화
+- ✅ Smart auto-scroll로 불필요한 스크롤 방지
+- ✅ Permission 상태 체크로 불필요한 요청 방지
+- ✅ Hard-coded 문자열 제거로 유지보수성 향상
+
+**메모리 및 성능**:
+- 메시지 리컴포지션 오버헤드 감소
+- LazyColumn 스크롤 성능 개선
+- String 리소스 캐싱으로 메모리 효율성
+
+---
 
 ### 메시지 컨텍스트 메뉴 (2025-10-30)
 **파일**: `presentation/chat/ChatScreen.kt`

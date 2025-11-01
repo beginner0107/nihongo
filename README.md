@@ -3450,6 +3450,99 @@ JAVA_HOME=/path/to/java17 ./gradlew assembleDebug
 4. Push to the Branch (`git push origin feature/AmazingFeature`)
 5. Open a Pull Request
 
+## 🆕 최근 업데이트 (2025-11-01)
+
+### UI/UX 대규모 개선
+
+이번 업데이트에서는 **사용자 경험**, **성능**, **접근성** 측면에서 대규모 개선이 이루어졌습니다.
+
+#### 주요 개선 사항
+
+##### 1. 스마트 Auto-scroll
+- **문제**: 새 메시지가 올 때마다 무조건 스크롤되어 과거 메시지 읽기 방해
+- **해결**: 사용자가 하단 근처(2개 아이템 이내)에 있을 때만 자동 스크롤
+- **효과**: 과거 메시지를 편하게 읽을 수 있음
+
+##### 2. 권한 UX 개선
+- ✅ 이미 부여된 권한 재요청 안 함
+- ✅ 영구 거부 감지 및 "설정 열기" 버튼
+- ✅ 명확한 설명 대화상자
+- **효과**: 권한 요청 프로세스가 더 부드럽고 사용자 친화적
+
+##### 3. 애니메이션 최적화
+- **문제**: 모든 메시지에 불필요한 AnimatedVisibility 적용
+- **해결**: AnimatedVisibility 제거, 동적 요소만 애니메이션 유지
+- **효과**: 메시지 렌더링 성능 대폭 향상
+
+##### 4. 국제화 (i18n) - 3개 언어 지원
+- 🇯🇵 **일본어** (기본) - 115개 strings
+- 🇰🇷 **한국어** - 115개 strings
+- 🇬🇧 **영어** - 115개 strings
+- **총 345개 string 리소스** 추가
+- **적용 범위**: ChatScreen, Dialogs, Context Menu, Voice State, Voice Only Mode
+
+##### 5. Context Menu 강화
+새로 추가된 메뉴:
+- ⭐ **천천히 읽기** (0.7x 속도 TTS) - 초급 학습자를 위한 명확한 발음
+- ⭐ **단어장에 추가** (향후 Vocabulary DB 연동 예정)
+
+기존 메뉴 (i18n 적용):
+- 복사 (Copy)
+- 읽기 (Read Aloud)
+- 문법 분석 (Grammar Analysis)
+- 번역 표시/숨기기 (Toggle Translation)
+
+##### 6. 천천히 읽기 TTS
+- **구현**: `ChatViewModel.speakMessageSlowly()`
+- **속도**: 0.7x (일반 1.0x 대비 30% 느림)
+- **사용 시나리오**:
+  - 초급 학습자의 발음 이해
+  - 복잡한 문장 구조 파악
+  - 쉐도잉(shadowing) 연습
+
+#### 성능 개선 요약
+
+| 항목 | 개선 전 | 개선 후 | 효과 |
+|------|---------|---------|------|
+| 메시지 렌더링 | AnimatedVisibility 항상 적용 | 직접 렌더링 | 리컴포지션 오버헤드 감소 |
+| Auto-scroll | 항상 스크롤 | 조건부 스크롤 | UX 향상 |
+| 권한 요청 | 매번 요청 | 상태 확인 후 요청 | 불필요한 다이얼로그 제거 |
+| 문자열 관리 | Hard-coded | String 리소스 | 유지보수성 향상 |
+| TTS 속도 | 1.0x만 지원 | 0.7x ~ 2.0x | 학습 효과 증대 |
+
+#### 파일 변경 사항
+
+**새로 생성된 파일**:
+- `app/src/main/res/values/strings.xml` (115개 strings)
+- `app/src/main/res/values-ko/strings.xml` (115개 strings)
+- `app/src/main/res/values-en/strings.xml` (115개 strings)
+
+**수정된 파일**:
+- `presentation/chat/ChatScreen.kt` - Auto-scroll, Permission, i18n, Context Menu
+- `presentation/chat/ChatViewModel.kt` - `speakMessageSlowly()` 추가
+- `core/voice/VoiceManager.kt` - Speed 파라미터 활용
+
+#### 향후 계획
+
+1. **단어장 기능 완성**
+   - Vocabulary Entity, DAO, Repository 구현
+   - 단어장 화면 추가
+   - Spaced Repetition 복습 시스템
+
+2. **남은 화면 i18n**
+   - VoiceOnlyComponents
+   - HintDialog, GrammarBottomSheet
+   - Settings, Review 화면
+
+3. **날짜 포맷 로컬라이즈**
+   - DateTimeFormatter with Locale
+   - 각 언어별 시간 표시 형식
+
+4. **TTS 고급 기능**
+   - 여성/남성 음성 선택
+   - Pitch 조절 UI
+   - 음성 미리 듣기
+
 ## 📝 라이선스
 
 MIT License - 자유롭게 사용하세요
