@@ -18,11 +18,17 @@ import java.util.Locale
 import javax.inject.Inject
 import javax.inject.Singleton
 
+/**
+ * Unified voice state for both engine and UI
+ * Covers the complete lifecycle of voice interaction
+ */
 sealed class VoiceState {
-    data object Idle : VoiceState()
-    data object Listening : VoiceState()
-    data object Speaking : VoiceState()
-    data class Error(val message: String) : VoiceState()
+    data object Idle : VoiceState()           // Not speaking or listening
+    data object Listening : VoiceState()      // Listening to user speech (STT active)
+    data object Processing : VoiceState()     // Processing speech recognition (STT finished, awaiting results)
+    data object Thinking : VoiceState()       // AI is generating response (Gemini API call)
+    data object Speaking : VoiceState()       // AI is speaking (TTS active)
+    data class Error(val message: String) : VoiceState() // Voice error occurred
 }
 
 sealed class VoiceEvent {
@@ -159,7 +165,8 @@ class VoiceManager @Inject constructor(
                 override fun onBufferReceived(buffer: ByteArray?) {}
 
                 override fun onEndOfSpeech() {
-                    _state.value = VoiceState.Idle
+                    // User finished speaking, now processing the audio
+                    _state.value = VoiceState.Processing
                 }
 
                 override fun onError(error: Int) {
@@ -359,6 +366,22 @@ class VoiceManager @Inject constructor(
         isTtsInitialized = false
         isInitializing = false
         initializeTts()
+    }
+
+    /**
+     * Manually set voice state to Thinking (when AI is generating response)
+     * Called by ChatViewModel when Gemini API call starts
+     */
+    fun setThinking() {
+        _state.value = VoiceState.Thinking
+    }
+
+    /**
+     * Manually set voice state to Idle
+     * Used when transitioning between states or on errors
+     */
+    fun setIdle() {
+        _state.value = VoiceState.Idle
     }
 
     fun release() {

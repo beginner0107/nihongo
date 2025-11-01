@@ -76,7 +76,6 @@ data class ChatUiState(
     val feedbackEnabled: Boolean = true, // Toggle for real-time feedback analysis
     val voiceOnlySession: VoiceOnlySession? = null, // Voice-only mode session state
     val showTranscriptDialog: Boolean = false, // Show post-conversation transcript
-    val currentVoiceState: com.nihongo.conversation.domain.model.VoiceState = com.nihongo.conversation.domain.model.VoiceState.IDLE, // Current voice activity state
     val lastAiComplexityScore: Int = 0, // Last AI message complexity score for adaptive difficulty
     val adaptiveNudge: String = "" // Adaptive difficulty nudge (very short, 8 chars max)
 ) {
@@ -282,6 +281,9 @@ class ChatViewModel @Inject constructor(
             var userMessageId: Long? = null
             var finalAiMessage: String? = null
 
+            // Set voice state to Thinking when starting AI generation
+            voiceManager.setThinking()
+
             repository.sendMessageStream(
                 conversationId = conversationId,
                 userMessage = message,
@@ -317,6 +319,8 @@ class ChatViewModel @Inject constructor(
                                 error = result.exception.message
                             )
                         }
+                        // Reset voice state on error
+                        voiceManager.setIdle()
                     }
                 }
             }
@@ -974,11 +978,9 @@ class ChatViewModel @Inject constructor(
         )
 
         _uiState.update {
-            it.copy(
-                voiceOnlySession = session,
-                currentVoiceState = com.nihongo.conversation.domain.model.VoiceState.IDLE
-            )
+            it.copy(voiceOnlySession = session)
         }
+        voiceManager.setIdle()
 
         // Auto-enable auto-speak for voice-only mode
         if (!_uiState.value.autoSpeak) {
@@ -1012,21 +1014,15 @@ class ChatViewModel @Inject constructor(
                     isActive = false,
                     transcript = transcript
                 ),
-                showTranscriptDialog = true,
-                currentVoiceState = com.nihongo.conversation.domain.model.VoiceState.IDLE
+                showTranscriptDialog = true
             )
         }
+        voiceManager.setIdle()
 
         // Stop any ongoing voice activity
         voiceManager.stopListening()
     }
 
-    /**
-     * Update voice state for visual indicators
-     */
-    fun updateVoiceState(state: com.nihongo.conversation.domain.model.VoiceState) {
-        _uiState.update { it.copy(currentVoiceState = state) }
-    }
 
     /**
      * Dismiss transcript dialog

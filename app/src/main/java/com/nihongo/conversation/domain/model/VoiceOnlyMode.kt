@@ -41,17 +41,6 @@ data class TranscriptEntry(
 )
 
 /**
- * Voice state for visual indicators
- */
-enum class VoiceState {
-    IDLE,           // Not speaking or listening
-    LISTENING,      // Listening to user speech
-    PROCESSING,     // Processing speech recognition
-    SPEAKING,       // AI is speaking
-    THINKING        // AI is generating response
-}
-
-/**
  * Voice-only mode settings
  */
 data class VoiceOnlySettings(

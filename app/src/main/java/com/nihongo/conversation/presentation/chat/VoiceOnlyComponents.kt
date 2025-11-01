@@ -16,7 +16,7 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
-import com.nihongo.conversation.domain.model.VoiceState
+import com.nihongo.conversation.core.voice.VoiceState
 import com.nihongo.conversation.domain.model.VoiceOnlySession
 
 /**
@@ -83,7 +83,7 @@ fun VoiceStateCircle(
 
     val scale by infiniteTransition.animateFloat(
         initialValue = 1f,
-        targetValue = if (voiceState == VoiceState.LISTENING || voiceState == VoiceState.SPEAKING) 1.2f else 1f,
+        targetValue = if (voiceState is VoiceState.Listening || voiceState is VoiceState.Speaking) 1.2f else 1f,
         animationSpec = infiniteRepeatable(
             animation = tween(800, easing = FastOutSlowInEasing),
             repeatMode = RepeatMode.Reverse
@@ -93,7 +93,7 @@ fun VoiceStateCircle(
 
     val alpha by infiniteTransition.animateFloat(
         initialValue = 1f,
-        targetValue = if (voiceState == VoiceState.PROCESSING || voiceState == VoiceState.THINKING) 0.5f else 1f,
+        targetValue = if (voiceState is VoiceState.Processing || voiceState is VoiceState.Thinking) 0.5f else 1f,
         animationSpec = infiniteRepeatable(
             animation = tween(600),
             repeatMode = RepeatMode.Reverse
@@ -329,41 +329,45 @@ fun TranscriptEntryCard(
 @Composable
 private fun getVoiceStateColor(state: VoiceState): Color {
     return when (state) {
-        VoiceState.IDLE -> MaterialTheme.colorScheme.outline
-        VoiceState.LISTENING -> MaterialTheme.colorScheme.primary
-        VoiceState.PROCESSING -> MaterialTheme.colorScheme.secondary
-        VoiceState.SPEAKING -> MaterialTheme.colorScheme.tertiary
-        VoiceState.THINKING -> MaterialTheme.colorScheme.secondary
+        is VoiceState.Idle -> MaterialTheme.colorScheme.outline
+        is VoiceState.Listening -> MaterialTheme.colorScheme.primary
+        is VoiceState.Processing -> MaterialTheme.colorScheme.secondary
+        is VoiceState.Speaking -> MaterialTheme.colorScheme.tertiary
+        is VoiceState.Thinking -> MaterialTheme.colorScheme.secondary
+        is VoiceState.Error -> MaterialTheme.colorScheme.error
     }
 }
 
 private fun getVoiceStateIcon(state: VoiceState): androidx.compose.ui.graphics.vector.ImageVector {
     return when (state) {
-        VoiceState.IDLE -> Icons.Default.MicNone
-        VoiceState.LISTENING -> Icons.Default.Mic
-        VoiceState.PROCESSING -> Icons.Default.Sync
-        VoiceState.SPEAKING -> Icons.Default.VolumeUp
-        VoiceState.THINKING -> Icons.Default.Psychology
+        is VoiceState.Idle -> Icons.Default.MicNone
+        is VoiceState.Listening -> Icons.Default.Mic
+        is VoiceState.Processing -> Icons.Default.Sync
+        is VoiceState.Speaking -> Icons.Default.VolumeUp
+        is VoiceState.Thinking -> Icons.Default.Psychology
+        is VoiceState.Error -> Icons.Default.Error
     }
 }
 
 private fun getVoiceStateLabel(state: VoiceState): String {
     return when (state) {
-        VoiceState.IDLE -> "準備完了"
-        VoiceState.LISTENING -> "聞いています..."
-        VoiceState.PROCESSING -> "処理中..."
-        VoiceState.SPEAKING -> "話しています..."
-        VoiceState.THINKING -> "考え中..."
+        is VoiceState.Idle -> "準備完了"
+        is VoiceState.Listening -> "聞いています..."
+        is VoiceState.Processing -> "処理中..."
+        is VoiceState.Speaking -> "話しています..."
+        is VoiceState.Thinking -> "考え中..."
+        is VoiceState.Error -> "エラー"
     }
 }
 
 private fun getVoiceStateInstruction(state: VoiceState): String {
     return when (state) {
-        VoiceState.IDLE -> "ボタンを押して話し始めてください"
-        VoiceState.LISTENING -> "何でも話してください"
-        VoiceState.PROCESSING -> "少々お待ちください"
-        VoiceState.SPEAKING -> "よく聞いてください"
-        VoiceState.THINKING -> "応答を準備しています"
+        is VoiceState.Idle -> "ボタンを押して話し始めてください"
+        is VoiceState.Listening -> "何でも話してください"
+        is VoiceState.Processing -> "少々お待ちください"
+        is VoiceState.Speaking -> "よく聞いてください"
+        is VoiceState.Thinking -> "応答を準備しています"
+        is VoiceState.Error -> state.message
     }
 }
 
