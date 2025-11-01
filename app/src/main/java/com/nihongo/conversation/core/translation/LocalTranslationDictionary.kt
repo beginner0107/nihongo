@@ -1,14 +1,66 @@
 package com.nihongo.conversation.core.translation
 
 import android.util.Log
+import com.nihongo.conversation.core.cache.FuzzyMatcher
+import java.text.Normalizer
 
 /**
  * Local translation dictionary for common Japanese phrases
  * Used as fallback when API fails or for instant translation of common phrases
+ *
+ * Features:
+ * - NFKC normalization for consistent matching
+ * - Hiragana/Katakana conversion
+ * - Long vowel mark (ー) handling
+ * - Punctuation normalization
  */
 object LocalTranslationDictionary {
 
     private const val TAG = "LocalTranslation"
+
+    /**
+     * Normalize Japanese text for consistent matching
+     *
+     * Applies:
+     * 1. NFKC normalization (full-width → half-width)
+     * 2. Katakana → Hiragana conversion
+     * 3. Long vowel mark (ー) removal
+     * 4. Punctuation removal
+     * 5. Whitespace removal
+     */
+    private fun normalizeJapanese(text: String): String {
+        var normalized = text.trim()
+
+        // 1. NFKC normalization (full-width → half-width numbers/letters)
+        normalized = Normalizer.normalize(normalized, Normalizer.Form.NFKC)
+
+        // 2. Katakana → Hiragana conversion
+        normalized = normalized.map { char ->
+            when (char) {
+                in 'ァ'..'ヶ' -> (char.code - 0x60).toChar() // カタカナ → ひらがな
+                else -> char
+            }
+        }.joinToString("")
+
+        // 3. Remove long vowel mark (ー)
+        normalized = normalized.replace("ー", "")
+
+        // 4. Remove common punctuation
+        normalized = normalized.replace(Regex("[。！？、\\s　・]"), "")
+
+        return normalized
+    }
+
+    /**
+     * Check if text contains hiragana or katakana
+     */
+    private fun isJapaneseText(text: String): Boolean {
+        return text.any { char ->
+            char in 'ぁ'..'ゔ' || // Hiragana
+            char in 'ァ'..'ヶ' || // Katakana
+            char in '\u4E00'..'\u9FFF' // Kanji
+        }
+    }
 
     /**
      * Common phrase translations (Japanese -> Korean)
@@ -54,7 +106,6 @@ object LocalTranslationDictionary {
         "少々お待ちください" to "잠시만 기다려주세요",
 
         // Shopping
-        "いくらですか" to "얼마예요?",
         "高いです" to "비싸요",
         "安いです" to "싸요",
         "これはいくらですか" to "이것은 얼마예요?",
@@ -124,7 +175,6 @@ object LocalTranslationDictionary {
         "迷いました" to "길을 잃었어요",
 
         // Directions
-        "どこですか" to "어디예요?",
         "ここはどこですか" to "여기는 어디예요?",
         "駅はどこですか" to "역은 어디예요?",
         "トイレはどこですか" to "화장실은 어디예요?",
@@ -231,56 +281,84 @@ object LocalTranslationDictionary {
     /**
      * Try to translate using local dictionary
      * Returns translation if found, null otherwise
+     *
+     * Matching strategy:
+     * 1. Exact match (original text)
+     * 2. Normalized match (NFKC + kana conversion + punctuation removal)
+     * 3. Partial match with templates (for common endings)
      */
     fun translate(japaneseText: String): String? {
-        val normalized = japaneseText.trim()
+        val original = japaneseText.trim()
 
-        // Exact match
-        dictionary[normalized]?.let { translation ->
-            Log.d(TAG, "Exact match found: '$normalized' -> '$translation'")
+        // 1. Try exact match first (for speed)
+        dictionary[original]?.let { translation ->
+            Log.d(TAG, "Exact match found: '$original' -> '$translation'")
             return translation
         }
 
-        // Try with various normalizations
-        val variations = listOf(
-            normalized,
-            normalized.replace("。", ""),
-            normalized.replace("！", ""),
-            normalized.replace("？", ""),
-            normalized.replace(" ", ""),
-            normalized.replace("　", "") // Full-width space
-        )
-
-        for (variation in variations) {
-            dictionary[variation]?.let { translation ->
-                Log.d(TAG, "Variation match found: '$variation' -> '$translation'")
-                return translation
-            }
-        }
-
-        // Try partial matching for longer sentences
-        if (normalized.length > 5) {
-            for ((pattern, translation) in partialMatches) {
-                if (normalized.contains(pattern)) {
-                    Log.d(TAG, "Partial match found: contains '$pattern'")
-                    // This is a hint that we found a pattern, but don't return partial translation
-                    // Return null to let API handle full translation
+        // 2. Try normalized match
+        val normalized = normalizeJapanese(original)
+        if (normalized != original) {
+            // Check if any dictionary key normalizes to the same value
+            for ((key, value) in dictionary) {
+                if (normalizeJapanese(key) == normalized) {
+                    Log.d(TAG, "Normalized match found: '$original' -> '$value' (via '$key')")
+                    return value
                 }
             }
         }
 
-        Log.d(TAG, "No match found for: '$normalized'")
+        // 3. Try partial matching with template for longer sentences
+        if (original.length > 5) {
+            for ((pattern, patternTranslation) in partialMatches) {
+                if (original.contains(pattern)) {
+                    // Return a best-effort template translation
+                    val remainingText = original.replace(pattern, "").trim()
+                    val template = if (remainingText.isNotEmpty()) {
+                        "... $patternTranslation"
+                    } else {
+                        patternTranslation
+                    }
+                    Log.d(TAG, "Partial match found: contains '$pattern' -> '$template'")
+                    return template
+                }
+            }
+        }
+
+        Log.d(TAG, "No match found for: '$original' (normalized: '$normalized')")
         return null
     }
 
     /**
      * Check if text is likely translatable by local dictionary
-     * Used to optimize API usage
+     * Uses normalization for better matching
      */
     fun canTranslateLocally(japaneseText: String): Boolean {
-        val normalized = japaneseText.trim()
-        return dictionary.containsKey(normalized) ||
-               dictionary.containsKey(normalized.replace(Regex("[。！？\\s　]"), ""))
+        val original = japaneseText.trim()
+
+        // Quick exact check
+        if (dictionary.containsKey(original)) {
+            return true
+        }
+
+        // Normalized check
+        val normalized = normalizeJapanese(original)
+        for (key in dictionary.keys) {
+            if (normalizeJapanese(key) == normalized) {
+                return true
+            }
+        }
+
+        // Check for common endings (partial match potential)
+        if (original.length > 5) {
+            for (pattern in partialMatches.keys) {
+                if (original.endsWith(pattern) || original.contains(pattern)) {
+                    return true
+                }
+            }
+        }
+
+        return false
     }
 
     /**
@@ -294,17 +372,33 @@ object LocalTranslationDictionary {
     fun getAllPhrases(): List<Pair<String, String>> = dictionary.toList()
 
     /**
-     * Get suggestions for similar phrases
+     * Get suggestions for similar phrases using fuzzy matching
+     *
+     * Uses normalized text matching with Japanese text processing
      */
     fun getSimilarPhrases(japaneseText: String, limit: Int = 5): List<Pair<String, String>> {
-        val normalized = japaneseText.trim().lowercase()
+        val query = japaneseText.trim()
 
-        return dictionary.entries
-            .filter { (key, _) ->
-                key.lowercase().contains(normalized) ||
-                normalized.contains(key.lowercase())
+        if (query.isEmpty() || !isJapaneseText(query)) {
+            return emptyList()
+        }
+
+        // Normalize query for better matching
+        val normalizedQuery = normalizeJapanese(query)
+        val fuzzyMatcher = FuzzyMatcher()
+
+        // Calculate similarity for each dictionary entry
+        val matches = dictionary.entries
+            .map { (key: String, value: String) ->
+                val normalizedKey = normalizeJapanese(key)
+                val similarity = fuzzyMatcher.calculateSimilarity(normalizedQuery, normalizedKey)
+                Triple(key, value, similarity)
             }
+            .filter { (_, _, similarity: Float) -> similarity >= 0.3f }  // Minimum threshold
+            .sortedByDescending { (_, _, similarity: Float) -> similarity }
             .take(limit)
-            .map { it.key to it.value }
+            .map { (key: String, value: String, _) -> key to value }
+
+        return matches
     }
 }
