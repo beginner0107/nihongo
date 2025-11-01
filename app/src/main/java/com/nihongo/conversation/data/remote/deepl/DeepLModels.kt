@@ -45,6 +45,7 @@ data class DeepLErrorResponse(
  * Translation Provider enum
  */
 enum class TranslationProvider {
-    ML_KIT,    // 오프라인, 빠름, 무료
-    DEEP_L     // 온라인, 정확, 월 50만자 무료
+    ML_KIT,      // 오프라인, 빠름, 무료
+    MICROSOFT,   // 온라인, 빠름, 월 200만자 무료
+    DEEP_L       // 온라인, 정확, 월 50만자 무료
 }

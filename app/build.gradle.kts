@@ -39,6 +39,11 @@ android {
             "DEEPL_API_KEY",
             "\"${properties.getProperty("DEEPL_API_KEY", "")}\""
         )
+        buildConfigField(
+            "String",
+            "MICROSOFT_TRANSLATOR_KEY",
+            "\"${properties.getProperty("MICROSOFT_TRANSLATOR_KEY", "")}\""
+        )
     }
 
     buildTypes {

@@ -9,41 +9,47 @@ import com.nihongo.conversation.data.local.entity.TranslationCacheEntity
 import com.nihongo.conversation.data.remote.deepl.DeepLApiService
 import com.nihongo.conversation.data.remote.deepl.DeepLRequest
 import com.nihongo.conversation.data.remote.deepl.TranslationProvider
+import com.nihongo.conversation.data.remote.microsoft.MicrosoftTranslateRequest
+import com.nihongo.conversation.data.remote.microsoft.MicrosoftTranslatorService
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
 import javax.inject.Inject
+import javax.inject.Named
 import javax.inject.Singleton
 
 /**
  * Unified Translation Repository
  *
- * Hybrid translation system supporting both:
- * - DeepL API (premium, contextual accuracy)
- * - ML Kit (fast, offline, free)
+ * 3-Provider Hybrid translation system:
+ * - Microsoft Translator (primary, 2M chars/month)
+ * - DeepL API (high accuracy, 500k chars/month)
+ * - ML Kit (offline fallback, unlimited)
  *
  * Strategy:
- * 1. Check cache first (30-day retention)
- * 2. Try DeepL if selected and quota available
- * 3. Fallback to ML Kit on DeepL failure
- * 4. Cache all successful translations
- *
- * DeepL API Free constraints (2025-11-01):
- * - 500,000 characters/month
- * - Maximum 2 API keys
- * - Base URL: https://api-free.deepl.com/
+ * 1. Check cache first (permanent retention)
+ * 2. Try Microsoft if selected and quota available
+ * 3. Fallback to DeepL if Microsoft fails/quota exceeded
+ * 4. Final fallback to ML Kit
+ * 5. Cache all successful translations
  */
 @Singleton
 class TranslationRepository @Inject constructor(
+    private val microsoftTranslatorService: MicrosoftTranslatorService,
     private val deepLApiService: DeepLApiService,
     private val mlKitTranslator: MLKitTranslator,
     private val translationCacheDao: TranslationCacheDao,
-    private val deepLApiKey: String
+    @Named("MicrosoftApiKey") private val microsoftApiKey: String,
+    @Named("MicrosoftRegion") private val microsoftRegion: String,
+    @Named("DeepLApiKey") private val deepLApiKey: String
 ) {
     private val TAG = "TranslationRepository"
 
-    // Character usage tracking (reset manually each month)
-    private var monthlyCharCount = 0
-    private val MONTHLY_LIMIT = 500_000
+    // Character usage tracking
+    private var microsoftMonthlyChars = 0
+    private var deepLMonthlyChars = 0
+
+    private val MICROSOFT_MONTHLY_LIMIT = 2_000_000
+    private val DEEPL_MONTHLY_LIMIT = 500_000
 
     /**
      * Translate Japanese text to Korean
@@ -51,14 +57,14 @@ class TranslationRepository @Inject constructor(
      * @param text Japanese text to translate
      * @param provider Preferred translation provider
      * @param useCache Enable/disable cache lookup
-     * @param fallbackToMLKit Auto-fallback to ML Kit on DeepL failure
+     * @param fallbackChain Auto-fallback providers in order
      * @return Translated Korean text
      */
     suspend fun translate(
         text: String,
-        provider: TranslationProvider = TranslationProvider.ML_KIT,
+        provider: TranslationProvider = TranslationProvider.MICROSOFT,
         useCache: Boolean = true,
-        fallbackToMLKit: Boolean = true
+        fallbackChain: List<TranslationProvider> = listOf(TranslationProvider.DEEP_L, TranslationProvider.ML_KIT)
     ): TranslationResult = withContext(Dispatchers.IO) {
         val startTime = System.currentTimeMillis()
 
@@ -89,18 +95,32 @@ class TranslationRepository @Inject constructor(
                 }
             }
 
-            // 2. Try preferred provider
-            val result = when (provider) {
-                TranslationProvider.DEEP_L -> {
-                    translateWithDeepL(text, fallbackToMLKit)
+            // 2. Try preferred provider with fallback chain
+            var result: TranslationResult? = null
+            val providersToTry = listOf(provider) + fallbackChain.filter { it != provider }
+
+            for (currentProvider in providersToTry) {
+                result = when (currentProvider) {
+                    TranslationProvider.MICROSOFT -> translateWithMicrosoft(text)
+                    TranslationProvider.DEEP_L -> translateWithDeepL(text)
+                    TranslationProvider.ML_KIT -> translateWithMLKit(text)
                 }
-                TranslationProvider.ML_KIT -> {
-                    translateWithMLKit(text)
+
+                if (result is TranslationResult.Success) {
+                    Log.d(TAG, "Translation succeeded with provider: $currentProvider")
+                    break
+                } else {
+                    Log.w(TAG, "Provider $currentProvider failed, trying next...")
                 }
             }
 
+            // If all providers failed, return the last error
+            if (result !is TranslationResult.Success) {
+                return@withContext result ?: TranslationResult.Error("모든 번역 제공자가 실패했습니다")
+            }
+
             // 3. Cache successful translation
-            if (result is TranslationResult.Success && useCache) {
+            if (useCache) {
                 try {
                     translationCacheDao.cacheTranslation(
                         TranslationCacheEntity(
@@ -115,12 +135,11 @@ class TranslationRepository @Inject constructor(
                     Log.d(TAG, "Translation cached (${result.provider})")
                 } catch (e: Exception) {
                     Log.w(TAG, "Failed to cache translation", e)
-                    // Don't fail the whole operation if caching fails
                 }
             }
 
             val elapsed = System.currentTimeMillis() - startTime
-            Log.d(TAG, "Translation completed: ${result.javaClass.simpleName} (${elapsed}ms)")
+            Log.d(TAG, "Translation completed: ${result.provider} (${elapsed}ms)")
 
             result
 
@@ -132,30 +151,70 @@ class TranslationRepository @Inject constructor(
     }
 
     /**
-     * Translate using DeepL API with optional fallback to ML Kit
+     * Translate using Microsoft Translator API
      */
-    private suspend fun translateWithDeepL(
-        text: String,
-        fallbackToMLKit: Boolean
-    ): TranslationResult {
+    private suspend fun translateWithMicrosoft(text: String): TranslationResult {
         return try {
-            // Check quota before calling API
-            if (monthlyCharCount + text.length > MONTHLY_LIMIT) {
-                Log.w(TAG, "DeepL quota exceeded ($monthlyCharCount/$MONTHLY_LIMIT chars)")
-                if (fallbackToMLKit) {
-                    Log.d(TAG, "Falling back to ML Kit due to quota")
-                    return translateWithMLKit(text)
-                }
+            // Check quota
+            if (microsoftMonthlyChars + text.length > MICROSOFT_MONTHLY_LIMIT) {
+                Log.w(TAG, "Microsoft quota exceeded ($microsoftMonthlyChars/$MICROSOFT_MONTHLY_LIMIT chars)")
+                return TranslationResult.Error("Microsoft 월간 한도 초과 (200만자)")
+            }
+
+            // Check API key
+            if (microsoftApiKey.isBlank()) {
+                Log.w(TAG, "Microsoft API key not configured")
+                return TranslationResult.Error("Microsoft API 키가 설정되지 않았습니다")
+            }
+
+            Log.d(TAG, "Calling Microsoft Translator API...")
+            val startTime = System.currentTimeMillis()
+
+            val response = microsoftTranslatorService.translate(
+                subscriptionKey = microsoftApiKey,
+                region = microsoftRegion,
+                texts = listOf(MicrosoftTranslateRequest(text))
+            )
+
+            val translatedText = response.firstOrNull()?.translations?.firstOrNull()?.text
+
+            if (translatedText.isNullOrBlank()) {
+                throw Exception("Microsoft API returned empty translation")
+            }
+
+            // Update usage counter
+            microsoftMonthlyChars += text.length
+
+            val elapsed = System.currentTimeMillis() - startTime
+            Log.d(TAG, "Microsoft success: '$translatedText' (${elapsed}ms, $microsoftMonthlyChars/$MICROSOFT_MONTHLY_LIMIT chars used)")
+
+            TranslationResult.Success(
+                translatedText = translatedText,
+                provider = TranslationProvider.MICROSOFT,
+                fromCache = false,
+                elapsed = elapsed
+            )
+
+        } catch (e: Exception) {
+            Log.e(TAG, "Microsoft API failed", e)
+            TranslationResult.Error("Microsoft 번역 실패: ${e.message}")
+        }
+    }
+
+    /**
+     * Translate using DeepL API
+     */
+    private suspend fun translateWithDeepL(text: String): TranslationResult {
+        return try {
+            // Check quota
+            if (deepLMonthlyChars + text.length > DEEPL_MONTHLY_LIMIT) {
+                Log.w(TAG, "DeepL quota exceeded ($deepLMonthlyChars/$DEEPL_MONTHLY_LIMIT chars)")
                 return TranslationResult.Error("DeepL 월간 한도 초과 (50만자)")
             }
 
             // Check API key
-            if (deepLApiKey.isBlank() || deepLApiKey == "") {
+            if (deepLApiKey.isBlank()) {
                 Log.w(TAG, "DeepL API key not configured")
-                if (fallbackToMLKit) {
-                    Log.d(TAG, "Falling back to ML Kit (no API key)")
-                    return translateWithMLKit(text)
-                }
                 return TranslationResult.Error("DeepL API 키가 설정되지 않았습니다")
             }
 
@@ -178,10 +237,10 @@ class TranslationRepository @Inject constructor(
             }
 
             // Update usage counter
-            monthlyCharCount += text.length
+            deepLMonthlyChars += text.length
 
             val elapsed = System.currentTimeMillis() - startTime
-            Log.d(TAG, "DeepL success: '$translatedText' (${elapsed}ms, $monthlyCharCount/$MONTHLY_LIMIT chars used)")
+            Log.d(TAG, "DeepL success: '$translatedText' (${elapsed}ms, $deepLMonthlyChars/$DEEPL_MONTHLY_LIMIT chars used)")
 
             TranslationResult.Success(
                 translatedText = translatedText,
@@ -192,13 +251,6 @@ class TranslationRepository @Inject constructor(
 
         } catch (e: Exception) {
             Log.e(TAG, "DeepL API failed", e)
-
-            // Fallback to ML Kit if enabled
-            if (fallbackToMLKit) {
-                Log.d(TAG, "Falling back to ML Kit after DeepL failure")
-                return translateWithMLKit(text)
-            }
-
             TranslationResult.Error("DeepL 번역 실패: ${e.message}")
         }
     }
@@ -234,11 +286,10 @@ class TranslationRepository @Inject constructor(
 
     /**
      * Clean old cache entries (>30 days)
-     * Call this periodically (e.g., on app start)
      */
     suspend fun cleanOldCache() = withContext(Dispatchers.IO) {
         try {
-            val cutoffTime = System.currentTimeMillis() - (30L * 24 * 60 * 60 * 1000) // 30 days
+            val cutoffTime = System.currentTimeMillis() - (30L * 24 * 60 * 60 * 1000)
             val deletedCount = translationCacheDao.cleanOldCache(cutoffTime)
             Log.d(TAG, "Cleaned $deletedCount old cache entries")
         } catch (e: Exception) {
@@ -252,10 +303,9 @@ class TranslationRepository @Inject constructor(
     suspend fun getCacheStats(): CacheStats = withContext(Dispatchers.IO) {
         try {
             val totalCount = translationCacheDao.getCacheCount()
-
             CacheStats(
                 totalEntries = totalCount,
-                estimatedSizeKB = totalCount * 1 // Rough estimate: 1KB per entry
+                estimatedSizeKB = totalCount * 1
             )
         } catch (e: Exception) {
             Log.e(TAG, "Failed to get cache stats", e)
@@ -276,26 +326,34 @@ class TranslationRepository @Inject constructor(
     }
 
     /**
-     * Get current DeepL usage
+     * Get quota usage for all providers
      */
-    fun getDeepLUsage(): UsageStats {
-        return UsageStats(
-            charactersUsed = monthlyCharCount,
-            monthlyLimit = MONTHLY_LIMIT,
-            percentageUsed = (monthlyCharCount * 100f / MONTHLY_LIMIT).toInt()
+    fun getQuotaUsage(): QuotaUsage {
+        return QuotaUsage(
+            microsoft = ProviderQuota(
+                charactersUsed = microsoftMonthlyChars,
+                monthlyLimit = MICROSOFT_MONTHLY_LIMIT,
+                percentageUsed = (microsoftMonthlyChars * 100f / MICROSOFT_MONTHLY_LIMIT).toInt()
+            ),
+            deepL = ProviderQuota(
+                charactersUsed = deepLMonthlyChars,
+                monthlyLimit = DEEPL_MONTHLY_LIMIT,
+                percentageUsed = (deepLMonthlyChars * 100f / DEEPL_MONTHLY_LIMIT).toInt()
+            )
         )
     }
 
     /**
-     * Reset monthly usage counter (call at start of each month)
+     * Reset monthly usage counters (call at start of each month)
      */
     fun resetMonthlyUsage() {
-        monthlyCharCount = 0
-        Log.d(TAG, "Monthly usage counter reset")
+        microsoftMonthlyChars = 0
+        deepLMonthlyChars = 0
+        Log.d(TAG, "Monthly usage counters reset")
     }
 
     /**
-     * Initialize ML Kit translator (download model if needed)
+     * Initialize ML Kit translator
      */
     suspend fun initializeMLKit(downloadIfNeeded: Boolean = true): Result<Unit> {
         return mlKitTranslator.initialize(downloadIfNeeded)
@@ -334,9 +392,17 @@ data class CacheStats(
 )
 
 /**
- * DeepL usage statistics
+ * Quota usage for all providers
  */
-data class UsageStats(
+data class QuotaUsage(
+    val microsoft: ProviderQuota,
+    val deepL: ProviderQuota
+)
+
+/**
+ * Individual provider quota info
+ */
+data class ProviderQuota(
     val charactersUsed: Int,
     val monthlyLimit: Int,
     val percentageUsed: Int

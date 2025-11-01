@@ -106,7 +106,8 @@ class ChatViewModel @Inject constructor(
     private val memoryManager: MemoryManager,
     private val userSessionManager: UserSessionManager,
     private val grammarFeedbackRepository: GrammarFeedbackRepository,
-    private val mlKitTranslator: com.nihongo.conversation.core.translation.MLKitTranslator
+    private val mlKitTranslator: com.nihongo.conversation.core.translation.MLKitTranslator,
+    private val translationRepository: com.nihongo.conversation.data.repository.TranslationRepository
 ) : ViewModel() {
 
     private val _uiState = MutableStateFlow(ChatUiState())
@@ -591,7 +592,7 @@ class ChatViewModel @Inject constructor(
 
     fun requestTranslation(messageId: Long, japaneseText: String, retryAttempt: Int = 0) {
         viewModelScope.launch {
-            android.util.Log.d("ChatViewModel", "=== Translation Request ===")
+            android.util.Log.d("ChatViewModel", "=== Translation Request (TranslationRepository) ===")
             android.util.Log.d("ChatViewModel", "MessageId: $messageId")
             android.util.Log.d("ChatViewModel", "Text: '$japaneseText'")
             android.util.Log.d("ChatViewModel", "Retry attempt: $retryAttempt")
@@ -611,75 +612,77 @@ class ChatViewModel @Inject constructor(
             }
 
             try {
-                // Step 1: Try local dictionary first (instant, no API call)
-                val localTranslation = com.nihongo.conversation.core.translation.LocalTranslationDictionary.translate(japaneseText)
-                if (localTranslation != null) {
-                    android.util.Log.d("ChatViewModel", "Local dictionary hit: '$localTranslation'")
-                    _uiState.update {
-                        it.copy(
-                            translations = (it.translations.items + (messageId to localTranslation)).toImmutableMap(),
-                            translationRetryCount = (it.translationRetryCount.items - messageId).toImmutableMap()
-                        )
-                    }
-                    return@launch
-                }
-
-                // Step 2: Try ML Kit translation (fast, on-device)
-                try {
-                    android.util.Log.d("ChatViewModel", "No local match, trying ML Kit...")
-                    val mlTranslation = mlKitTranslator.translate(japaneseText)
-                    android.util.Log.d("ChatViewModel", "ML Kit translation success: '$mlTranslation'")
-
-                    _uiState.update {
-                        it.copy(
-                            translations = (it.translations.items + (messageId to mlTranslation)).toImmutableMap(),
-                            translationRetryCount = (it.translationRetryCount.items - messageId).toImmutableMap(),
-                            translationErrors = (it.translationErrors.items - messageId).toImmutableMap()
-                        )
-                    }
-                    return@launch
-                } catch (mlError: Exception) {
-                    android.util.Log.w("ChatViewModel", "ML Kit failed, falling back to API: ${mlError.message}")
-                }
-
-                // Step 3: Fallback to Gemini API translation (slow but reliable)
-                android.util.Log.d("ChatViewModel", "ML Kit failed, calling Gemini API...")
-                val translation = repository.translateToKorean(japaneseText)
-                android.util.Log.d("ChatViewModel", "API translation success: '$translation'")
-
-                _uiState.update {
-                    it.copy(
-                        translations = (it.translations.items + (messageId to translation)).toImmutableMap(),
-                        translationRetryCount = (it.translationRetryCount.items - messageId).toImmutableMap(),
-                        translationErrors = (it.translationErrors.items - messageId).toImmutableMap()
+                // Use TranslationRepository with automatic fallback chain
+                // Priority: Cache → Microsoft (2M/month) → DeepL (500k/month) → ML Kit (offline)
+                val result = translationRepository.translate(
+                    text = japaneseText,
+                    provider = com.nihongo.conversation.data.remote.deepl.TranslationProvider.MICROSOFT,
+                    useCache = true,
+                    fallbackChain = listOf(
+                        com.nihongo.conversation.data.remote.deepl.TranslationProvider.DEEP_L,
+                        com.nihongo.conversation.data.remote.deepl.TranslationProvider.ML_KIT
                     )
+                )
+
+                when (result) {
+                    is com.nihongo.conversation.data.repository.TranslationResult.Success -> {
+                        android.util.Log.d("ChatViewModel", "Translation success from ${result.provider}")
+                        android.util.Log.d("ChatViewModel", "From cache: ${result.fromCache}, Elapsed: ${result.elapsed}ms")
+                        android.util.Log.d("ChatViewModel", "Translation: '${result.translatedText}'")
+
+                        _uiState.update {
+                            it.copy(
+                                translations = (it.translations.items + (messageId to result.translatedText)).toImmutableMap(),
+                                translationRetryCount = (it.translationRetryCount.items - messageId).toImmutableMap(),
+                                translationErrors = (it.translationErrors.items - messageId).toImmutableMap()
+                            )
+                        }
+                    }
+
+                    is com.nihongo.conversation.data.repository.TranslationResult.Error -> {
+                        android.util.Log.e("ChatViewModel", "Translation error: ${result.message}")
+
+                        // Retry logic with exponential backoff
+                        if (retryAttempt < 3) {
+                            val delayMs = 1000L * (retryAttempt + 1) // 1s, 2s, 3s
+                            android.util.Log.d("ChatViewModel", "Retrying after ${delayMs}ms (attempt ${retryAttempt + 1}/3)")
+
+                            kotlinx.coroutines.delay(delayMs)
+                            requestTranslation(messageId, japaneseText, retryAttempt + 1)
+                        } else {
+                            // Max retries reached - show error
+                            android.util.Log.e("ChatViewModel", "Max retries reached, showing error")
+
+                            val errorMessage = when {
+                                result.message.contains("한도", ignoreCase = true) -> "API 한도 초과"
+                                result.message.contains("시간 초과", ignoreCase = true) -> "시간 초과 - 다시 시도하세요"
+                                result.message.contains("네트워크", ignoreCase = true) -> "네트워크 오류"
+                                else -> "번역 실패 - 다시 시도하세요"
+                            }
+
+                            _uiState.update {
+                                it.copy(
+                                    translationErrors = (it.translationErrors.items + (messageId to errorMessage)).toImmutableMap(),
+                                    translationRetryCount = (it.translationRetryCount.items - messageId).toImmutableMap()
+                                )
+                            }
+                        }
+                    }
                 }
             } catch (e: Exception) {
-                android.util.Log.e("ChatViewModel", "Translation failed", e)
-                android.util.Log.e("ChatViewModel", "Error type: ${e.javaClass.simpleName}")
-                android.util.Log.e("ChatViewModel", "Error message: ${e.message}")
+                android.util.Log.e("ChatViewModel", "Unexpected translation error", e)
 
                 // Retry logic with exponential backoff
                 if (retryAttempt < 3) {
-                    val delayMs = 1000L * (retryAttempt + 1) // 1s, 2s, 3s
+                    val delayMs = 1000L * (retryAttempt + 1)
                     android.util.Log.d("ChatViewModel", "Retrying after ${delayMs}ms (attempt ${retryAttempt + 1}/3)")
 
                     kotlinx.coroutines.delay(delayMs)
                     requestTranslation(messageId, japaneseText, retryAttempt + 1)
                 } else {
-                    // Max retries reached - show error
-                    android.util.Log.e("ChatViewModel", "Max retries reached, showing error")
-
-                    val errorMessage = when {
-                        e.message?.contains("한도", ignoreCase = true) == true -> "API 한도 초과"
-                        e.message?.contains("시간 초과", ignoreCase = true) == true -> "시간 초과 - 다시 시도하세요"
-                        e.message?.contains("네트워크", ignoreCase = true) == true -> "네트워크 오류"
-                        else -> "번역 실패 - 다시 시도하세요"
-                    }
-
                     _uiState.update {
                         it.copy(
-                            translationErrors = (it.translationErrors.items + (messageId to errorMessage)).toImmutableMap(),
+                            translationErrors = (it.translationErrors.items + (messageId to "번역 실패 - 다시 시도하세요")).toImmutableMap(),
                             translationRetryCount = (it.translationRetryCount.items - messageId).toImmutableMap()
                         )
                     }
