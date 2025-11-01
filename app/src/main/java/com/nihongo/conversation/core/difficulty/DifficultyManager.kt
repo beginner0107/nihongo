@@ -415,4 +415,51 @@ Remember: The learner is advanced and can handle complex, nuanced Japanese!
             VocabularyComplexity.EXPERT -> "専門 (N1+レベル)"
         }
     }
+
+    // ========== Phase 2: Adaptive Difficulty ==========
+
+    /**
+     * Get target complexity range for each difficulty level
+     * Returns a pair of (min, max) complexity scores
+     */
+    fun getTargetComplexityRange(level: DifficultyLevel): Pair<Int, Int> {
+        return when (level) {
+            DifficultyLevel.BEGINNER -> Pair(1, 2)      // BASIC to COMMON
+            DifficultyLevel.INTERMEDIATE -> Pair(2, 3)  // COMMON to INTERMEDIATE
+            DifficultyLevel.ADVANCED -> Pair(4, 5)      // ADVANCED to EXPERT
+        }
+    }
+
+    /**
+     * Get very short adaptive nudge (<=8 chars in Japanese)
+     * Only adds nudge if complexity is significantly off-target
+     */
+    fun getAdaptiveNudge(
+        currentComplexityScore: Int,
+        targetLevel: DifficultyLevel
+    ): String {
+        val (minTarget, maxTarget) = getTargetComplexityRange(targetLevel)
+
+        return when {
+            // Too difficult (2+ levels above target)
+            currentComplexityScore > maxTarget + 1 -> "もっと簡単に。"  // 8 chars
+
+            // Too easy (2+ levels below target)
+            currentComplexityScore < minTarget - 1 -> "もっと詳しく。"  // 8 chars
+
+            // Within acceptable range - no nudge needed
+            else -> ""
+        }
+    }
+
+    /**
+     * Check if current complexity is within target range
+     */
+    fun isComplexityOnTarget(
+        currentComplexityScore: Int,
+        targetLevel: DifficultyLevel
+    ): Boolean {
+        val (minTarget, maxTarget) = getTargetComplexityRange(targetLevel)
+        return currentComplexityScore in (minTarget - 1)..(maxTarget + 1)
+    }
 }

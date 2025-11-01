@@ -76,7 +76,9 @@ data class ChatUiState(
     val feedbackEnabled: Boolean = true, // Toggle for real-time feedback analysis
     val voiceOnlySession: VoiceOnlySession? = null, // Voice-only mode session state
     val showTranscriptDialog: Boolean = false, // Show post-conversation transcript
-    val currentVoiceState: com.nihongo.conversation.domain.model.VoiceState = com.nihongo.conversation.domain.model.VoiceState.IDLE // Current voice activity state
+    val currentVoiceState: com.nihongo.conversation.domain.model.VoiceState = com.nihongo.conversation.domain.model.VoiceState.IDLE, // Current voice activity state
+    val lastAiComplexityScore: Int = 0, // Last AI message complexity score for adaptive difficulty
+    val adaptiveNudge: String = "" // Adaptive difficulty nudge (very short, 8 chars max)
 ) {
     /**
      * Computed property using derivedStateOf pattern
@@ -260,8 +262,17 @@ class ChatViewModel @Inject constructor(
             val difficultyLevel = DifficultyLevel.fromInt(user?.level ?: 1)
             val difficultyPrompt = difficultyManager.getCompactDifficultyPrompt(difficultyLevel)
 
+            // Add adaptive nudge if last AI response was off-target (Phase 2)
+            val lastComplexity = _uiState.value.lastAiComplexityScore
+            val adaptiveNudge = if (lastComplexity > 0) {
+                difficultyManager.getAdaptiveNudge(lastComplexity, difficultyLevel)
+            } else {
+                ""
+            }
+
             // Combine all prompts (optimized by API service to ~500 chars)
-            val enhancedPrompt = scenario.systemPrompt + personalizedPrefix + difficultyPrompt
+            // Adaptive nudge is very short (8 chars max), so minimal token impact
+            val enhancedPrompt = scenario.systemPrompt + personalizedPrefix + difficultyPrompt + adaptiveNudge
 
             // Use streaming API for instant response feel
             var userMessageId: Long? = null
@@ -306,8 +317,21 @@ class ChatViewModel @Inject constructor(
                 }
             }
 
-            // After streaming is complete, speak the full AI message
+            // After streaming is complete, analyze complexity and prepare adaptive nudge (Phase 2)
             finalAiMessage?.let { aiMsg ->
+                // Calculate complexity of AI response
+                val complexity = difficultyManager.analyzeVocabularyComplexity(aiMsg)
+                val complexityScore = difficultyManager.getComplexityScore(complexity)
+
+                // Update state with complexity score for next message
+                _uiState.update {
+                    it.copy(
+                        lastAiComplexityScore = complexityScore,
+                        adaptiveNudge = difficultyManager.getAdaptiveNudge(complexityScore, difficultyLevel)
+                    )
+                }
+
+                // Speak the AI message
                 if (_uiState.value.autoSpeak && aiMsg.isNotEmpty()) {
                     voiceManager.speak(aiMsg, speed = _uiState.value.speechSpeed)
                 }
