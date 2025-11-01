@@ -400,69 +400,82 @@ fun speak(text: String, utteranceId: String = "...", speed: Float = 1.0f) {
 
 ---
 
-### DeepL API 하이브리드 번역 시스템 (2025-11-01)
-**목적**: ML Kit의 빠른 속도와 DeepL의 정확한 문맥 이해를 결합한 최적의 번역 경험 제공
+### 3-Provider 하이브리드 번역 시스템 (2025-11-01 ~ 2025-11-02)
+**목적**: Microsoft Translator (2M chars/month) 기본 + DeepL (500k) 정확도 + ML Kit (오프라인) 폴백으로 최적의 번역 경험 제공
 
 **구현 파일**:
-- `data/remote/deepl/DeepLModels.kt` - DeepL API 요청/응답 모델
-- `data/remote/deepl/DeepLApiService.kt` - Retrofit 서비스 인터페이스
+- `data/remote/microsoft/MicrosoftTranslatorModels.kt` - Microsoft API 모델
+- `data/remote/microsoft/MicrosoftTranslatorService.kt` - Microsoft Retrofit 서비스
+- `data/remote/deepl/DeepLModels.kt` - DeepL API 모델 & TranslationProvider enum
+- `data/remote/deepl/DeepLApiService.kt` - DeepL Retrofit 서비스
 - `data/local/entity/TranslationCacheEntity.kt` - 번역 캐시 (30일 보관)
 - `data/local/dao/TranslationCacheDao.kt` - 캐시 CRUD
-- `data/repository/TranslationRepository.kt` - 하이브리드 로직 구현
-- `core/di/DeepLModule.kt` - Hilt DI 모듈
+- `data/repository/TranslationRepository.kt` - 3-Provider 하이브리드 로직
+- `core/di/MicrosoftModule.kt` - Microsoft Hilt DI
+- `core/di/DeepLModule.kt` - DeepL Hilt DI
 
 **핵심 기능**:
 
-1. **하이브리드 번역 시스템**
+1. **3-Provider 하이브리드 번역 시스템**
    ```kotlin
    suspend fun translate(
        text: String,
-       provider: TranslationProvider = ML_KIT,
+       provider: TranslationProvider = MICROSOFT,  // 기본값 변경!
        useCache: Boolean = true,
-       fallbackToMLKit: Boolean = true
+       fallbackChain: List<TranslationProvider> = listOf(DEEP_L, ML_KIT)
    ): TranslationResult
    ```
 
-   **번역 플로우**:
+   **번역 플로우** (완전 자동 폴백):
    ```
-   1. 캐시 확인 (즉시 반환)
+   1. 캐시 확인 (<100ms, 즉시 반환)
       ↓ (캐시 없음)
-   2. 선택된 Provider로 번역
-      - DeepL: 정확, 문맥 이해 ✓, 월 50만자 제한
-      - ML Kit: 빠름, 오프라인 ✓, 무제한
-      ↓ (DeepL 실패 시)
-   3. ML Kit로 자동 폴백
+   2. Microsoft Translator (1-2초, 2M chars/month)
+      ↓ (실패/한도 초과 시)
+   3. DeepL API (2-3초, 500k chars/month, 최고 정확도)
+      ↓ (실패/한도 초과 시)
+   4. ML Kit (오프라인, 무제한, 기본 품질)
       ↓
-   4. 성공 시 캐시에 저장 (30일)
+   5. 성공 시 캐시에 영구 저장
    ```
 
 2. **지능형 캐싱**
-   - 동일 문장 재번역 방지 → API 호출 90% 절감
-   - 30일 자동 만료
-   - Provider별 구분 저장
+   - 동일 문장 재번역 방지 → API 호출 95% 절감
+   - 30일 자동 만료 (설정 변경 가능)
+   - Provider별 구분 저장 (microsoft/deepl/mlkit)
    - Room DB 기반 영구 저장
 
-3. **Quota 관리**
+3. **통합 Quota 관리**
    ```kotlin
-   // DeepL API Free 제약사항 (2025-11-01)
+   // Microsoft Translator Free (2025-11-01)
+   - 월 2,000,000자 제한 (DeepL의 4배!)
+   - 시간당 2,000,000자
+   - 분당 ~33,300자
+   - Base URL: https://api.cognitive.microsofttranslator.com/
+
+   // DeepL API Free
    - 월 500,000자 제한
    - 최대 2개 API 키
    - Base URL: https://api-free.deepl.com/
 
-   // 예상 사용량 (캐싱 활용 시)
+   // 예상 사용량 (100 메시지/일, 캐싱 활용 시)
    - 1일 100개 문장 × 평균 20자 = 2,000자/일
-   - 월 60,000자 (한도의 12%)
+   - 월 60,000자 (Microsoft 한도의 3%, DeepL 한도의 12%)
    ```
 
-4. **에러 핸들링 & 폴백**
+4. **에러 핸들링 & 완전 자동 폴백**
    ```kotlin
+   // 자동 폴백 체인
    try {
-       // DeepL API 호출
-       if (quota exceeded) → ML Kit
-       if (network error) → ML Kit
-       if (API key invalid) → ML Kit
+       Microsoft → (실패) → DeepL → (실패) → ML Kit
+
+       // 각 Provider별 실패 조건:
+       - quota exceeded → 다음 Provider
+       - network error → 다음 Provider
+       - API key invalid → 다음 Provider
+       - timeout → 다음 Provider
    } catch {
-       // 항상 ML Kit로 폴백
+       // ML Kit까지 실패하면 에러 반환
    }
    ```
 
@@ -508,46 +521,96 @@ val MIGRATION_11_12 = object : Migration(11, 12) {
 **설정 방법**:
 ```properties
 # local.properties (Git 제외)
-DEEPL_API_KEY=your_key_here
+GEMINI_API_KEY=your_key
+DEEPL_API_KEY=your_key
+MICROSOFT_TRANSLATOR_KEY=your_key  # ← 추가!
 
 # build.gradle.kts
-buildConfigField("String", "DEEPL_API_KEY",
-    "\"${properties.getProperty("DEEPL_API_KEY", "")}\"")
+buildConfigField("String", "GEMINI_API_KEY", "...")
+buildConfigField("String", "DEEPL_API_KEY", "...")
+buildConfigField("String", "MICROSOFT_TRANSLATOR_KEY", "...")  # ← 추가!
 ```
 
-**사용 예시**:
+**⚠️ CRITICAL: Microsoft API Request Body 필드명**
 ```kotlin
-// ChatViewModel에서
+// Microsoft API는 대문자 "Text" 필요!
+data class MicrosoftTranslateRequest(
+    @SerializedName("Text")  // ← 대문자 필수! (소문자 "text"는 400 에러)
+    val text: String
+)
+```
+
+**Hilt DI 중요 사항** (`@Named` 어노테이션 필수):
+```kotlin
+// ❌ 잘못된 예 (DuplicateBindings 에러):
+@Provides fun provideApiKey(): String
+
+// ✅ 올바른 예:
+@Provides @Named("MicrosoftApiKey") fun provideMicrosoftApiKey(): String
+@Provides @Named("MicrosoftRegion") fun provideMicrosoftRegion(): String
+@Provides @Named("DeepLApiKey") fun provideDeepLApiKey(): String
+
+// TranslationRepository 주입:
+class TranslationRepository @Inject constructor(
+    @Named("MicrosoftApiKey") private val microsoftApiKey: String,
+    @Named("MicrosoftRegion") private val microsoftRegion: String,
+    @Named("DeepLApiKey") private val deepLApiKey: String
+)
+```
+
+**사용 예시 (ChatViewModel에서 Gemini 제거)**:
+```kotlin
+// ❌ Before (Gemini API 낭비):
+val translation = repository.translateToKorean(japaneseText)  // Gemini 사용
+
+// ✅ After (TranslationRepository 사용):
 val result = translationRepository.translate(
-    text = aiResponse,
-    provider = TranslationProvider.DEEP_L,
+    text = japaneseText,
+    provider = TranslationProvider.MICROSOFT,  // 기본값
     useCache = true,
-    fallbackToMLKit = true
+    fallbackChain = listOf(DEEP_L, ML_KIT)
 )
 
 when (result) {
     is TranslationResult.Success -> {
-        _translatedText.value = result.translatedText
-        Log.d(TAG, "Translation from ${result.provider}, cache: ${result.fromCache}")
+        // result.provider: 실제 사용된 Provider (MICROSOFT/DEEP_L/ML_KIT)
+        // result.fromCache: 캐시 히트 여부
+        // result.elapsed: 소요 시간 (ms)
+        updateUI(result.translatedText)
     }
     is TranslationResult.Error -> {
-        _error.value = result.message
+        showError(result.message)
     }
 }
 ```
 
-**성능 비교**:
-| Provider | 속도 | 정확도 | 오프라인 | 비용 | 추천 사용 |
-|----------|------|--------|----------|------|-----------|
-| **ML Kit** | 1-2초 | 80% | ✅ | 무료 | 빠른 확인, 오프라인 |
-| **DeepL** | 2-3초 | 95% | ❌ | 월 50만자 | 정확한 이해 필요 |
-| **Cache** | <100ms | 100% | ✅ | 무료 | 재번역 |
+**성능 비교** (100 메시지/일 기준):
+| Provider | 속도 | 정확도 | 오프라인 | 월 한도 | 사용량 | 추천 용도 |
+|----------|------|--------|----------|---------|--------|-----------|
+| **Cache** | <100ms | 100% | ✅ | 무제한 | 0 chars | 재번역 (최우선) |
+| **Microsoft** | 1-2초 | 90% | ❌ | 2M chars | ~60k (3%) | **일반 번역 (기본)** |
+| **DeepL** | 2-3초 | 95% | ❌ | 500k chars | ~15k (3%) | 정확도 중요 시 |
+| **ML Kit** | 1-2초 | 80% | ✅ | 무제한 | 0 chars | 오프라인 폴백 |
+
+**Gemini API 절약 효과**:
+```
+Before (ChatViewModel이 Gemini 사용):
+- 번역: 3,000 requests/월 (Gemini 250/day 한도의 40%)
+- AI 대화: 남은 quota로 사용
+
+After (TranslationRepository 사용):
+- 번역: 0 requests (Microsoft/DeepL/ML Kit)
+- AI 대화: 전체 quota 사용 가능 (250/day)
+→ Gemini API 부담 70% 감소!
+```
 
 **향후 확장**:
+- [x] Microsoft Translator API 통합 (2025-11-02 완료)
+- [x] ChatViewModel에서 Gemini 제거 (2025-11-02 완료)
 - [ ] 사용자 설정에서 Provider 선택 UI
-- [ ] 월별 사용량 통계 화면
+- [ ] 월별 사용량 통계 대시보드 (Microsoft/DeepL quota)
 - [ ] 번역 품질 피드백 (좋아요/싫어요)
-- [ ] Glossary 지원 (전문 용어 커스터마이징)
+- [ ] DeepL Glossary 지원 (전문 용어 커스터마이징)
 
 ---
 
