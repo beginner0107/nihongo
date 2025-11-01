@@ -109,8 +109,8 @@ class DataInitializer @Inject constructor(
             ),
             Scenario(
                 id = 3L,
-                title = "ホテルでのチェックイン",
-                description = "ホテルでチェックインする練習をします",
+                title = "호텔에서 체크인",
+                description = "호텔에서 체크인하는 연습을 합니다",
                 difficulty = 2,
                 systemPrompt = """
                     あなたはホテルのフロント係です。
@@ -133,7 +133,7 @@ class DataInitializer @Inject constructor(
                     - 最初から日本語で始める
                 """.trimIndent(),
                 slug = "hotel_checkin",
-                promptVersion = 1
+                promptVersion = 2
             ),
             Scenario(
                 id = 4L,
@@ -166,8 +166,8 @@ class DataInitializer @Inject constructor(
             ),
             Scenario(
                 id = 5L,
-                title = "電話での会話",
-                description = "電話で予約や問い合わせをする練習をします",
+                title = "전화로 예약하기",
+                description = "전화로 예약이나 문의하는 연습을 합니다",
                 difficulty = 3,
                 systemPrompt = """
                     あなたはレストランやサロンの受付スタッフです。
@@ -191,12 +191,12 @@ class DataInitializer @Inject constructor(
                     - 最初から日本語で始める
                 """.trimIndent(),
                 slug = "phone_reservation",
-                promptVersion = 1
+                promptVersion = 2
             ),
             Scenario(
                 id = 6L,
-                title = "病院で",
-                description = "病院で症状を説明する練習をします",
+                title = "병원에서",
+                description = "병원에서 증상을 설명하는 연습을 합니다",
                 difficulty = 3,
                 systemPrompt = """
                     あなたは病院の医師または看護師です。
@@ -220,15 +220,15 @@ class DataInitializer @Inject constructor(
                     - 最初から日本語で始める
                 """.trimIndent(),
                 slug = "hospital_visit",
-                promptVersion = 1
+                promptVersion = 2
             ),
 
             // ========== GOAL-BASED ROLE-PLAY SCENARIOS ==========
 
             Scenario(
                 id = 7L,
-                title = "就職面接",
-                description = "日本企業の面接を受ける練習をします。自己紹介、志望動機、質問対応などを学びます。",
+                title = "취업 면접",
+                description = "일본 기업 면접을 보는 연습을 합니다. 자기소개, 지원동기, 질문 대응 등을 배웁니다",
                 difficulty = 3,
                 category = "BUSINESS",
                 estimatedDuration = 15,
@@ -260,13 +260,13 @@ class DataInitializer @Inject constructor(
                     - 面接が自然に終わるよう、15分程度で締めくくってください
                 """.trimIndent(),
                 slug = "job_interview",
-                promptVersion = 1
+                promptVersion = 2
             ),
 
             Scenario(
                 id = 8L,
-                title = "クレーム対応",
-                description = "商品の不具合やサービスに対するクレームに対応する練習をします。",
+                title = "고객 불만 대응",
+                description = "상품 불량이나 서비스에 대한 불만에 대응하는 연습을 합니다",
                 difficulty = 3,
                 category = "BUSINESS",
                 estimatedDuration = 12,
@@ -297,13 +297,13 @@ class DataInitializer @Inject constructor(
                     ✅ 必須: 日本語の会話文のみ。長い会話でもこの規則を守ること
                 """.trimIndent(),
                 slug = "complaint_handling",
-                promptVersion = 1
+                promptVersion = 2
             ),
 
             Scenario(
                 id = 9L,
-                title = "緊急事態",
-                description = "道に迷った、財布を落とした、体調が悪いなどの緊急時に助けを求める練習をします。",
+                title = "긴급 상황",
+                description = "길을 잃었거나 지갑을 잃어버렸거나 몸이 안 좋을 때 도움을 요청하는 연습을 합니다",
                 difficulty = 2,
                 category = "EMERGENCY",
                 estimatedDuration = 10,
@@ -334,13 +334,13 @@ class DataInitializer @Inject constructor(
                     ✅ 必須: 日本語の会話文のみ。長い会話でもこの規則を守ること
                 """.trimIndent(),
                 slug = "emergency_help",
-                promptVersion = 1
+                promptVersion = 2
             ),
 
             Scenario(
                 id = 10L,
-                title = "デートの誘い",
-                description = "好きな人をデートに誘う練習をします。断られた時の対応も学びます。",
+                title = "데이트 신청하기",
+                description = "좋아하는 사람을 데이트에 초대하는 연습을 합니다. 거절당했을 때 대응도 배웁니다",
                 difficulty = 2,
                 category = "ROMANCE",
                 estimatedDuration = 10,
@@ -372,13 +372,13 @@ class DataInitializer @Inject constructor(
                     ✅ 必須: 日本語の会話文のみ。長い会話でもこの規則を守ること
                 """.trimIndent(),
                 slug = "dating_invite",
-                promptVersion = 1
+                promptVersion = 2
             ),
 
             Scenario(
                 id = 11L,
-                title = "ビジネスプレゼンテーション",
-                description = "新しいアイデアや製品を日本語でプレゼンテーションする練習をします。",
+                title = "비즈니스 프레젠테이션",
+                description = "새로운 아이디어나 제품을 일본어로 발표하는 연습을 합니다",
                 difficulty = 3,
                 category = "BUSINESS",
                 estimatedDuration = 15,
@@ -410,13 +410,13 @@ class DataInitializer @Inject constructor(
                     ✅ 必須: 日本語の会話文のみ。長い会話でもこの規則を守ること
                 """.trimIndent(),
                 slug = "business_presentation",
-                promptVersion = 1
+                promptVersion = 2
             ),
 
             Scenario(
                 id = 12L,
-                title = "彼女との会話",
-                description = "日本人の彼女との日常会話を練習します。3つの異なるシチュエーションがあります。",
+                title = "여자친구와 대화하기",
+                description = "일본인 여자친구와의 일상 대화를 연습합니다. 3가지 다른 상황이 있습니다",
                 difficulty = 2,
                 category = "ROMANCE",
                 estimatedDuration = 12,
@@ -458,7 +458,7 @@ class DataInitializer @Inject constructor(
                     ✅ 必須: 日本語の会話文のみ。長い会話でもこの規則を守ること
                 """.trimIndent(),
                 slug = "girlfriend_conversation",
-                promptVersion = 1
+                promptVersion = 2
             )
         )
 
