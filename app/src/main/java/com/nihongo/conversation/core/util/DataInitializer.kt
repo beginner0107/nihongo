@@ -473,6 +473,31 @@ $rules
                 ),
                 slug = "girlfriend_conversation",
                 promptVersion = 5
+            ),
+
+            // Custom Scenario: Technical Interview for Backend Engineer
+            Scenario(
+                title = "IT企業 技術面接",
+                description = "大規模トラフィックのSpring基盤サービスを運営する日本のIT企業の技術面接",
+                difficulty = 3,
+                category = "BUSINESS",
+                estimatedDuration = 20,
+                hasGoals = false,
+                hasBranching = false,
+                replayValue = 5,
+                thumbnailEmoji = "💼",
+                isCustom = true,  // Custom scenario - deletable
+                systemPrompt = buildPrompt(
+                    scenarioInstructions = """
+                        日本IT企業の20年経験バックエンド面接官。Spring 2年4ヶ月経験の候補者を面接。
+                        主な実装: @Async非同期メール、Oracle複合Index、JDBC batchUpdate、EhCache、Spring Quartz。
+                        プロジェクト深掘り質問（設計理由・代替案・トレードオフ）とCS基礎（GC・トランザクション・TCP・Index）を鋭く質問。
+                        回答不足なら追及、良い回答は評価。厳格だが丁寧な口調。
+                    """.trimIndent(),
+                    scenarioSlug = "technical_interview_custom"
+                ),
+                slug = "technical_interview_custom",
+                promptVersion = 1
             )
         )
 
@@ -493,6 +518,7 @@ $rules
                         hasBranching = scenario.hasBranching,
                         replayValue = scenario.replayValue,
                         thumbnailEmoji = scenario.thumbnailEmoji,
+                        isCustom = scenario.isCustom,
                         promptVersion = scenario.promptVersion
                     )
                 )

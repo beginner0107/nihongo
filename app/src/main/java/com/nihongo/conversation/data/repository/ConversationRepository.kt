@@ -32,6 +32,7 @@ class ConversationRepository @Inject constructor(
     fun getScenarioBySlug(slug: String): Flow<Scenario?> = scenarioDao.getScenarioBySlug(slug)
     suspend fun createScenario(scenario: Scenario): Long = scenarioDao.insertScenario(scenario)
     suspend fun updateScenario(scenario: Scenario) = scenarioDao.updateScenario(scenario)
+    suspend fun deleteScenario(scenarioId: Long) = scenarioDao.deleteScenarioById(scenarioId)
 
     // Conversation operations
     fun getConversation(id: Long): Flow<Conversation?> = conversationDao.getConversationById(id)

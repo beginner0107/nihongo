@@ -29,5 +29,6 @@ data class Scenario(
     val hasGoals: Boolean = false,                // Whether this scenario has objectives
     val hasBranching: Boolean = false,            // Whether this has multiple paths
     val replayValue: Int = 1,                     // 1-5 stars for replay value
-    val thumbnailEmoji: String = "💬"             // Emoji for UI display
+    val thumbnailEmoji: String = "💬",            // Emoji for UI display
+    val isCustom: Boolean = false                 // Whether this is a user-created custom scenario (deletable)
 )

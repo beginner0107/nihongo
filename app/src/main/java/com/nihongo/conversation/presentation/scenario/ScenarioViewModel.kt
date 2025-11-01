@@ -38,4 +38,10 @@ class ScenarioViewModel @Inject constructor(
             }
         }
     }
+
+    fun deleteCustomScenario(scenarioId: Long) {
+        viewModelScope.launch {
+            repository.deleteScenario(scenarioId)
+        }
+    }
 }

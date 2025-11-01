@@ -120,7 +120,10 @@ fun ScenarioListScreen(
                 items(uiState.scenarios) { scenario ->
                     ScenarioCard(
                         scenario = scenario,
-                        onClick = { onScenarioSelected(scenario.id) }
+                        onClick = { onScenarioSelected(scenario.id) },
+                        onDelete = if (scenario.isCustom) {
+                            { viewModel.deleteCustomScenario(scenario.id) }
+                        } else null
                     )
                 }
             }
@@ -131,19 +134,20 @@ fun ScenarioListScreen(
 @Composable
 fun ScenarioCard(
     scenario: Scenario,
-    onClick: () -> Unit
+    onClick: () -> Unit,
+    onDelete: (() -> Unit)? = null
 ) {
     Card(
-        modifier = Modifier
-            .fillMaxWidth()
-            .clickable { onClick() },
+        modifier = Modifier.fillMaxWidth(),
         elevation = CardDefaults.cardElevation(defaultElevation = 2.dp)
     ) {
         Row(
             modifier = Modifier
                 .fillMaxWidth()
+                .clickable { onClick() }
                 .padding(16.dp),
-            horizontalArrangement = Arrangement.spacedBy(16.dp)
+            horizontalArrangement = Arrangement.spacedBy(16.dp),
+            verticalAlignment = Alignment.CenterVertically
         ) {
             // Icon based on scenario
             Surface(
@@ -168,12 +172,31 @@ fun ScenarioCard(
                 modifier = Modifier.weight(1f),
                 verticalArrangement = Arrangement.spacedBy(4.dp)
             ) {
-                // Title
-                Text(
-                    text = scenario.title,
-                    style = MaterialTheme.typography.titleMedium,
-                    fontWeight = FontWeight.Bold
-                )
+                // Title with custom badge
+                Row(
+                    horizontalArrangement = Arrangement.spacedBy(8.dp),
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    Text(
+                        text = scenario.title,
+                        style = MaterialTheme.typography.titleMedium,
+                        fontWeight = FontWeight.Bold
+                    )
+                    if (scenario.isCustom) {
+                        Surface(
+                            shape = MaterialTheme.shapes.small,
+                            color = MaterialTheme.colorScheme.primary.copy(alpha = 0.2f)
+                        ) {
+                            Text(
+                                text = "커스텀",
+                                modifier = Modifier.padding(horizontal = 6.dp, vertical = 2.dp),
+                                style = MaterialTheme.typography.labelSmall,
+                                color = MaterialTheme.colorScheme.primary,
+                                fontWeight = FontWeight.Bold
+                            )
+                        }
+                    }
+                }
 
                 // Description
                 Text(
@@ -183,12 +206,26 @@ fun ScenarioCard(
                 )
             }
 
-            // Arrow
-            Icon(
-                imageVector = Icons.Default.ChevronRight,
-                contentDescription = "시작",
-                tint = MaterialTheme.colorScheme.onSurfaceVariant
-            )
+            // Delete button for custom scenarios or arrow for default scenarios
+            if (onDelete != null) {
+                IconButton(
+                    onClick = {
+                        onDelete()
+                    }
+                ) {
+                    Icon(
+                        imageVector = Icons.Default.Delete,
+                        contentDescription = "삭제",
+                        tint = MaterialTheme.colorScheme.error
+                    )
+                }
+            } else {
+                Icon(
+                    imageVector = Icons.Default.ChevronRight,
+                    contentDescription = "시작",
+                    tint = MaterialTheme.colorScheme.onSurfaceVariant
+                )
+            }
         }
     }
 }
@@ -231,6 +268,7 @@ fun getScenarioIcon(scenarioId: Long): ImageVector {
         13L -> Icons.Default.Favorite       // 데이트
         14L -> Icons.Default.BusinessCenter // 비즈니스 프레젠테이션
         15L -> Icons.Default.Chat           // 여자친구와의 대화
+        16L -> Icons.Default.BusinessCenter // IT기업 기술 면접 (커스텀)
         else -> Icons.Default.Chat
     }
 }

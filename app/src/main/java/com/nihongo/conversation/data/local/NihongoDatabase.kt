@@ -42,7 +42,7 @@ import com.nihongo.conversation.data.local.dao.TranslationCacheDao
     views = [
         ConversationStats::class
     ],
-    version = 12,  // Added TranslationCacheEntity for DeepL/MLKit translation caching
+    version = 13,  // Added isCustom to scenarios for deletable custom scenarios
     exportSchema = false
 )
 abstract class NihongoDatabase : RoomDatabase() {
@@ -489,6 +489,14 @@ abstract class NihongoDatabase : RoomDatabase() {
                 // Create indices for translation_cache
                 database.execSQL("CREATE INDEX IF NOT EXISTS index_translation_cache_provider ON translation_cache(provider)")
                 database.execSQL("CREATE INDEX IF NOT EXISTS index_translation_cache_timestamp ON translation_cache(timestamp)")
+            }
+        }
+
+        // Add isCustom column to scenarios for deletable custom scenarios
+        val MIGRATION_12_13 = object : Migration(12, 13) {
+            override fun migrate(database: SupportSQLiteDatabase) {
+                // Add isCustom column to scenarios table
+                database.execSQL("ALTER TABLE scenarios ADD COLUMN isCustom INTEGER NOT NULL DEFAULT 0")
             }
         }
     }

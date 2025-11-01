@@ -36,11 +36,12 @@ object DatabaseModule {
                 NihongoDatabase.MIGRATION_8_9,
                 NihongoDatabase.MIGRATION_9_10,
                 NihongoDatabase.MIGRATION_10_11,  // Phase 1: Unique index
-                NihongoDatabase.MIGRATION_11_12   // DeepL translation cache
+                NihongoDatabase.MIGRATION_11_12,  // DeepL translation cache
+                NihongoDatabase.MIGRATION_12_13   // Custom scenario support
             )
             // Phase 3: All migrations provided - no destructive migration needed
             // This prevents user data loss in production
-            // Complete migration path: 1→2→3→4→5→6→7→8→9→10→11
+            // Complete migration path: 1→2→3→4→5→6→7→8→9→10→11→12→13
             .build()
     }
 

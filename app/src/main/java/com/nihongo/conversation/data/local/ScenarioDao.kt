@@ -26,4 +26,7 @@ interface ScenarioDao {
 
     @Delete
     suspend fun deleteScenario(scenario: Scenario)
+
+    @Query("DELETE FROM scenarios WHERE id = :scenarioId")
+    suspend fun deleteScenarioById(scenarioId: Long)
 }
