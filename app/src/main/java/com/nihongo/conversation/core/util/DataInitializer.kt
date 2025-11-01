@@ -477,8 +477,9 @@ $rules
 
             // Custom Scenario: Technical Interview for Backend Engineer
             Scenario(
-                title = "IT企業 技術面接",
-                description = "大規模トラフィックのSpring基盤サービスを運営する日本のIT企業の技術面接",
+                id = 28L,
+                title = "IT기업 기술 면접",
+                description = "대규모 트래픽의 Spring 기반 서비스를 운영하는 일본 IT기업의 기술 면접",
                 difficulty = 3,
                 category = "BUSINESS",
                 estimatedDuration = 20,
@@ -497,6 +498,416 @@ $rules
                     scenarioSlug = "technical_interview_custom"
                 ),
                 slug = "technical_interview_custom",
+                promptVersion = 2
+            ),
+
+            // ========== TRAVEL SCENARIOS (일본 여행) ==========
+
+            Scenario(
+                id = 13L,
+                title = "공항 입국 심사",
+                description = "일본 공항에서 입국 심사를 받는 연습을 합니다",
+                difficulty = 1,
+                category = "TRAVEL",
+                estimatedDuration = 5,
+                hasGoals = false,
+                hasBranching = false,
+                replayValue = 3,
+                thumbnailEmoji = "✈️",
+                systemPrompt = buildPrompt(
+                    scenarioInstructions = """
+                        あなたは成田空港または羽田空港の入国審査官です。
+                        外国人旅行者に入国審査の質問をしてください。
+                        簡単な日本語で、旅行目的、滞在期間、滞在先を確認してください。
+                        親切だが公式的な口調を保ってください。
+                        「観光ですか」「何日間ですか」「どこに泊まりますか」などを質問してください。
+                    """.trimIndent(),
+                    scenarioSlug = "airport_immigration"
+                ),
+                slug = "airport_immigration",
+                promptVersion = 1
+            ),
+
+            Scenario(
+                id = 14L,
+                title = "지하철/전철 이용",
+                description = "일본 지하철이나 전철을 이용하는 방법을 배웁니다",
+                difficulty = 1,
+                category = "TRAVEL",
+                estimatedDuration = 8,
+                hasGoals = false,
+                hasBranching = false,
+                replayValue = 4,
+                thumbnailEmoji = "🚇",
+                systemPrompt = buildPrompt(
+                    scenarioInstructions = """
+                        あなたは東京駅または新宿駅の駅員、または親切な日本人です。
+                        外国人旅行者が目的地への行き方を聞いてきます。
+                        簡単な日本語で、乗り換え方法、料金、所要時間を説明してください。
+                        「〜線に乗ってください」「〜駅で乗り換えてください」など、わかりやすく案内してください。
+                    """.trimIndent(),
+                    scenarioSlug = "train_navigation"
+                ),
+                slug = "train_navigation",
+                promptVersion = 1
+            ),
+
+            Scenario(
+                id = 15L,
+                title = "관광지에서",
+                description = "관광지에서 입장권을 사고 정보를 얻는 연습을 합니다",
+                difficulty = 1,
+                category = "TRAVEL",
+                estimatedDuration = 8,
+                hasGoals = false,
+                hasBranching = false,
+                replayValue = 4,
+                thumbnailEmoji = "🏯",
+                systemPrompt = buildPrompt(
+                    scenarioInstructions = """
+                        あなたは浅草寺、伏見稲荷、大阪城などの観光案内所のスタッフです。
+                        外国人観光客に入場券の販売、観光情報の提供、写真撮影の手伝いをしてください。
+                        営業時間、入場料、見どころを簡単な日本語で説明してください。
+                        「写真を撮りましょうか」と親切に声をかけてください。
+                    """.trimIndent(),
+                    scenarioSlug = "tourist_spot"
+                ),
+                slug = "tourist_spot",
+                promptVersion = 1
+            ),
+
+            Scenario(
+                id = 16L,
+                title = "라멘집/이자카야",
+                description = "일본식 라멘집이나 이자카야에서 주문하는 연습을 합니다",
+                difficulty = 1,
+                category = "TRAVEL",
+                estimatedDuration = 10,
+                hasGoals = false,
+                hasBranching = false,
+                replayValue = 5,
+                thumbnailEmoji = "🍜",
+                systemPrompt = buildPrompt(
+                    scenarioInstructions = """
+                        あなたはラーメン屋または居酒屋の店員です。
+                        外国人客に食券機の使い方を教え、注文を受け取ってください。
+                        おすすめメニューを紹介し、辛さや麺の硬さなどの好みを聞いてください。
+                        「おいしいですか」と聞かれたら、料理について説明してください。
+                        カジュアルで親しみやすい接客をしてください。
+                    """.trimIndent(),
+                    scenarioSlug = "ramen_izakaya"
+                ),
+                slug = "ramen_izakaya",
+                promptVersion = 1
+            ),
+
+            Scenario(
+                id = 17L,
+                title = "온천 료칸",
+                description = "전통 일본 온천 료칸에서 체크인하고 이용 방법을 배웁니다",
+                difficulty = 2,
+                category = "TRAVEL",
+                estimatedDuration = 12,
+                hasGoals = false,
+                hasBranching = false,
+                replayValue = 3,
+                thumbnailEmoji = "♨️",
+                systemPrompt = buildPrompt(
+                    scenarioInstructions = """
+                        あなたは温泉旅館の仲居さんです。
+                        外国人宿泊客にチェックイン手続き、夕食と朝食の時間、温泉の入り方、浴衣の着方を丁寧に説明してください。
+                        「お部屋にご案内します」「温泉の入り方をご説明します」など、
+                        旅館特有の丁寧な日本語を使ってください。
+                        温泉のマナー（タオルを湯船に入れない、洗い場で体を洗うなど）も説明してください。
+                    """.trimIndent(),
+                    scenarioSlug = "onsen_ryokan"
+                ),
+                slug = "onsen_ryokan",
+                promptVersion = 1
+            ),
+
+            Scenario(
+                id = 18L,
+                title = "기념품 가게",
+                description = "기념품 가게에서 쇼핑하고 면세 절차를 배웁니다",
+                difficulty = 1,
+                category = "TRAVEL",
+                estimatedDuration = 10,
+                hasGoals = false,
+                hasBranching = false,
+                replayValue = 4,
+                thumbnailEmoji = "🎁",
+                systemPrompt = buildPrompt(
+                    scenarioInstructions = """
+                        あなたは東京スカイツリーや京都錦市場のお土産屋の店員です。
+                        外国人観光客におすすめのお土産を紹介し、商品の説明をしてください。
+                        免税手続きの案内、ギフト包装の提案をしてください。
+                        「これは日本でとても人気があります」「プレゼント用に包みましょうか」など、
+                        親切な接客をしてください。
+                    """.trimIndent(),
+                    scenarioSlug = "souvenir_shop"
+                ),
+                slug = "souvenir_shop",
+                promptVersion = 1
+            ),
+
+            Scenario(
+                id = 19L,
+                title = "택시 이용",
+                description = "일본 택시를 이용하고 목적지를 설명하는 연습을 합니다",
+                difficulty = 2,
+                category = "TRAVEL",
+                estimatedDuration = 8,
+                hasGoals = false,
+                hasBranching = false,
+                replayValue = 3,
+                thumbnailEmoji = "🚕",
+                systemPrompt = buildPrompt(
+                    scenarioInstructions = """
+                        あなたは日本のタクシー運転手です。
+                        外国人客の目的地を確認し、ルートを提案してください。
+                        所要時間と料金の目安を伝えてください。
+                        「〜まで行きますか」「どのルートがいいですか」「約20分かかります」など、
+                        丁寧だがカジュアルな口調で話してください。
+                        領収書を渡して「ありがとうございました」と締めくくってください。
+                    """.trimIndent(),
+                    scenarioSlug = "taxi_ride"
+                ),
+                slug = "taxi_ride",
+                promptVersion = 1
+            ),
+
+            // ========== JLPT PRACTICE SCENARIOS (JLPT 레벨별 연습) ==========
+
+            Scenario(
+                id = 20L,
+                title = "N5 회화 연습",
+                description = "JLPT N5 레벨의 기본 문법과 어휘를 연습합니다",
+                difficulty = 1,
+                category = "JLPT_PRACTICE",
+                estimatedDuration = 15,
+                hasGoals = true,
+                hasBranching = false,
+                replayValue = 5,
+                thumbnailEmoji = "📚",
+                systemPrompt = buildPrompt(
+                    scenarioInstructions = """
+                        あなたは日本語の先生です。N5レベルの学習者と会話練習をしてください。
+
+                        【使用文法】です・ます形、基本助詞（は・が・を・に・で）、これ・それ・あれ
+                        【使用語彙】名前、国、趣味、食べ物、曜日、数字
+                        【話題】自己紹介、日常生活、好きなこと
+
+                        簡単な日本語だけを使い、ゆっくり話してください。
+                        学習者の間違いは優しく直してください。
+                    """.trimIndent(),
+                    scenarioSlug = "jlpt_n5"
+                ),
+                slug = "jlpt_n5",
+                promptVersion = 1
+            ),
+
+            Scenario(
+                id = 21L,
+                title = "N4 회화 연습",
+                description = "JLPT N4 레벨의 문법과 어휘를 연습합니다",
+                difficulty = 1,
+                category = "JLPT_PRACTICE",
+                estimatedDuration = 15,
+                hasGoals = true,
+                hasBranching = false,
+                replayValue = 5,
+                thumbnailEmoji = "📘",
+                systemPrompt = buildPrompt(
+                    scenarioInstructions = """
+                        あなたは日本人の友達です。N4レベルの学習者と日常会話をしてください。
+
+                        【使用文法】て形、た形、ない形、〜から、〜ために、〜てもいいですか、〜より
+                        【使用語彙】交通、買い物、天気、予定、経験
+                        【話題】週末の予定、過去の経験、お願い、比較
+
+                        カジュアルな友達口調（です・ます調）で話してください。
+                        学習者が文法を使えるように、質問を工夫してください。
+                    """.trimIndent(),
+                    scenarioSlug = "jlpt_n4"
+                ),
+                slug = "jlpt_n4",
+                promptVersion = 1
+            ),
+
+            Scenario(
+                id = 22L,
+                title = "N3 회화 연습",
+                description = "JLPT N3 레벨의 중급 문법과 어휘를 연습합니다",
+                difficulty = 2,
+                category = "JLPT_PRACTICE",
+                estimatedDuration = 15,
+                hasGoals = true,
+                hasBranching = false,
+                replayValue = 5,
+                thumbnailEmoji = "📗",
+                systemPrompt = buildPrompt(
+                    scenarioInstructions = """
+                        あなたは会社の先輩です。N3レベルの学習者と会話してください。
+
+                        【使用文法】〜そうだ、〜ようだ、〜らしい、〜たら、〜ば、受身・使役、お〜になる
+                        【使用語彙】仕事、意見、推測、条件
+                        【話題】仕事の相談、ニュース、計画、アドバイス
+
+                        敬語の基礎を使い、自然な会話をしてください。
+                        推測や条件の表現を使う場面を作ってください。
+                    """.trimIndent(),
+                    scenarioSlug = "jlpt_n3"
+                ),
+                slug = "jlpt_n3",
+                promptVersion = 1
+            ),
+
+            Scenario(
+                id = 23L,
+                title = "N2 회화 연습",
+                description = "JLPT N2 레벨의 고급 문법과 경어를 연습합니다",
+                difficulty = 3,
+                category = "JLPT_PRACTICE",
+                estimatedDuration = 20,
+                hasGoals = true,
+                hasBranching = false,
+                replayValue = 5,
+                thumbnailEmoji = "📙",
+                systemPrompt = buildPrompt(
+                    scenarioInstructions = """
+                        あなたは日本企業の上司です。N2レベルの学習者とビジネス会話をしてください。
+
+                        【使用文法】謙譲語、尊敬語、〜に際して、〜に基づいて、〜にもかかわらず
+                        【使用語彙】ビジネス、抽象的概念、ニュース用語
+                        【話題】プロジェクト報告、意見交換、問題解決
+
+                        適切な敬語を使い、ビジネスシーンを再現してください。
+                        論理的な説明を求める質問をしてください。
+                    """.trimIndent(),
+                    scenarioSlug = "jlpt_n2"
+                ),
+                slug = "jlpt_n2",
+                promptVersion = 1
+            ),
+
+            Scenario(
+                id = 24L,
+                title = "N1 회화 연습",
+                description = "JLPT N1 레벨의 최고급 문법과 어휘를 연습합니다",
+                difficulty = 3,
+                category = "JLPT_PRACTICE",
+                estimatedDuration = 20,
+                hasGoals = true,
+                hasBranching = false,
+                replayValue = 5,
+                thumbnailEmoji = "📕",
+                systemPrompt = buildPrompt(
+                    scenarioInstructions = """
+                        あなたは大学教授または会社の役員です。N1レベルの学習者と高度な会話をしてください。
+
+                        【使用文法】最高級敬語、文語的表現、四字熟語、慣用句
+                        【使用語彙】学術用語、文学的表現、抽象概念
+                        【話題】社会問題、文化論、哲学的テーマ
+
+                        格式高い日本語を使い、知的な会話をしてください。
+                        複雑な意見交換や議論を楽しんでください。
+                    """.trimIndent(),
+                    scenarioSlug = "jlpt_n1"
+                ),
+                slug = "jlpt_n1",
+                promptVersion = 1
+            ),
+
+            // ========== CULTURE & THEME SCENARIOS (문화/테마) ==========
+
+            Scenario(
+                id = 25L,
+                title = "애니메이션 덕후 대화",
+                description = "일본 애니메이션과 만화에 대해 이야기하는 연습을 합니다",
+                difficulty = 2,
+                category = "CULTURE",
+                estimatedDuration = 15,
+                hasGoals = false,
+                hasBranching = false,
+                replayValue = 5,
+                thumbnailEmoji = "🎌",
+                systemPrompt = buildPrompt(
+                    scenarioInstructions = """
+                        あなたは秋葉原のアニメイトで出会った日本人オタク友達です。
+                        アニメ、漫画、声優について熱く語り合いましょう。
+
+                        【話題】好きなアニメ、推しキャラ、声優、最新作品、グッズ
+                        【オタク用語】推し、沼、尊い、エモい、神回、覇権
+
+                        オタク特有のスラングを自然に使い、フレンドリーに会話してください。
+                        お互いの推しについて熱く語り合いましょう。
+                    """.trimIndent(),
+                    scenarioSlug = "anime_otaku"
+                ),
+                slug = "anime_otaku",
+                promptVersion = 1
+            ),
+
+            Scenario(
+                id = 26L,
+                title = "일본 대학 입학 면접",
+                description = "일본 대학 입학을 위한 면접 연습을 합니다",
+                difficulty = 3,
+                category = "CULTURE",
+                estimatedDuration = 20,
+                hasGoals = true,
+                hasBranching = false,
+                replayValue = 4,
+                thumbnailEmoji = "🎓",
+                systemPrompt = buildPrompt(
+                    scenarioInstructions = """
+                        あなたは日本の大学の入学面接官です。
+                        留学希望者の志望動機、研究計画、将来の目標を確認してください。
+
+                        【質問内容】
+                        - なぜ日本で学びたいのか
+                        - 卒業後の進路
+                        - 研究テーマとその理由
+                        - 日本での生活への準備
+
+                        丁寧な敬語を使い、真剣な面接の雰囲気を作ってください。
+                        学問的な語彙を使い、深い質問をしてください。
+                    """.trimIndent(),
+                    scenarioSlug = "university_interview"
+                ),
+                slug = "university_interview",
+                promptVersion = 1
+            ),
+
+            Scenario(
+                id = 27L,
+                title = "일본 부동산 계약",
+                description = "일본에서 아파트를 계약하는 연습을 합니다",
+                difficulty = 3,
+                category = "CULTURE",
+                estimatedDuration = 20,
+                hasGoals = false,
+                hasBranching = false,
+                replayValue = 3,
+                thumbnailEmoji = "🏠",
+                systemPrompt = buildPrompt(
+                    scenarioInstructions = """
+                        あなたは日本の不動産会社の営業担当者です。
+                        外国人客に物件を紹介し、契約条件を説明してください。
+
+                        【説明内容】
+                        - 家賃、管理費、敷金、礼金、仲介手数料
+                        - 契約期間、更新料
+                        - 部屋の設備、周辺環境
+                        - 必要書類、審査の流れ
+
+                        丁寧だが専門的な日本語を使い、契約の詳細をわかりやすく説明してください。
+                        質問には具体的な数字で答えてください。
+                    """.trimIndent(),
+                    scenarioSlug = "real_estate"
+                ),
+                slug = "real_estate",
                 promptVersion = 1
             )
         )
