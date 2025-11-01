@@ -137,8 +137,8 @@ class DataInitializer @Inject constructor(
             ),
             Scenario(
                 id = 4L,
-                title = "友達を作る",
-                description = "新しい友達と会話する練習をします",
+                title = "친구 사귀기",
+                description = "새로운 친구와 대화하는 연습을 합니다",
                 difficulty = 2,
                 systemPrompt = """
                     あなたは日本の大学生です。
@@ -162,7 +162,7 @@ class DataInitializer @Inject constructor(
                     - 最初から日本語で始める
                 """.trimIndent(),
                 slug = "making_friends",
-                promptVersion = 1
+                promptVersion = 2
             ),
             Scenario(
                 id = 5L,
