@@ -2094,6 +2094,237 @@ fun analyzeSentence(sentence: String, userLevel: Int = 1): GrammarExplanation {
 
 ---
 
+### 🚀 Phase 6A: 메모리 관리 시스템 (Memory Management)
+
+**문제**: 메모리 압박 감지 불가, 정적 설정, OutOfMemoryError 위험
+
+**해결**:
+
+#### 1. NihongoApp - 라이프사이클 후킹
+```kotlin
+override fun onTrimMemory(level: Int) {
+    super.onTrimMemory(level)
+    memoryManager.onTrimMemory(level)
+
+    val levelName = when (level) {
+        TRIM_MEMORY_RUNNING_CRITICAL -> "RUNNING_CRITICAL"
+        TRIM_MEMORY_RUNNING_LOW -> "RUNNING_LOW"
+        // ...
+    }
+    Log.w(TAG, "onTrimMemory: $levelName → MemoryLevel: ${memoryManager.memoryLevel.value}")
+}
+```
+
+**효과**: 시스템 메모리 압박 신호를 MemoryManager로 전달
+
+#### 2. MemoryManager - Reactive Config
+```kotlin
+// Reactive memory config
+val memoryConfigFlow: StateFlow<MemoryConfig>
+
+private fun updateMemoryConfig(level: MemoryLevel) {
+    val baseConfig = _baseMemoryConfig.value
+    val newConfig = when (level) {
+        MemoryLevel.CRITICAL -> MemoryConfig(
+            maxMessageHistory = (baseConfig.maxMessageHistory * 0.3).toInt(),  // 70% 감소
+            maxCacheSize = (baseConfig.maxCacheSize * 0.3).toInt(),
+            // ...
+        )
+        MemoryLevel.LOW -> MemoryConfig(
+            maxMessageHistory = (baseConfig.maxMessageHistory * 0.5).toInt(),  // 50% 감소
+            // ...
+        )
+        MemoryLevel.NORMAL -> baseConfig
+    }
+    _memoryConfigFlow.value = newConfig
+}
+
+// 개선된 디바이스 판별
+private fun calculateBaseMemoryConfig(): MemoryConfig {
+    val isLowRamDevice = activityManager.isLowRamDevice
+    val memoryClass = activityManager.memoryClass
+    val availableRatio = availableMemoryMB.toFloat() / totalMemoryMB
+
+    return when {
+        availableRatio < 0.1f -> MemoryConfig(/* 최소 설정 */)
+        isLowRamDevice -> MemoryConfig(/* 보수적 설정 */)
+        memoryClass < 128 -> MemoryConfig(/* 기본 설정 */)
+        totalMemoryMB < 4096 -> MemoryConfig(/* 표준 설정 */)
+        else -> MemoryConfig(/* 최대 설정 */)
+    }
+}
+```
+
+**효과**:
+- 메모리 압박 수준에 따라 실시간 설정 조정
+- `isLowRamDevice`, `memoryClass`, available 비율 고려
+- Force GC를 디버그 빌드 전용으로 제한
+
+#### 3. ChatViewModel - Memory Pressure 대응
+```kotlin
+private fun observeMemoryPressure() {
+    // Config 변경 구독
+    memoryConfigJob = viewModelScope.launch {
+        memoryManager.memoryConfigFlow.collect { config ->
+            _uiState.update { state ->
+                if (state.messages.size > config.maxMessageHistory) {
+                    state.copy(
+                        messages = state.messages.items.takeLast(config.maxMessageHistory).toImmutableList()
+                    )
+                } else state
+            }
+        }
+    }
+
+    // Memory level 구독
+    memoryLevelJob = viewModelScope.launch {
+        memoryManager.memoryLevel.collect { level ->
+            when (level) {
+                MemoryLevel.CRITICAL -> {
+                    // 모든 캐시 클리어
+                    _uiState.update {
+                        it.copy(
+                            grammarCache = ImmutableMap.empty(),
+                            translations = ImmutableMap.empty()
+                        )
+                    }
+                    LocalGrammarAnalyzer.clearCache()
+                }
+                MemoryLevel.LOW -> {
+                    // 캐시 50% trim
+                    // ...
+                }
+            }
+        }
+    }
+}
+```
+
+**효과**: 메모리 압박 시 자동으로 캐시 정리, 메시지 제한
+
+#### 4. LocalGrammarAnalyzer - 캐시 관리
+```kotlin
+@Synchronized
+fun trimCache(targetSize: Int) {
+    synchronized(cache) {
+        if (cache.size > targetSize) {
+            val entriesToRemove = cache.size - targetSize
+            val keysToRemove = cache.keys.take(entriesToRemove)
+            keysToRemove.forEach { cache.remove(it) }
+        }
+    }
+}
+
+@Synchronized
+fun clearCache() {
+    synchronized(cache) {
+        cache.clear()
+    }
+}
+```
+
+#### 5. GeminiApiService - 동적 히스토리 제한
+```kotlin
+private fun optimizeHistory(history: List<Pair<String, Boolean>>): List<Pair<String, Boolean>> {
+    val limit = when (memoryManager.memoryLevel.value) {
+        MemoryLevel.CRITICAL -> MAX_HISTORY_MESSAGES / 2  // 10개
+        MemoryLevel.LOW -> (MAX_HISTORY_MESSAGES * 0.7).toInt()  // 14개
+        MemoryLevel.NORMAL -> MAX_HISTORY_MESSAGES  // 20개
+    }
+
+    return history.takeLast(limit).map { /* ... */ }
+}
+```
+
+**효과**: 메모리 부족 시 Gemini API 페이로드 자동 감소
+
+---
+
+### 🌐 Phase 6B-1: NetworkMonitor 개선
+
+**문제**: 여러 collector → 중복 콜백, VALIDATED 상태 변경 미감지, 네트워크 flapping
+
+**해결**:
+
+#### Hot StateFlow로 전환
+```kotlin
+@OptIn(FlowPreview::class)
+@Singleton
+class NetworkMonitor @Inject constructor(
+    @ApplicationContext private val context: Context
+) {
+    private val scope = CoroutineScope(SupervisorJob() + Dispatchers.Default)
+
+    val isOnline: StateFlow<Boolean> = callbackFlow {
+        val callback = object : ConnectivityManager.NetworkCallback() {
+            // onCapabilitiesChanged 추가
+            override fun onCapabilitiesChanged(network: Network, capabilities: NetworkCapabilities) {
+                val isValidated = capabilities.hasCapability(NET_CAPABILITY_VALIDATED) &&
+                        capabilities.hasCapability(NET_CAPABILITY_INTERNET)
+
+                val isOnline = networks.isNotEmpty() && isValidated
+                trySend(isOnline)
+            }
+
+            override fun onAvailable(network: Network) {
+                networks.add(network)
+                // VALIDATED 될 때까지 대기
+            }
+
+            override fun onLost(network: Network) {
+                networks.remove(network)
+                trySend(networks.isNotEmpty())
+            }
+        }
+
+        connectivityManager.registerNetworkCallback(request, callback)
+        // ...
+    }
+    .debounce(300)  // 300ms debounce로 flapping 방지
+    .distinctUntilChanged()
+    .stateIn(
+        scope = scope,
+        started = SharingStarted.Eagerly,  // 단일 콜백 유지
+        initialValue = isCurrentlyOnline()
+    )
+}
+```
+
+**효과**:
+- 앱 전체에서 단일 네트워크 콜백 공유 → 리소스 절약
+- VALIDATED 상태 변경 실시간 감지 → 정확한 온라인 상태
+- Debounce로 불안정한 네트워크에서 flapping 방지
+
+---
+
+### 📊 Phase 6 성능 개선 요약
+
+| 항목 | 이전 | 개선 후 | 효과 |
+|------|------|---------|------|
+| 메모리 압박 감지 | 불가능 | 실시간 감지 및 대응 | OOM 방지 |
+| 메모리 설정 | 정적 (한 번만 읽음) | 동적 (압박에 따라 조정) | 적응형 메모리 관리 |
+| 캐시 관리 | 무제한 증가 | CRITICAL → 전체 클리어<br>LOW → 50% trim | 메모리 안정화 |
+| API 페이로드 | 고정 20개 | CRITICAL 시 10개로 감소 | 네트워크 부하 감소 |
+| 네트워크 콜백 | Collector당 1개 | 앱 전체 1개 공유 | 리소스 절약 |
+| 네트워크 flapping | 매번 emit | 300ms debounce | UI 안정성 |
+| VALIDATED 감지 | onAvailable만 | onCapabilitiesChanged | 정확한 상태 |
+
+---
+
+### 📁 수정된 파일 (Phase 6A, 6B-1)
+
+**Phase 6A:**
+- `app/src/main/java/com/nihongo/conversation/NihongoApp.kt`
+- `app/src/main/java/com/nihongo/conversation/core/memory/MemoryManager.kt`
+- `app/src/main/java/com/nihongo/conversation/presentation/chat/ChatViewModel.kt`
+- `app/src/main/java/com/nihongo/conversation/core/grammar/LocalGrammarAnalyzer.kt`
+- `app/src/main/java/com/nihongo/conversation/data/remote/GeminiApiService.kt`
+
+**Phase 6B-1:**
+- `app/src/main/java/com/nihongo/conversation/core/network/NetworkMonitor.kt`
+
+---
+
 ## 🆕 최신 업데이트 (2025-10-29 Part 2) - 발음 연습 및 학습 관리 시스템
 
 ### ✨ 새로운 기능

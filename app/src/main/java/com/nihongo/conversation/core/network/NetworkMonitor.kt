@@ -17,6 +17,7 @@ import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.callbackFlow
+import kotlinx.coroutines.FlowPreview
 import kotlinx.coroutines.flow.debounce
 import kotlinx.coroutines.flow.distinctUntilChanged
 import kotlinx.coroutines.flow.stateIn
@@ -32,6 +33,7 @@ import javax.inject.Singleton
  * - Debounce to prevent flapping on unstable networks
  */
 @Singleton
+@OptIn(FlowPreview::class)  // Phase 6B-1: debounce is preview API
 class NetworkMonitor @Inject constructor(
     @ApplicationContext private val context: Context
 ) {
