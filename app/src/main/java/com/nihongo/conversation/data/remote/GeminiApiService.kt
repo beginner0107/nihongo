@@ -17,6 +17,7 @@ import javax.inject.Inject
 import javax.inject.Singleton
 import com.google.ai.client.generativeai.type.RequestOptions
 import kotlin.time.Duration.Companion.seconds
+import java.util.concurrent.ConcurrentHashMap
 
 @Singleton
 class GeminiApiService @Inject constructor(
@@ -67,7 +68,7 @@ class GeminiApiService @Inject constructor(
     }
 
     // Response cache for common phrases
-    private val responseCache = mutableMapOf<String, String>()
+    private val responseCache = ConcurrentHashMap<String, String>()
     private val commonGreetings = mapOf(
         "こんにちは" to "こんにちは！今日はいい天気ですね。",
         "おはよう" to "おはようございます！よく眠れましたか？",
@@ -123,7 +124,7 @@ class GeminiApiService @Inject constructor(
             val rawText = response.text ?: "エラーが発生しました"
             cleanResponseText(rawText)
         } catch (e: Exception) {
-            throw Exception("Failed to get response from Gemini: ${e.message}")
+            throw Exception("Failed to get response from Gemini", e)
         }
     }
 
@@ -155,13 +156,13 @@ class GeminiApiService @Inject constructor(
             // Check offline cache
             val cacheKey = "$message|${conversationHistory.size}"
             offlineManager.getCachedResponse(cacheKey)?.let { cachedResponse ->
-                emit(cachedResponse)
+                emit(cleanResponseText(cachedResponse))
                 return@flow
             }
 
             // Check memory cache (faster than DataStore)
             responseCache[cacheKey]?.let { cachedResponse ->
-                emit(cachedResponse)
+                emit(cleanResponseText(cachedResponse))
                 return@flow
             }
 
@@ -197,14 +198,16 @@ class GeminiApiService @Inject constructor(
                 emit(cleanResponseText(text))
             }
 
-            // Cache the full response in both caches
+            // Cache the full response (cleaned) in both caches
             val finalResponse = fullResponse.toString()
-            responseCache[cacheKey] = finalResponse
-            offlineManager.cacheResponse(cacheKey, finalResponse)
+            val finalCleaned = cleanResponseText(finalResponse)
+            responseCache[cacheKey] = finalCleaned
+            offlineManager.cacheResponse(cacheKey, finalCleaned)
 
             // Keep memory cache size manageable
             if (responseCache.size > 50) {
-                responseCache.remove(responseCache.keys.first())
+                val firstKey = responseCache.keys.firstOrNull()
+                if (firstKey != null) responseCache.remove(firstKey)
             }
 
         } catch (e: Exception) {
@@ -239,8 +242,10 @@ class GeminiApiService @Inject constructor(
      */
     private fun optimizeSystemPrompt(prompt: String): String {
         val optimized = prompt
-            .replace(Regex("\\s+"), " ")  // Remove extra whitespace
-            .replace(Regex("\\n+"), "\n")  // Remove multiple newlines
+            // First collapse multiple newlines but preserve line breaks
+            .replace(Regex("\\n+"), "\n")
+            // Then collapse runs of spaces/tabs etc. (not newlines)
+            .replace(Regex("[ \t\x0B\f\r]+"), " ")
             .trim()
 
         // Truncate if exceeds maximum length
@@ -300,7 +305,19 @@ class GeminiApiService @Inject constructor(
         """.trimIndent()
 
         return try {
-            val response = model?.generateContent(batchPrompt)
+            // Fail fast if API key/model unavailable
+            if (model == null) {
+                return BatchResponse(
+                    grammar = null,
+                    hints = emptyList(),
+                    translation = null,
+                    error = missingApiKeyMessage
+                )
+            }
+
+            val response = kotlinx.coroutines.withTimeout(10000) {
+                model.generateContent(batchPrompt)
+            }
             parseBatchResponse(response?.text ?: "{}", sentence, conversationContext)
         } catch (e: Exception) {
             BatchResponse(
@@ -657,7 +674,7 @@ class GeminiApiService @Inject constructor(
                 components.add(
                     GrammarComponent(
                         text = compObj.getString("text"),
-                        type = GrammarType.valueOf(compObj.getString("type")),
+                        type = parseGrammarType(compObj.getString("type")),
                         explanation = compObj.getString("explanation"),
                         startIndex = compObj.getInt("startIndex"),
                         endIndex = compObj.getInt("endIndex")
@@ -922,14 +939,14 @@ class GeminiApiService @Inject constructor(
         history: List<Pair<String, Boolean>>,
         systemPrompt: String
     ) = buildList {
-        // Add initial system prompt
+        // Add initial instruction as a user message (acts as guidance)
         add(
-            content("model") {
+            content("user") {
                 text(systemPrompt)
             }
         )
 
-        // Short reminder for long conversations (invisible to user, reinforces rules)
+        // Short reminder for long conversations (acts as guidance)
         val reminderPrompt = """
             REMINDER: Output ONLY Japanese dialogue. NO English, NO thinking, NO explanations.
             絶対厳守：日本語の会話文のみ。英語禁止、思考過程禁止。
@@ -946,11 +963,17 @@ class GeminiApiService @Inject constructor(
             // Every 8 messages, inject a reminder (but not too close to the end)
             if (index > 0 && index % 8 == 0 && index < history.size - 2) {
                 add(
-                    content("model") {
+                    content("user") {
                         text(reminderPrompt)
                     }
                 )
             }
         }
     }
+}
+
+private fun parseGrammarType(typeStr: String?): GrammarType {
+    val normalized = typeStr?.trim()?.uppercase() ?: return GrammarType.EXPRESSION
+    return GrammarType.values().firstOrNull { it.name.equals(normalized, ignoreCase = true) }
+        ?: GrammarType.EXPRESSION
 }
