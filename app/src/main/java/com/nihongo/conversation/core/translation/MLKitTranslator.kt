@@ -14,6 +14,8 @@ import kotlinx.coroutines.channels.awaitClose
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.callbackFlow
 import kotlinx.coroutines.suspendCancellableCoroutine
+import kotlinx.coroutines.sync.Mutex
+import kotlinx.coroutines.sync.withLock
 import kotlinx.coroutines.tasks.await
 import javax.inject.Inject
 import javax.inject.Singleton
@@ -39,25 +41,40 @@ class MLKitTranslator @Inject constructor(
     // Japanese to Korean translator
     private var translator: Translator? = null
 
+    // Mutex to guard initialization
+    private val initMutex = Mutex()
+
+    // Simple in-memory LRU cache (100 entries)
+    private val translationCache = object : LinkedHashMap<String, String>(100, 0.75f, true) {
+        override fun removeEldestEntry(eldest: MutableMap.MutableEntry<String, String>?): Boolean {
+            return size > 100
+        }
+    }
+
     private val options = TranslatorOptions.Builder()
         .setSourceLanguage(TranslateLanguage.JAPANESE)
         .setTargetLanguage(TranslateLanguage.KOREAN)
         .build()
 
-    private val jaKoModel = TranslateRemoteModel.Builder(TranslateLanguage.JAPANESE).build()
+    private val jaModel = TranslateRemoteModel.Builder(TranslateLanguage.JAPANESE).build()
+    private val koModel = TranslateRemoteModel.Builder(TranslateLanguage.KOREAN).build()
     private val modelManager = RemoteModelManager.getInstance()
 
     /**
-     * Check if the translation model is downloaded
+     * Check if both translation models (Japanese and Korean) are downloaded
+     * Both languages are required for JP→KR translation to work
      */
     suspend fun isModelDownloaded(): Boolean {
         return try {
             val downloadedModels = modelManager.getDownloadedModels(TranslateRemoteModel::class.java).await()
-            val isDownloaded = downloadedModels.any {
-                it.language == TranslateLanguage.JAPANESE
-            }
-            Log.d(TAG, "Model downloaded: $isDownloaded")
-            isDownloaded
+            val downloadedLanguages = downloadedModels.map { it.language }.toSet()
+
+            val hasJapanese = TranslateLanguage.JAPANESE in downloadedLanguages
+            val hasKorean = TranslateLanguage.KOREAN in downloadedLanguages
+            val bothDownloaded = hasJapanese && hasKorean
+
+            Log.d(TAG, "Model status - JP: $hasJapanese, KR: $hasKorean, Both: $bothDownloaded")
+            bothDownloaded
         } catch (e: Exception) {
             Log.e(TAG, "Error checking model status", e)
             false
@@ -68,11 +85,19 @@ class MLKitTranslator @Inject constructor(
      * Initialize translator (downloads model if needed)
      * Call this on app start with WiFi connection
      *
+     * Thread-safe: Uses mutex to prevent concurrent initialization
+     *
      * @param downloadIfNeeded If true, downloads model automatically
      * @return Result indicating success or failure
      */
-    suspend fun initialize(downloadIfNeeded: Boolean = true): Result<Unit> {
-        return try {
+    suspend fun initialize(downloadIfNeeded: Boolean = true): Result<Unit> = initMutex.withLock {
+        return@withLock try {
+            // If already initialized, return success
+            if (translator != null) {
+                Log.d(TAG, "Translator already initialized")
+                return@withLock Result.success(Unit)
+            }
+
             Log.d(TAG, "Initializing translator...")
 
             // Check if model is already downloaded
@@ -83,7 +108,7 @@ class MLKitTranslator @Inject constructor(
                 downloadModel()
             } else if (!isDownloaded) {
                 Log.w(TAG, "Model not downloaded and auto-download disabled")
-                return Result.failure(Exception("번역 모델이 다운로드되지 않았습니다"))
+                return@withLock Result.failure(Exception("번역 모델이 다운로드되지 않았습니다"))
             }
 
             // Create translator instance
@@ -109,6 +134,8 @@ class MLKitTranslator @Inject constructor(
     /**
      * Translate Japanese text to Korean
      *
+     * Uses LRU cache to accelerate repeated phrases (100 entries max)
+     *
      * @param japaneseText Text to translate
      * @return Translated Korean text
      * @throws Exception if translation fails or model not ready
@@ -119,6 +146,15 @@ class MLKitTranslator @Inject constructor(
         try {
             if (japaneseText.isBlank()) {
                 throw IllegalArgumentException("빈 텍스트는 번역할 수 없습니다")
+            }
+
+            // Check cache first
+            synchronized(translationCache) {
+                translationCache[japaneseText]?.let { cached ->
+                    val elapsed = System.currentTimeMillis() - startTime
+                    Log.d(TAG, "Cache hit: '$japaneseText' → '$cached' (${elapsed}ms)")
+                    return cached
+                }
             }
 
             // Ensure translator is initialized
@@ -136,6 +172,12 @@ class MLKitTranslator @Inject constructor(
                     .addOnSuccessListener { translatedText ->
                         val elapsed = System.currentTimeMillis() - startTime
                         Log.d(TAG, "Translation success: '$translatedText' (${elapsed}ms)")
+
+                        // Add to cache
+                        synchronized(translationCache) {
+                            translationCache[japaneseText] = translatedText
+                        }
+
                         continuation.resume(translatedText)
                     }
                     .addOnFailureListener { exception ->
@@ -203,18 +245,40 @@ class MLKitTranslator @Inject constructor(
     }
 
     /**
-     * Delete the downloaded model to free up space (~50MB)
+     * Delete both downloaded models (Japanese and Korean) to free up space (~100MB)
      */
     suspend fun deleteModel(): Result<Unit> {
         return try {
-            Log.d(TAG, "Deleting translation model...")
-            modelManager.deleteDownloadedModel(jaKoModel).await()
+            Log.d(TAG, "Deleting translation models (JP + KR)...")
+
+            // Delete Japanese model
+            try {
+                modelManager.deleteDownloadedModel(jaModel).await()
+                Log.d(TAG, "Japanese model deleted")
+            } catch (e: Exception) {
+                Log.w(TAG, "Failed to delete Japanese model (may not exist)", e)
+            }
+
+            // Delete Korean model
+            try {
+                modelManager.deleteDownloadedModel(koModel).await()
+                Log.d(TAG, "Korean model deleted")
+            } catch (e: Exception) {
+                Log.w(TAG, "Failed to delete Korean model (may not exist)", e)
+            }
+
+            // Close translator and clear cache
             translator?.close()
             translator = null
-            Log.d(TAG, "Model deleted successfully")
+
+            synchronized(translationCache) {
+                translationCache.clear()
+            }
+
+            Log.d(TAG, "Models deleted successfully, cache cleared")
             Result.success(Unit)
         } catch (e: Exception) {
-            Log.e(TAG, "Failed to delete model", e)
+            Log.e(TAG, "Failed to delete models", e)
             Result.failure(e)
         }
     }
@@ -236,7 +300,27 @@ class MLKitTranslator @Inject constructor(
      * Get model size information
      */
     fun getModelSize(): String {
-        return "약 50MB" // Japanese model is approximately 50MB
+        return "약 100MB" // Japanese + Korean models are approximately 100MB total
+    }
+
+    /**
+     * Get cache statistics
+     */
+    fun getCacheStats(): String {
+        synchronized(translationCache) {
+            return "Cache: ${translationCache.size}/100 entries"
+        }
+    }
+
+    /**
+     * Clear translation cache
+     */
+    fun clearCache() {
+        synchronized(translationCache) {
+            val size = translationCache.size
+            translationCache.clear()
+            Log.d(TAG, "Cache cleared: $size entries removed")
+        }
     }
 }
 
