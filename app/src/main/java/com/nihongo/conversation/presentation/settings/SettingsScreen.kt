@@ -298,27 +298,22 @@ fun SpeechSpeedSlider(
             steps = 14  // 0.5, 0.6, 0.7, ..., 2.0
         )
 
-        Box(
-            modifier = Modifier.fillMaxWidth()
+        Row(
+            modifier = Modifier.fillMaxWidth(),
+            horizontalArrangement = Arrangement.SpaceBetween
         ) {
             Text(
                 text = "느림 (0.5x)",
-                modifier = Modifier.align(Alignment.CenterStart),
                 style = MaterialTheme.typography.bodySmall,
                 color = MaterialTheme.colorScheme.onSurfaceVariant
             )
             Text(
                 text = "보통 (1.0x)",
-                modifier = Modifier
-                    .align(Alignment.CenterStart)
-                    .fillMaxWidth(0.333f),  // 1.0 is at 1/3 position (0.5 to 2.0)
                 style = MaterialTheme.typography.bodySmall,
-                color = MaterialTheme.colorScheme.onSurfaceVariant,
-                textAlign = TextAlign.End
+                color = MaterialTheme.colorScheme.onSurfaceVariant
             )
             Text(
                 text = "빠름 (2.0x)",
-                modifier = Modifier.align(Alignment.CenterEnd),
                 style = MaterialTheme.typography.bodySmall,
                 color = MaterialTheme.colorScheme.onSurfaceVariant
             )
