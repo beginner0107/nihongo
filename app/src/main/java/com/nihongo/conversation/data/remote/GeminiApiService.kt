@@ -22,7 +22,8 @@ import java.util.concurrent.ConcurrentHashMap
 @Singleton
 class GeminiApiService @Inject constructor(
     private val networkMonitor: NetworkMonitor,
-    private val offlineManager: OfflineManager
+    private val offlineManager: OfflineManager,
+    private val memoryManager: com.nihongo.conversation.core.memory.MemoryManager  // Phase 6A
 ) {
 
     // Request options with 10 second timeout
@@ -217,14 +218,24 @@ class GeminiApiService @Inject constructor(
     }
 
     /**
-     * Optimize conversation history to reduce payload size
-     * - Keep only last N messages
+     * Phase 6A: Optimize conversation history with dynamic limits based on memory pressure
+     * - Keep only last N messages (adjusted by memory level)
      * - Truncate long messages
      * - Remove unnecessary whitespace
      */
     private fun optimizeHistory(history: List<Pair<String, Boolean>>): List<Pair<String, Boolean>> {
+        // Phase 6A: Dynamic limit based on memory pressure
+        val limit = when (memoryManager.memoryLevel.value) {
+            com.nihongo.conversation.core.memory.MemoryManager.MemoryLevel.CRITICAL ->
+                MAX_HISTORY_MESSAGES / 2  // 10 messages
+            com.nihongo.conversation.core.memory.MemoryManager.MemoryLevel.LOW ->
+                (MAX_HISTORY_MESSAGES * 0.7).toInt()  // 14 messages
+            com.nihongo.conversation.core.memory.MemoryManager.MemoryLevel.NORMAL ->
+                MAX_HISTORY_MESSAGES  // 20 messages
+        }
+
         return history
-            .takeLast(MAX_HISTORY_MESSAGES)  // Keep only recent messages
+            .takeLast(limit)  // Keep only recent messages
             .map { (text, isUser) ->
                 val truncated = if (text.length > MAX_CONTEXT_LENGTH) {
                     text.take(MAX_CONTEXT_LENGTH) + "..."

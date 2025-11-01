@@ -124,14 +124,18 @@ class ChatViewModel @Inject constructor(
     private var profileFlowJob: Job? = null
     private var voiceEventsJob: Job? = null
     private var messagesFlowJob: Job? = null
+    private var memoryConfigJob: Job? = null  // Phase 6A
+    private var memoryLevelJob: Job? = null    // Phase 6A
 
-    // Memory config based on device capabilities
+    // Phase 6A: Use reactive memory config (deprecated static config)
+    @Suppress("DEPRECATION")
     private val memoryConfig = memoryManager.getMemoryConfig()
 
     init {
         observeVoiceEvents()
         observeSettings()
         observeUserProfile()
+        observeMemoryPressure()  // Phase 6A
     }
 
     private fun observeSettings() {
@@ -1046,6 +1050,97 @@ class ChatViewModel @Inject constructor(
         }
     }
 
+    /**
+     * Phase 6A: Observe memory pressure and react to it
+     */
+    private fun observeMemoryPressure() {
+        // Observe memory config changes
+        memoryConfigJob = viewModelScope.launch {
+            memoryManager.memoryConfigFlow.collect { config ->
+                // Trim messages if current count exceeds new limit
+                _uiState.update { state ->
+                    if (state.messages.size > config.maxMessageHistory) {
+                        android.util.Log.w("ChatViewModel",
+                            "Memory config changed - trimming messages: ${state.messages.size} → ${config.maxMessageHistory}")
+                        state.copy(
+                            messages = state.messages.items.takeLast(config.maxMessageHistory).toImmutableList()
+                        )
+                    } else {
+                        state
+                    }
+                }
+            }
+        }
+
+        // Observe memory level for cache trimming
+        memoryLevelJob = viewModelScope.launch {
+            memoryManager.memoryLevel.collect { level ->
+                when (level) {
+                    MemoryManager.MemoryLevel.CRITICAL -> {
+                        android.util.Log.w("ChatViewModel", "CRITICAL memory pressure - clearing all caches")
+                        // Clear grammar cache
+                        _uiState.update {
+                            it.copy(
+                                grammarCache = ImmutableMap.empty(),
+                                translations = ImmutableMap.empty(),
+                                translationErrors = ImmutableMap.empty()
+                            )
+                        }
+                        // Clear LocalGrammarAnalyzer cache
+                        com.nihongo.conversation.core.grammar.LocalGrammarAnalyzer.clearCache()
+                    }
+                    MemoryManager.MemoryLevel.LOW -> {
+                        android.util.Log.w("ChatViewModel", "LOW memory pressure - trimming caches")
+                        val currentConfig = memoryManager.memoryConfigFlow.value
+
+                        // Trim grammar cache to 50%
+                        _uiState.update { state ->
+                            val grammarCacheSize = state.grammarCache.items.size
+                            val targetSize = (currentConfig.maxCacheSize * 0.5).toInt()
+
+                            if (grammarCacheSize > targetSize) {
+                                val trimmedGrammar = state.grammarCache.items.entries
+                                    .drop(grammarCacheSize - targetSize)
+                                    .associate { it.key to it.value }
+
+                                state.copy(
+                                    grammarCache = trimmedGrammar.toImmutableMap()
+                                )
+                            } else {
+                                state
+                            }
+                        }
+
+                        // Trim LocalGrammarAnalyzer cache
+                        val targetSize = (currentConfig.maxCacheSize * 0.5).toInt()
+                        com.nihongo.conversation.core.grammar.LocalGrammarAnalyzer.trimCache(targetSize)
+
+                        // Clear oldest translations (keep 50%)
+                        _uiState.update { state ->
+                            val translationCount = state.translations.items.size
+                            if (translationCount > 10) {
+                                val toKeep = translationCount / 2
+                                val keptTranslations = state.translations.items.entries
+                                    .sortedByDescending { it.key }  // Keep most recent
+                                    .take(toKeep)
+                                    .associate { it.key to it.value }
+
+                                state.copy(
+                                    translations = keptTranslations.toImmutableMap()
+                                )
+                            } else {
+                                state
+                            }
+                        }
+                    }
+                    MemoryManager.MemoryLevel.NORMAL -> {
+                        // Normal operation - no action needed
+                    }
+                }
+            }
+        }
+    }
+
     override fun onCleared() {
         super.onCleared()
 
@@ -1054,6 +1149,8 @@ class ChatViewModel @Inject constructor(
         profileFlowJob?.cancel()
         voiceEventsJob?.cancel()
         messagesFlowJob?.cancel()
+        memoryConfigJob?.cancel()  // Phase 6A
+        memoryLevelJob?.cancel()    // Phase 6A
 
         // Clear all caches to free memory
         _uiState.update {

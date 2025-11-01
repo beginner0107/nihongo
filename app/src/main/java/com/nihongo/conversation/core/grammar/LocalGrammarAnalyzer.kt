@@ -288,6 +288,43 @@ object LocalGrammarAnalyzer {
     }
 
     /**
+     * Phase 6A: Trim cache to target size (memory pressure response)
+     */
+    @Synchronized
+    fun trimCache(targetSize: Int) {
+        synchronized(cache) {
+            if (cache.size > targetSize) {
+                // Remove oldest entries (LRU will automatically evict on access)
+                val entriesToRemove = cache.size - targetSize
+                val keysToRemove = cache.keys.take(entriesToRemove)
+                keysToRemove.forEach { cache.remove(it) }
+                android.util.Log.d("LocalGrammarAnalyzer", "Cache trimmed: ${cache.size} entries (removed $entriesToRemove)")
+            }
+        }
+    }
+
+    /**
+     * Phase 6A: Clear all cache entries (critical memory pressure)
+     */
+    @Synchronized
+    fun clearCache() {
+        synchronized(cache) {
+            val previousSize = cache.size
+            cache.clear()
+            android.util.Log.d("LocalGrammarAnalyzer", "Cache cleared: $previousSize entries removed")
+        }
+    }
+
+    /**
+     * Get current cache size (for monitoring)
+     */
+    fun getCacheSize(): Int {
+        synchronized(cache) {
+            return cache.size
+        }
+    }
+
+    /**
      * Generate overall explanation based on sentence structure
      */
     private fun generateOverallExplanation(
