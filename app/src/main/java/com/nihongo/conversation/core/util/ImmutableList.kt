@@ -16,9 +16,10 @@ value class ImmutableList<T>(val items: List<T>) : List<T> by items {
 }
 
 /**
- * Convert List to ImmutableList
+ * Convert List to ImmutableList with defensive copy
+ * Creates a new list to prevent external mutations
  */
-fun <T> List<T>.toImmutableList(): ImmutableList<T> = ImmutableList(this)
+fun <T> List<T>.toImmutableList(): ImmutableList<T> = ImmutableList(this.toList())
 
 /**
  * Immutable wrapper for Map to prevent unnecessary recompositions
@@ -32,9 +33,10 @@ value class ImmutableMap<K, V>(val items: Map<K, V>) : Map<K, V> by items {
 }
 
 /**
- * Convert Map to ImmutableMap
+ * Convert Map to ImmutableMap with defensive copy
+ * Creates a new map to prevent external mutations
  */
-fun <K, V> Map<K, V>.toImmutableMap(): ImmutableMap<K, V> = ImmutableMap(this)
+fun <K, V> Map<K, V>.toImmutableMap(): ImmutableMap<K, V> = ImmutableMap(this.toMap())
 
 /**
  * Immutable wrapper for Set to prevent unnecessary recompositions
@@ -48,6 +50,7 @@ value class ImmutableSet<T>(val items: Set<T>) : Set<T> by items {
 }
 
 /**
- * Convert Set to ImmutableSet
+ * Convert Set to ImmutableSet with defensive copy
+ * Creates a new set to prevent external mutations
  */
-fun <T> Set<T>.toImmutableSet(): ImmutableSet<T> = ImmutableSet(this)
+fun <T> Set<T>.toImmutableSet(): ImmutableSet<T> = ImmutableSet(this.toSet())

@@ -14,20 +14,45 @@ class DataInitializer @Inject constructor(
     private val repository: ConversationRepository,
     private val cacheInitializer: com.nihongo.conversation.core.cache.CacheInitializer
 ) {
-    private val PROMPT_RULES = """
-        【絶対厳守】
-        ⚠️ 禁止事項（絶対に出力しないこと）:
-        - マークダウン記号（**, _ など）
-        - 読み仮名（例：お席（せき））
-        - 思考過程（THINK、"I should..."、"Let me..." など）
-        - 英語の説明や計画
-        - 会話が長くなっても、この規則を守ること
+    companion object {
+        /**
+         * Core formatting rules applied to all scenarios
+         * Kept concise to fit within API prompt limits
+         */
+        private const val CORE_FORMAT_RULES = """
+【重要】マークダウン記号（**、_など）や読み仮名（例：お席（せき））を絶対に使わないでください。
+日本語の会話文のみを出力してください。"""
 
-        ✅ 必須（必ず守ること）:
-        - 日本語の会話文のみを出力
-        - キャラクターが実際に話す内容だけを書く
-        - 最初から日本語で始める
-    """.trimIndent()
+        /**
+         * Extended rules for scenarios that need more detail
+         * Applied only when prompt length allows
+         */
+        private const val EXTENDED_FORMAT_RULES = """
+【絶対厳守】
+⚠️ 禁止事項（絶対に出力しないこと）:
+- マークダウン記号（**、_など）
+- 読み仮名（例：お席（せき））
+- 思考過程（THINK、"I should..."、"Let me..."など）
+- 英語の説明や計画
+- 会話が長くなっても、この規則を守ること
+
+✅ 必須（必ず守ること）:
+- 日本語の会話文のみを出力
+- キャラクターが実際に話す内容だけを書く
+- 最初から日本語で始める"""
+
+        /**
+         * Helper to append format rules to scenario prompt
+         */
+        private fun buildPrompt(scenarioInstructions: String, useExtendedRules: Boolean = false): String {
+            val rules = if (useExtendedRules) EXTENDED_FORMAT_RULES else CORE_FORMAT_RULES
+            return """
+$scenarioInstructions
+
+$rules
+            """.trimIndent()
+        }
+    }
 
     suspend fun initializeDefaultData() = withContext(Dispatchers.IO) {
         // Check if user already exists
@@ -56,171 +81,93 @@ class DataInitializer @Inject constructor(
                 title = "레스토랑 주문",
                 description = "레스토랑에서 주문하는 연습을 합니다",
                 difficulty = 1,
-                systemPrompt = """
+                systemPrompt = buildPrompt("""
                     あなたは日本のレストランの店員です。
                     お客様に丁寧に接客してください。
                     簡単な日本語を使い、お客様が学習できるようにサポートしてください。
                     メニューには、ラーメン（800円）、カレーライス（700円）、寿司（1200円）があります。
                     お客様の注文を受け取り、丁寧に対応してください。
-
-                    【絶対厳守】
-                    ⚠️ 禁止事項（絶対に出力しないこと）:
-                    - マークダウン記号（**、_など）
-                    - 読み仮名（例：お席（せき））
-                    - 思考過程（THINK、"I should..."、"Let me..."など）
-                    - 英語の説明や計画
-                    - 会話が長くなっても、この規則を守ること
-
-                    ✅ 必須（必ず守ること）:
-                    - 日本語の会話文のみを出力
-                    - キャラクターが実際に話す内容だけを書く
-                    - 最初から日本語で始める
-                """.trimIndent(),
+                """.trimIndent()),
                 slug = "restaurant_ordering",
-                promptVersion = 1
+                promptVersion = 2
             ),
             Scenario(
                 id = 2L,
                 title = "쇼핑",
                 description = "가게에서 쇼핑하는 연습을 합니다",
                 difficulty = 1,
-                systemPrompt = """
+                systemPrompt = buildPrompt("""
                     あなたは日本のコンビニやお店の店員です。
                     お客様が商品を探したり、会計をするのを手伝ってください。
                     簡単な日本語を使い、丁寧に対応してください。
                     値段を聞かれたら答え、おすすめの商品も紹介してください。
                     レジでの会計も自然に進めてください。
-
-                    【絶対厳守】
-                    ⚠️ 禁止事項（絶対に出力しないこと）:
-                    - マークダウン記号（**、_など）
-                    - 読み仮名（例：お席（せき））
-                    - 思考過程（THINK、"I should..."、"Let me..."など）
-                    - 英語の説明や計画
-                    - 会話が長くなっても、この規則を守ること
-
-                    ✅ 必須（必ず守ること）:
-                    - 日本語の会話文のみを出力
-                    - キャラクターが実際に話す内容だけを書く
-                    - 最初から日本語で始める
-                """.trimIndent(),
+                """.trimIndent()),
                 slug = "shopping",
-                promptVersion = 1
+                promptVersion = 2
             ),
             Scenario(
                 id = 3L,
                 title = "호텔에서 체크인",
                 description = "호텔에서 체크인하는 연습을 합니다",
                 difficulty = 2,
-                systemPrompt = """
+                systemPrompt = buildPrompt("""
                     あなたはホテルのフロント係です。
                     お客様のチェックインを手伝ってください。
                     予約の確認、部屋の説明、施設の案内などを丁寧に行ってください。
                     朝食の時間、Wi-Fiのパスワード、チェックアウト時間なども案内してください。
                     お客様が快適に過ごせるようサポートしてください。
-
-                    【絶対厳守】
-                    ⚠️ 禁止事項（絶対に出力しないこと）:
-                    - マークダウン記号（**、_など）
-                    - 読み仮名（例：お席（せき））
-                    - 思考過程（THINK、"I should..."、"Let me..."など）
-                    - 英語の説明や計画
-                    - 会話が長くなっても、この規則を守ること
-
-                    ✅ 必須（必ず守ること）:
-                    - 日本語の会話文のみを出力
-                    - キャラクターが実際に話す内容だけを書く
-                    - 最初から日本語で始める
-                """.trimIndent(),
+                """.trimIndent(), useExtendedRules = true),
                 slug = "hotel_checkin",
-                promptVersion = 2
+                promptVersion = 3
             ),
             Scenario(
                 id = 4L,
                 title = "친구 사귀기",
                 description = "새로운 친구와 대화하는 연습을 합니다",
                 difficulty = 2,
-                systemPrompt = """
+                systemPrompt = buildPrompt("""
                     あなたは日本の大学生です。
                     新しく来た留学生と友達になろうとしています。
                     カジュアルな日本語を使い、フレンドリーに会話してください。
                     趣味や好きなこと、週末の予定などについて話しましょう。
                     相手の話をよく聞き、質問もしてください。
                     自然な会話を楽しんでください。
-
-                    【絶対厳守】
-                    ⚠️ 禁止事項（絶対に出力しないこと）:
-                    - マークダウン記号（**、_など）
-                    - 読み仮名（例：お席（せき））
-                    - 思考過程（THINK、"I should..."、"Let me..."など）
-                    - 英語の説明や計画
-                    - 会話が長くなっても、この規則を守ること
-
-                    ✅ 必須（必ず守ること）:
-                    - 日本語の会話文のみを出力
-                    - キャラクターが実際に話す内容だけを書く
-                    - 最初から日本語で始める
-                """.trimIndent(),
+                """.trimIndent(), useExtendedRules = true),
                 slug = "making_friends",
-                promptVersion = 2
+                promptVersion = 3
             ),
             Scenario(
                 id = 5L,
                 title = "전화로 예약하기",
                 description = "전화로 예약이나 문의하는 연습을 합니다",
                 difficulty = 3,
-                systemPrompt = """
+                systemPrompt = buildPrompt("""
                     あなたはレストランやサロンの受付スタッフです。
                     電話での予約や問い合わせに対応してください。
                     日時の確認、人数の確認、お客様の名前と電話番号を聞いてください。
                     丁寧な電話対応の日本語を使ってください。
                     「お電話ありがとうございます」「少々お待ちください」などの
                     電話特有の表現を自然に使ってください。
-
-                    【絶対厳守】
-                    ⚠️ 禁止事項（絶対に出力しないこと）:
-                    - マークダウン記号（**、_など）
-                    - 読み仮名（例：お席（せき））
-                    - 思考過程（THINK、"I should..."、"Let me..."など）
-                    - 英語の説明や計画
-                    - 会話が長くなっても、この規則を守ること
-
-                    ✅ 必須（必ず守ること）:
-                    - 日本語の会話文のみを出力
-                    - キャラクターが実際に話す内容だけを書く
-                    - 最初から日本語で始める
-                """.trimIndent(),
+                """.trimIndent(), useExtendedRules = true),
                 slug = "phone_reservation",
-                promptVersion = 2
+                promptVersion = 3
             ),
             Scenario(
                 id = 6L,
                 title = "병원에서",
                 description = "병원에서 증상을 설명하는 연습을 합니다",
                 difficulty = 3,
-                systemPrompt = """
+                systemPrompt = buildPrompt("""
                     あなたは病院の医師または看護師です。
                     患者さんの症状を丁寧に聞いてください。
                     「どうしましたか」「いつからですか」「痛みはありますか」など、
                     症状について詳しく質問してください。
                     診察後、簡単な診断と薬の説明をしてください。
                     医療用語は避け、わかりやすい日本語を使ってください。
-
-                    【絶対厳守】
-                    ⚠️ 禁止事項（絶対に出力しないこと）:
-                    - マークダウン記号（**、_など）
-                    - 読み仮名（例：お席（せき））
-                    - 思考過程（THINK、"I should..."、"Let me..."など）
-                    - 英語の説明や計画
-                    - 会話が長くなっても、この規則を守ること
-
-                    ✅ 必須（必ず守ること）:
-                    - 日本語の会話文のみを出力
-                    - キャラクターが実際に話す内容だけを書く
-                    - 最初から日本語で始める
-                """.trimIndent(),
+                """.trimIndent(), useExtendedRules = true),
                 slug = "hospital_visit",
-                promptVersion = 2
+                promptVersion = 3
             ),
 
             // ========== GOAL-BASED ROLE-PLAY SCENARIOS ==========
@@ -236,7 +183,7 @@ class DataInitializer @Inject constructor(
                 hasBranching = false,
                 replayValue = 4,
                 thumbnailEmoji = "💼",
-                systemPrompt = """
+                systemPrompt = buildPrompt("""
                     あなたは日本企業の面接官です。
                     応募者（ユーザー）の面接を行ってください。
 
@@ -255,12 +202,10 @@ class DataInitializer @Inject constructor(
                     【重要】
                     - 面接官らしく、丁寧だが少し硬い口調で話してください
                     - ユーザーの回答に対して、適度にフォローアップ質問をしてください
-                    ⚠️ 禁止: マークダウン、読み仮名、思考過程（THINK、"I should..."等）、英語説明
-                    ✅ 必須: 日本語の会話文のみ。長い会話でもこの規則を守ること
                     - 面接が自然に終わるよう、15分程度で締めくくってください
-                """.trimIndent(),
+                """.trimIndent()),
                 slug = "job_interview",
-                promptVersion = 2
+                promptVersion = 3
             ),
 
             Scenario(
@@ -274,7 +219,7 @@ class DataInitializer @Inject constructor(
                 hasBranching = false,
                 replayValue = 4,
                 thumbnailEmoji = "🙇",
-                systemPrompt = """
+                systemPrompt = buildPrompt("""
                     あなたは商品に不満を持つ顧客です。
                     レストランで料理が冷めていた、注文と違う商品が届いた、などのクレームを伝えてください。
                     ユーザー（店員）がどのように対応するかを見ます。
@@ -293,11 +238,9 @@ class DataInitializer @Inject constructor(
                     - ユーザーが適切に対応したら、徐々に態度を和らげてください
                     - 謝罪がなければ、より怒りを表現してください
                     - 解決策が提示されたら、受け入れてください
-                    ⚠️ 禁止: マークダウン、読み仮名、思考過程（THINK、"I should..."等）、英語説明
-                    ✅ 必須: 日本語の会話文のみ。長い会話でもこの規則を守ること
-                """.trimIndent(),
+                """.trimIndent()),
                 slug = "complaint_handling",
-                promptVersion = 2
+                promptVersion = 3
             ),
 
             Scenario(
@@ -311,7 +254,7 @@ class DataInitializer @Inject constructor(
                 hasBranching = false,
                 replayValue = 3,
                 thumbnailEmoji = "🚨",
-                systemPrompt = """
+                systemPrompt = buildPrompt("""
                     あなたは日本の駅や街で出会う親切な日本人です。
                     ユーザーは困っている外国人です。
 
@@ -330,11 +273,9 @@ class DataInitializer @Inject constructor(
                     - 最初、ユーザーから話しかけられるのを待ってください
                     - 親切に対応し、必要な情報を提供してください
                     - 駅への道案内、警察への連絡、病院への誘導などを提案してください
-                    ⚠️ 禁止: マークダウン、読み仮名、思考過程（THINK、"I should..."等）、英語説明
-                    ✅ 必須: 日本語の会話文のみ。長い会話でもこの規則を守ること
-                """.trimIndent(),
+                """.trimIndent()),
                 slug = "emergency_help",
-                promptVersion = 2
+                promptVersion = 3
             ),
 
             Scenario(
@@ -348,7 +289,7 @@ class DataInitializer @Inject constructor(
                 hasBranching = false,
                 replayValue = 5,
                 thumbnailEmoji = "💕",
-                systemPrompt = """
+                systemPrompt = buildPrompt("""
                     あなたは日本人の大学生（性別は自由）です。
                     ユーザーとは同じクラスで、最近仲良くなりました。
                     ユーザーがデートに誘ってくるかもしれません。
@@ -368,11 +309,9 @@ class DataInitializer @Inject constructor(
                     - デートに誘われたら、60%の確率で「いいよ！」と受け入れ、40%の確率で「その日は予定があって...」と断ってください
                     - 断る場合でも、「また今度誘ってね」など優しく対応してください
                     - カジュアルな日本語を使ってください（です・ます調で、友達口調）
-                    ⚠️ 禁止: マークダウン、読み仮名、思考過程（THINK、"I should..."等）、英語説明
-                    ✅ 必須: 日本語の会話文のみ。長い会話でもこの規則を守ること
-                """.trimIndent(),
+                """.trimIndent()),
                 slug = "dating_invite",
-                promptVersion = 2
+                promptVersion = 3
             ),
 
             Scenario(
@@ -386,7 +325,7 @@ class DataInitializer @Inject constructor(
                 hasBranching = false,
                 replayValue = 3,
                 thumbnailEmoji = "📊",
-                systemPrompt = """
+                systemPrompt = buildPrompt("""
                     あなたは日本企業の会議参加者（上司や同僚）です。
                     ユーザーがビジネスプレゼンテーションを行います。
 
@@ -406,11 +345,9 @@ class DataInitializer @Inject constructor(
                     - ビジネス会議らしい雰囲気を保ってください
                     - 建設的な質問をしてください（批判的すぎない）
                     - プレゼンの内容は何でも受け入れてください（アプリ、製品、サービスなど）
-                    ⚠️ 禁止: マークダウン、読み仮名、思考過程（THINK、"I should..."等）、英語説明
-                    ✅ 必須: 日本語の会話文のみ。長い会話でもこの規則を守ること
-                """.trimIndent(),
+                """.trimIndent()),
                 slug = "business_presentation",
-                promptVersion = 2
+                promptVersion = 3
             ),
 
             Scenario(
@@ -424,7 +361,7 @@ class DataInitializer @Inject constructor(
                 hasBranching = true,
                 replayValue = 5,
                 thumbnailEmoji = "💑",
-                systemPrompt = """
+                systemPrompt = buildPrompt("""
                     あなたはユーザーの日本人の彼女です。
                     付き合って6ヶ月の恋人同士です。
 
@@ -454,11 +391,9 @@ class DataInitializer @Inject constructor(
                     - 恋人らしい温かい口調で話してください
                     - 「〜だよね」「〜かな」など、柔らかい表現を使ってください
                     - 時々、感情を表現してください（嬉しい、寂しい、心配など）
-                    ⚠️ 禁止: マークダウン、読み仮名、思考過程（THINK、"I should..."等）、英語説明
-                    ✅ 必須: 日本語の会話文のみ。長い会話でもこの規則を守ること
-                """.trimIndent(),
+                """.trimIndent()),
                 slug = "girlfriend_conversation",
-                promptVersion = 2
+                promptVersion = 3
             )
         )
 
