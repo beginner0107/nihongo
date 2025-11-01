@@ -1,7 +1,9 @@
 package com.nihongo.conversation.core.cache
 
+import com.nihongo.conversation.core.difficulty.DifficultyManager
 import com.nihongo.conversation.data.local.CachedResponseDao
 import com.nihongo.conversation.data.local.ConversationPatternDao
+import com.nihongo.conversation.data.local.ScenarioDao
 import com.nihongo.conversation.domain.model.CachedResponse
 import com.nihongo.conversation.domain.model.ConversationPattern
 import javax.inject.Inject
@@ -10,41 +12,58 @@ import javax.inject.Singleton
 /**
  * Initializes cache database with common patterns and responses
  * Start with curated patterns, then expand via auto-learning
+ *
+ * Phase 1 improvements:
+ * - Slug-based scenario lookup (no hard-coded IDs)
+ * - Per-scenario seeding guard (new scenarios get seeded)
+ * - DifficultyManager for complexity calculation
+ * - Batch inserts for performance
  */
 @Singleton
 class CacheInitializer @Inject constructor(
     private val patternDao: ConversationPatternDao,
-    private val responseDao: CachedResponseDao
+    private val responseDao: CachedResponseDao,
+    private val scenarioDao: ScenarioDao,
+    private val difficultyManager: DifficultyManager
 ) {
 
     /**
      * Initialize cache with starter patterns
      * Creates 20-30 patterns per scenario with 3-5 variations each
+     *
+     * Phase 1: Per-scenario seeding (not global guard)
      */
     suspend fun initializeCache() {
-        val currentCount = patternDao.getPatternCount()
-        if (currentCount > 0) {
-            // Cache already initialized
-            return
-        }
+        // Initialize patterns for each scenario (by slug, not ID)
+        initializeRestaurantPatterns()
+        initializeShoppingPatterns()
+        initializeHotelPatterns()
+        initializeFriendshipPatterns()
+        initializePhonePatterns()
+        initializeHospitalPatterns()
+        initializeJobInterviewPatterns()
+        initializeComplaintPatterns()
+        initializeEmergencyPatterns()
+        initializeDatePatterns()
+        initializePresentationPatterns()
+        initializeGirlfriendPatterns()
+    }
 
-        // Initialize patterns for each scenario
-        initializeRestaurantPatterns() // Scenario 1
-        initializeShoppingPatterns()   // Scenario 2
-        initializeHotelPatterns()       // Scenario 3
-        initializeFriendshipPatterns()  // Scenario 4
-        initializePhonePatterns()       // Scenario 5
-        initializeHospitalPatterns()    // Scenario 6
-        initializeJobInterviewPatterns() // Scenario 7
-        initializeComplaintPatterns()   // Scenario 8
-        initializeEmergencyPatterns()   // Scenario 9
-        initializeDatePatterns()        // Scenario 10
-        initializePresentationPatterns() // Scenario 11
-        initializeGirlfriendPatterns()  // Scenario 12
+    /**
+     * Check if a specific scenario already has patterns seeded
+     */
+    private suspend fun shouldSeedScenario(scenarioId: Long): Boolean {
+        return patternDao.getPatternCountForScenario(scenarioId) == 0
     }
 
     // Scenario 1: レストランでの注文 (Restaurant Ordering)
     private suspend fun initializeRestaurantPatterns() {
+        // Phase 1: Slug-based lookup instead of hard-coded ID
+        val scenario = scenarioDao.getScenarioBySlugSync("restaurant_ordering") ?: return
+
+        // Phase 1: Per-scenario guard
+        if (!shouldSeedScenario(scenario.id)) return
+
         val patterns = listOf(
             PatternTemplate(
                 pattern = "メニューを見せてください",
@@ -98,7 +117,7 @@ class CacheInitializer @Inject constructor(
             )
         )
 
-        createPatternsWithResponses(scenarioId = 1, difficultyLevel = 1, patterns)
+        createPatternsWithResponses(scenarioId = scenario.id, difficultyLevel = 1, patterns)
     }
 
     // Scenario 2: 買い物 (Shopping)
@@ -377,42 +396,50 @@ class CacheInitializer @Inject constructor(
     }
 
     // Helper function to create patterns and responses
+    // Phase 1: Batch inserts for performance
     private suspend fun createPatternsWithResponses(
         scenarioId: Long,
         difficultyLevel: Int,
         patterns: List<PatternTemplate>
     ) {
-        patterns.forEach { template ->
-            val pattern = ConversationPattern(
+        // Phase 1: Batch insert patterns first
+        val conversationPatterns = patterns.map { template ->
+            ConversationPattern(
                 pattern = template.pattern,
                 scenarioId = scenarioId,
                 difficultyLevel = difficultyLevel,
                 category = template.category,
                 keywords = template.keywords.joinToString(",")
             )
+        }
 
-            val patternId = patternDao.insertPattern(pattern)
+        val patternIds = patternDao.insertPatterns(conversationPatterns)
 
-            template.responses.forEachIndexed { index, responseText ->
-                val response = CachedResponse(
-                    patternId = patternId,
-                    response = responseText,
-                    variation = index,
-                    complexityScore = calculateComplexity(responseText),
-                    generatedByApi = false,
-                    isVerified = true // Manually created responses are verified
+        // Phase 1: Batch insert all responses
+        val allResponses = mutableListOf<CachedResponse>()
+        patterns.forEachIndexed { patternIndex, template ->
+            val patternId = patternIds[patternIndex]
+            template.responses.forEachIndexed { responseIndex, responseText ->
+                allResponses.add(
+                    CachedResponse(
+                        patternId = patternId,
+                        response = responseText,
+                        variation = responseIndex,
+                        complexityScore = calculateComplexity(responseText),
+                        generatedByApi = false,
+                        isVerified = true // Manually created responses are verified
+                    )
                 )
-                responseDao.insertResponse(response)
             }
         }
+
+        responseDao.insertResponses(allResponses)
     }
 
+    // Phase 1: Use DifficultyManager for accurate complexity calculation
     private fun calculateComplexity(text: String): Int {
-        return when {
-            text.length < 20 -> 1
-            text.length < 50 -> 2
-            else -> 3
-        }
+        val complexity = difficultyManager.analyzeVocabularyComplexity(text)
+        return difficultyManager.getComplexityScore(complexity)
     }
 
     data class PatternTemplate(

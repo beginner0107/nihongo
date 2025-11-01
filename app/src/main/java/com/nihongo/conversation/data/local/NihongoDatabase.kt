@@ -39,7 +39,7 @@ import com.nihongo.conversation.domain.model.VocabularyEntry
     views = [
         ConversationStats::class
     ],
-    version = 10,
+    version = 11,  // Phase 1: Added unique index to ConversationPattern
     exportSchema = false
 )
 abstract class NihongoDatabase : RoomDatabase() {
@@ -452,6 +452,18 @@ abstract class NihongoDatabase : RoomDatabase() {
 
                 // Create unique index on slug
                 database.execSQL("CREATE UNIQUE INDEX IF NOT EXISTS index_scenarios_slug ON scenarios(slug)")
+            }
+        }
+
+        // Phase 1: Add unique index to conversation_patterns
+        val MIGRATION_10_11 = object : Migration(10, 11) {
+            override fun migrate(database: SupportSQLiteDatabase) {
+                // Create unique index on (scenarioId, difficultyLevel, pattern)
+                // This prevents duplicate pattern entries
+                database.execSQL("""
+                    CREATE UNIQUE INDEX IF NOT EXISTS index_conversation_patterns_scenarioId_difficultyLevel_pattern
+                    ON conversation_patterns(scenarioId, difficultyLevel, pattern)
+                """)
             }
         }
     }

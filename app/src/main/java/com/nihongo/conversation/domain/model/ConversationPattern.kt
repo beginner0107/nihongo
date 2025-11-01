@@ -1,13 +1,21 @@
 package com.nihongo.conversation.domain.model
 
 import androidx.room.Entity
+import androidx.room.Index
 import androidx.room.PrimaryKey
 
 /**
  * Represents a common user input pattern for caching AI responses
  * Reduces API calls by matching similar user inputs to pre-generated responses
+ *
+ * Phase 1: Added unique constraint on (scenarioId, difficultyLevel, pattern)
  */
-@Entity(tableName = "conversation_patterns")
+@Entity(
+    tableName = "conversation_patterns",
+    indices = [
+        Index(value = ["scenarioId", "difficultyLevel", "pattern"], unique = true)
+    ]
+)
 data class ConversationPattern(
     @PrimaryKey(autoGenerate = true)
     val id: Long = 0,

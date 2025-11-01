@@ -37,7 +37,7 @@ interface ConversationPatternDao {
     suspend fun insertPattern(pattern: ConversationPattern): Long
 
     @Insert(onConflict = OnConflictStrategy.REPLACE)
-    suspend fun insertPatterns(patterns: List<ConversationPattern>)
+    suspend fun insertPatterns(patterns: List<ConversationPattern>): List<Long>
 
     @Update
     suspend fun updatePattern(pattern: ConversationPattern)

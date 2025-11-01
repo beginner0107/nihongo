@@ -29,7 +29,8 @@ object DatabaseModule {
                 NihongoDatabase.MIGRATION_5_6,
                 NihongoDatabase.MIGRATION_6_7,
                 NihongoDatabase.MIGRATION_8_9,
-                NihongoDatabase.MIGRATION_9_10
+                NihongoDatabase.MIGRATION_9_10,
+                NihongoDatabase.MIGRATION_10_11  // Phase 1: Unique index
                 // Removed MIGRATION_2_3 and MIGRATION_3_4 due to SQL formatting issues
                 // These migrations will fallback to destructive migration
             )
