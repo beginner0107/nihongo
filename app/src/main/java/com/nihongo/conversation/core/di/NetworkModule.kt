@@ -12,58 +12,72 @@ import java.util.concurrent.TimeUnit
 import javax.inject.Singleton
 
 /**
- * Network module providing GZIP-compressed HTTP clients
+ * Network module providing optimized HTTP clients
  *
  * Key optimizations:
- * - GZIP compression enabled (automatic with OkHttp)
+ * - GZIP decompression for responses (automatic with OkHttp)
  * - Connection pooling for request reuse
  * - Timeouts optimized for mobile networks
- * - Request/response logging (debug only)
+ * - Secure header logging (debug only)
+ * - Japanese locale headers for better API responses
  */
 @Module
 @InstallIn(SingletonComponent::class)
 object NetworkModule {
 
     /**
-     * Provides OkHttpClient with GZIP compression and connection pooling
+     * Provides OkHttpClient with secure logging and Japanese locale support
      *
-     * GZIP compression:
-     * - Automatically compresses request bodies
-     * - Automatically decompresses responses
-     * - 70-90% size reduction for JSON payloads
-     * - Adds "Accept-Encoding: gzip" header
+     * GZIP handling:
+     * - OkHttp automatically decompresses gzip responses
+     * - Adds "Accept-Encoding: gzip" header automatically
+     * - Note: Does NOT compress request bodies (would need custom interceptor)
      *
      * Connection pooling:
      * - Reuses TCP connections for multiple requests
      * - Reduces latency by ~200-300ms per request
      * - Up to 5 idle connections kept alive
+     *
+     * Security:
+     * - Header-level logging only (no request/response bodies)
+     * - Sensitive headers redacted (Authorization, API keys)
      */
     @Provides
     @Singleton
     fun provideOkHttpClient(): OkHttpClient {
+        // Phase 3: Secure logging - headers only, redact sensitive data
         val loggingInterceptor = HttpLoggingInterceptor().apply {
-            level = HttpLoggingInterceptor.Level.BODY
+            level = HttpLoggingInterceptor.Level.HEADERS  // Changed from BODY
+            redactHeader("Authorization")
+            redactHeader("X-API-Key")
+            redactHeader("X-Goog-Api-Key")
         }
 
         return OkHttpClient.Builder()
-            // GZIP compression is enabled by default in OkHttp
-            // No need to add interceptor - it's automatic!
+            // Phase 3B: Add Japanese locale headers for better API responses
+            .addInterceptor { chain ->
+                val request = chain.request().newBuilder()
+                    .header("Accept-Language", "ja-JP,ko-KR;q=0.9")
+                    .header("User-Agent", "Nihongo/1.0 (Android)")
+                    .build()
+                chain.proceed(request)
+            }
 
             // Connection pooling
             .connectionPool(
                 okhttp3.ConnectionPool(
                     maxIdleConnections = 5,
-                    keepAliveDuration = 30, // Keep connections alive for 30 seconds
+                    keepAliveDuration = 30,
                     TimeUnit.SECONDS
                 )
             )
 
             // Timeouts optimized for mobile networks
-            .connectTimeout(10, TimeUnit.SECONDS)     // Initial connection
-            .readTimeout(30, TimeUnit.SECONDS)        // Reading response
-            .writeTimeout(30, TimeUnit.SECONDS)       // Writing request
+            .connectTimeout(10, TimeUnit.SECONDS)
+            .readTimeout(30, TimeUnit.SECONDS)
+            .writeTimeout(30, TimeUnit.SECONDS)
 
-            // Logging (debug builds only - removed in release)
+            // Phase 3A: Secure logging (debug builds only)
             .apply {
                 if (com.nihongo.conversation.BuildConfig.DEBUG) {
                     addInterceptor(loggingInterceptor)
@@ -78,13 +92,14 @@ object NetworkModule {
 
     /**
      * Provides Gson for JSON serialization/deserialization
-     * Configured for minimal payload size
+     * Phase 3B: Optimized for minimal payload size
      */
     @Provides
     @Singleton
     fun provideGson(): Gson {
         return GsonBuilder()
-            .serializeNulls()  // Explicitly serialize nulls for API compatibility
+            // Phase 3B: Removed serializeNulls() to reduce payload size
+            // Nulls are omitted from JSON, reducing bytes over the wire
             .create()
     }
 }

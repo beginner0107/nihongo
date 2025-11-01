@@ -1,6 +1,5 @@
 package com.nihongo.conversation.core.cache
 
-import java.text.Normalizer
 import kotlin.math.abs
 import kotlin.math.max
 import kotlin.math.min
@@ -17,27 +16,21 @@ import kotlin.math.min
  * - Katakana → Hiragana conversion
  * - Particle filtering in tokens
  * - Early exit for Levenshtein with length guard
+ *
+ * Phase 3B Improvements:
+ * - Externalized configuration for testability
+ * - Shared normalizer for consistency across app
  */
-class FuzzyMatcher {
+class FuzzyMatcher(
+    private val config: FuzzyMatcherConfig = FuzzyMatcherConfig.default(),
+    private val normalizer: JapaneseTextNormalizer = JapaneseTextNormalizer.INSTANCE
+) {
 
     companion object {
-        // Default similarity threshold for cache hits
+        // Backward compatibility constants
         const val DEFAULT_THRESHOLD = 0.8f
-
-        // Lower threshold for keyword-based matching
         const val KEYWORD_THRESHOLD = 0.7f
-
-        // Very high threshold for sensitive scenarios
         const val HIGH_THRESHOLD = 0.9f
-
-        // Phase 1: Common Japanese particles to filter out
-        private val PARTICLES = setOf(
-            "は", "が", "を", "に", "で", "と", "の", "へ", "も",
-            "から", "まで", "や", "より", "か", "ね", "よ"
-        )
-
-        // Levenshtein length difference threshold
-        private const val MAX_LENGTH_DIFF = 8
     }
 
     /**
@@ -58,8 +51,8 @@ class FuzzyMatcher {
      * Higher score = more similar
      */
     fun calculateSimilarity(input: String, pattern: String): Float {
-        val normalizedInput = normalize(input)
-        val normalizedPattern = normalize(pattern)
+        val normalizedInput = normalizer.normalize(input)
+        val normalizedPattern = normalizer.normalize(pattern)
 
         // Exact match
         if (normalizedInput == normalizedPattern) return 1.0f
@@ -86,9 +79,9 @@ class FuzzyMatcher {
         val baseSimilarity = calculateSimilarity(input, pattern)
 
         // Boost score if input contains important keywords
-        val normalizedInput = normalize(input)
+        val normalizedInput = normalizer.normalize(input)
         val keywordMatches = keywords.count { keyword ->
-            normalizedInput.contains(normalize(keyword))
+            normalizedInput.contains(normalizer.normalize(keyword))
         }
 
         val keywordBonus = if (keywords.isNotEmpty()) {
@@ -99,36 +92,10 @@ class FuzzyMatcher {
     }
 
     /**
-     * Normalize Japanese text for comparison (Phase 1 improved)
-     * - NFKC normalization (full/half-width, compatibility chars)
-     * - Strip punctuation and emoji
-     * - Katakana → Hiragana conversion
-     * - Remove prolonged sound marks (ー)
-     * - Convert to lowercase
+     * Public API for normalization (delegates to injected normalizer)
+     * Phase 3B: Now uses shared JapaneseTextNormalizer
      */
-    private fun normalize(text: String): String {
-        // Phase 1: NFKC normalization
-        val nfkc = Normalizer.normalize(text, Normalizer.Form.NFKC)
-
-        // Strip punctuation, emoji, and whitespace
-        val stripped = nfkc.replace(Regex("[\\p{Punct}\\s\\p{So}\\p{Sk}\\p{Sm}]+"), "")
-
-        // Convert katakana to hiragana for matching
-        val hiragana = stripped.map { char ->
-            when (char.code) {
-                in 0x30A1..0x30F6 -> (char.code - 0x60).toChar() // カタカナ → ひらがな
-                else -> char
-            }
-        }.joinToString("")
-
-        // Remove prolonged sound marks
-        return hiragana.replace("ー", "").lowercase()
-    }
-
-    /**
-     * Public API for normalization (can be used externally)
-     */
-    fun normalizeForJapanese(text: String): String = normalize(text)
+    fun normalizeForJapanese(text: String): String = normalizer.normalize(text)
 
     /**
      * Calculate Levenshtein distance-based similarity (Phase 1 with early exit)
@@ -137,7 +104,7 @@ class FuzzyMatcher {
     private fun calculateLevenshteinSimilarity(s1: String, s2: String): Float {
         // Phase 1: Early exit if length difference is too large
         val lengthDiff = abs(s1.length - s2.length)
-        if (lengthDiff > MAX_LENGTH_DIFF) {
+        if (lengthDiff > config.maxLengthDiff) {
             return 0.0f  // Skip expensive calculation
         }
 
@@ -187,8 +154,8 @@ class FuzzyMatcher {
      */
     private fun calculateTokenSimilarity(s1: String, s2: String): Float {
         // For Japanese, tokenize by characters (since words aren't space-separated)
-        val tokens1 = tokenize(s1)
-        val tokens2 = tokenize(s2)
+        val tokens1 = normalizer.tokenize(s1, config.particles)
+        val tokens2 = normalizer.tokenize(s2, config.particles)
 
         if (tokens1.isEmpty() && tokens2.isEmpty()) return 1.0f
         if (tokens1.isEmpty() || tokens2.isEmpty()) return 0.0f
@@ -201,37 +168,11 @@ class FuzzyMatcher {
     }
 
     /**
-     * Tokenize Japanese text (Phase 1 with particle filtering)
-     * Creates bigrams for better matching
-     * Filters out common particles to reduce noise
+     * Public API for tokenization (delegates to normalizer)
+     * Phase 3B: Now uses shared JapaneseTextNormalizer with configured particles
      */
-    private fun tokenize(text: String): Set<String> {
-        val tokens = mutableSetOf<String>()
-
-        // Add individual characters (filter particles)
-        text.toCharArray().forEach { char ->
-            val charStr = char.toString()
-            if (charStr !in PARTICLES) {
-                tokens.add(charStr)
-            }
-        }
-
-        // Add bigrams (filter bigrams containing particles)
-        for (i in 0 until text.length - 1) {
-            val bigram = text.substring(i, i + 2)
-            // Phase 1: Skip bigrams containing particles
-            if (!PARTICLES.any { particle -> bigram.contains(particle) }) {
-                tokens.add(bigram)
-            }
-        }
-
-        return tokens
-    }
-
-    /**
-     * Public API for tokenization (can be used externally)
-     */
-    fun tokenizeJapanese(text: String): Set<String> = tokenize(normalize(text))
+    fun tokenizeJapanese(text: String): Set<String> =
+        normalizer.tokenize(text, config.particles)
 
     /**
      * Find best matching pattern from a list
