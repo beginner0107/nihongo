@@ -1,0 +1,104 @@
+File,Line,Japanese Text,English Translation,Korean Translation,Suggested String Key,Category,Priority
+AddVocabularyViewModel.kt,161,単語を入力してください,Please enter a word,단어를 입력해주세요,error_word_required,Error,High
+AddVocabularyViewModel.kt,168,意味を入力してください,Please enter meaning,의미를 입력해주세요,error_meaning_required,Error,High
+AddVocabularyViewModel.kt,202,この単語は既に追加されています,This word is already added,이 단어는 이미 추가되어 있습니다,error_word_duplicate,Error,High
+AddVocabularyViewModel.kt,209,保存に失敗しました,Save failed,저장에 실패했습니다,error_save_failed,Error,High
+UserSelectionViewModel.kt,52,ユーザーの読み込みに失敗しました,Failed to load users,사용자 불러오기 실패,error_load_users_failed,Error,High
+UserSelectionViewModel.kt,81,ユーザーの選択に失敗しました,Failed to select user,사용자 선택 실패,error_select_user_failed,Error,High
+UserSelectionViewModel.kt,118,ユーザーの作成に失敗しました,Failed to create user,사용자 생성 실패,error_create_user_failed,Error,High
+UserSelectionViewModel.kt,134,ログアウトに失敗しました,Logout failed,로그아웃 실패,error_logout_failed,Error,High
+StatsViewModel.kt,75,統計データの読み込みに失敗しました,Failed to load stats data,통계 데이터 불러오기 실패,error_load_stats_failed,Error,High
+ConversationHistoryViewModel.kt,59,履歴の読み込みに失敗しました,Failed to load history,기록 불러오기 실패,error_load_history_failed,Error,High
+ConversationHistoryViewModel.kt,114,会話の削除に失敗しました,Failed to delete conversation,대화 삭제 실패,error_delete_conversation_failed,Error,High
+PronunciationHistoryViewModel.kt,84,履歴の読み込みに失敗しました,Failed to load history,기록 불러오기 실패,error_load_history_failed,Error,High
+PronunciationHistoryViewModel.kt,104,データの削除に失敗しました,Failed to delete data,데이터 삭제 실패,error_delete_data_failed,Error,High
+FlashcardStatsViewModel.kt,70,統計データの読み込みに失敗しました,Failed to load stats,통계 불러오기 실패,error_load_stats_failed,Error,High
+FlashcardReviewViewModel.kt,63,復習カードの読み込みに失敗しました,Failed to load review cards,복습 카드 불러오기 실패,error_load_review_cards_failed,Error,High
+ProfileViewModel.kt,110,プロフィールの更新に失敗しました,Failed to update profile,프로필 업데이트 실패,error_update_profile_failed,Error,High
+ProfileViewModel.kt,146,アバターの更新に失敗しました,Failed to update avatar,아바타 업데이트 실패,error_update_avatar_failed,Error,High
+ReviewScreen.kt,45,復習モード,Review mode,복습 모드,label_review_mode,UI Label,Medium
+ReviewScreen.kt,49,過去の会話を復習しましょう,Let's review past conversations,과거 대화를 복습해봅시다,message_review_past_conversations,UI Message,Medium
+ReviewScreen.kt,59,戻る,Back,뒤로,action_back,Action,Medium
+ReviewScreen.kt,97,エラーが発生しました,An error occurred,오류가 발생했습니다,error_generic,Error,High
+ReviewScreen.kt,121,まだ会話がありません,No conversations yet,아직 대화가 없습니다,message_no_conversations,Empty State,Medium
+ReviewScreen.kt,126,シナリオから会話を始めましょう！,Start a conversation from scenarios!,시나리오에서 대화를 시작하세요!,message_start_from_scenario,Empty State,Medium
+ReviewScreen.kt,224,会話,Conversation,대화,label_conversation,Label,Low
+ReviewScreen.kt,229,完了: ,Completed: ,완료: ,label_completed,Label,Low
+ReviewScreen.kt,246,閉じる,Close,닫기,action_close,Action,Medium
+ReviewScreen.kt,246,開く,Open,열기,action_open,Action,Medium
+ReviewScreen.kt,290,分,minutes,분,unit_minutes,Unit,Low
+ReviewScreen.kt,309,語,words,어,unit_words,Unit,Low
+ReviewScreen.kt,357,重要フレーズ,Important phrases,중요 문구,label_important_phrases,Label,Medium
+ReviewScreen.kt,427,再生,Play,재생,action_play,Action,Medium
+ReviewScreen.kt,480,初級,Beginner,초급,difficulty_beginner,Label,Medium
+ReviewScreen.kt,481,中級,Intermediate,중급,difficulty_intermediate,Label,Medium
+ReviewScreen.kt,482,上級,Advanced,고급,difficulty_advanced,Label,Medium
+ConversationHistoryScreen.kt,37,会話履歴,Conversation history,대화 기록,title_conversation_history,Title,Medium
+ConversationHistoryScreen.kt,74,シナリオや会話内容を検索...,Search scenarios or content...,시나리오나 대화 내용 검색...,placeholder_search_conversations,Placeholder,Medium
+ConversationHistoryScreen.kt,86,クリア,Clear,지우기,action_clear,Action,Medium
+ConversationHistoryScreen.kt,107,すべて,All,전체,filter_all,Filter,Medium
+ConversationHistoryScreen.kt,118,進行中,In progress,진행중,status_in_progress,Status,Medium
+ConversationHistoryScreen.kt,129,完了,Completed,완료,status_completed,Status,Medium
+ConversationHistoryScreen.kt,144,シナリオ,Scenario,시나리오,label_scenario,Label,Medium
+ConversationHistoryScreen.kt,227,条件に一致する会話が見つかりません,No conversations match the criteria,조건에 맞는 대화가 없습니다,message_no_match,Empty State,Medium
+ConversationHistoryScreen.kt,229,会話履歴がありません,No conversation history,대화 기록이 없습니다,message_no_history,Empty State,Medium
+ConversationHistoryScreen.kt,278,シナリオで絞り込み,Filter by scenario,시나리오로 필터링,title_filter_by_scenario,Title,Medium
+ConversationHistoryScreen.kt,283,すべてのシナリオ,All scenarios,모든 시나리오,filter_all_scenarios,Filter,Medium
+ConversationHistoryScreen.kt,314,閉じる,Close,닫기,action_close,Action,Medium
+ConversationHistoryScreen.kt,331,会話を削除,Delete conversation,대화 삭제,title_delete_conversation,Dialog Title,Medium
+ConversationHistoryScreen.kt,332,この会話を削除してもよろしいですか？,Are you sure you want to delete?,이 대화를 삭제하시겠습니까?,message_confirm_delete,Dialog Message,Medium
+ConversationHistoryScreen.kt,340,削除,Delete,삭제,action_delete,Action,Medium
+ConversationHistoryScreen.kt,345,キャンセル,Cancel,취소,action_cancel,Action,Medium
+ConversationHistoryScreen.kt,516,再開,Resume,재개,action_resume,Action,Medium
+ConversationHistoryScreen.kt,516,続ける,Continue,계속,action_continue,Action,Medium
+PitchAccentVisualization.kt,40,ピッチアクセント分析,Pitch accent analysis,피치 액센트 분석,title_pitch_accent_analysis,Title,Medium
+PitchAccentVisualization.kt,76,平板,Heiban (flat),평판형,accent_heiban,Label,Low
+PitchAccentVisualization.kt,76,平板（下がらない）,Heiban (doesn't drop),평판형 (떨어지지 않음),accent_heiban_desc,Description,Low
+PitchAccentVisualization.kt,77,頭高,Atamadaka (initial drop),두고형,accent_atamadaka,Label,Low
+PitchAccentVisualization.kt,77,頭高（最初で下がる）,Atamadaka (drops at start),두고형 (처음에 떨어짐),accent_atamadaka_desc,Description,Low
+PitchAccentVisualization.kt,78,中高,Nakadaka (middle drop),중고형,accent_nakadaka,Label,Low
+PitchAccentVisualization.kt,78,中高（中間で下がる）,Nakadaka (drops in middle),중고형 (중간에 떨어짐),accent_nakadaka_desc,Description,Low
+PitchAccentVisualization.kt,79,尾高,Odaka (final drop),미고형,accent_odaka,Label,Low
+PitchAccentVisualization.kt,79,尾高（最後で下がる）,Odaka (drops at end),미고형 (끝에 떨어짐),accent_odaka_desc,Description,Low
+PitchAccentVisualization.kt,132,モーラ別ピッチ,Pitch by mora,모라별 피치,label_pitch_by_mora,Label,Low
+PitchAccentVisualization.kt,227,ピッチ曲線,Pitch curve,피치 곡선,label_pitch_curve,Label,Low
+PitchAccentVisualization.kt,349,ピッチパターン,Pitch pattern,피치 패턴,label_pitch_pattern,Label,Low
+PitchAccentVisualization.kt,360,あなた:,You:,당신:,label_you,Label,Low
+PitchAccentVisualization.kt,384,正解:,Correct:,정답:,label_correct,Label,Low
+PitchAccentVisualization.kt,416,信頼度:,Confidence:,신뢰도:,label_confidence,Label,Low
+PitchAccentVisualization.kt,454,完璧です！ネイティブと同じピッチです。,Perfect! Same pitch as native,완벽해요! 원어민과 같은 피치입니다.,feedback_pitch_perfect,Feedback,Medium
+PitchAccentVisualization.kt,461,もう少しです。正解のパターンを練習しましょう。,Almost there. Practice the correct pattern,거의 다 왔어요. 정답 패턴을 연습하세요.,feedback_pitch_practice,Feedback,Medium
+IntonationVisualizer.kt,40,イントネーション分析,Intonation analysis,억양 분석,title_intonation_analysis,Title,Medium
+IntonationVisualizer.kt,78,平叙文,Statement,평서문,sentence_type_statement,Label,Low
+IntonationVisualizer.kt,78,文末が下がる,End falls,문말이 내려감,sentence_desc_statement,Description,Low
+IntonationVisualizer.kt,84,疑問文,Question,의문문,sentence_type_question,Label,Low
+IntonationVisualizer.kt,84,文末が上がる,End rises,문말이 올라감,sentence_desc_question,Description,Low
+IntonationVisualizer.kt,90,感嘆文,Exclamation,감탄문,sentence_type_exclamation,Label,Low
+IntonationVisualizer.kt,90,強い感情,Strong emotion,강한 감정,sentence_desc_exclamation,Description,Low
+IntonationVisualizer.kt,96,命令文,Command,명령문,sentence_type_command,Label,Low
+IntonationVisualizer.kt,96,急激に下がる,Sharp drop,급격히 내려감,sentence_desc_command,Description,Low
+IntonationVisualizer.kt,159,イントネーション曲線,Intonation curve,억양 곡선,label_intonation_curve,Label,Low
+IntonationVisualizer.kt,282,文末上昇,Final rise,문말 상승,label_final_rise,Label,Low
+IntonationVisualizer.kt,287,文末下降,Final fall,문말 하강,label_final_fall,Label,Low
+IntonationVisualizer.kt,408,改善のヒント,Improvement hints,개선 힌트,label_improvement_hints,Label,Medium
+IntonationVisualizer.kt,439,完璧です！平叙文のイントネーションが自然です。,Perfect! Natural statement intonation,완벽해요! 평서문 억양이 자연스럽습니다.,feedback_intonation_statement_perfect,Feedback,Medium
+IntonationVisualizer.kt,440,素晴らしい！疑問文の上昇イントネーションが正確です。,Excellent! Accurate question intonation,훌륭해요! 의문문 상승 억양이 정확합니다.,feedback_intonation_question_perfect,Feedback,Medium
+IntonationVisualizer.kt,451,文末をもう少し下げてみましょう。平叙文は下降調です。,Try lowering the end more. Statements fall,문말을 좀 더 내려보세요. 평서문은 하강조입니다.,hint_statement_lower,Hint,Medium
+IntonationVisualizer.kt,452,文末を上げて疑問の気持ちを表現しましょう。,Raise the end to express questioning,문말을 올려서 의문을 표현하세요.,hint_question_raise,Hint,Medium
+IntonationVisualizer.kt,453,感情をもっと込めて、音程の変化を大きくしましょう。,Put more emotion; bigger pitch changes,감정을 더 담아서 음정 변화를 크게 하세요.,hint_exclamation_emotion,Hint,Medium
+IntonationVisualizer.kt,454,もっと強く、急激に下げてみましょう。,Try dropping more sharply and strongly,더 강하고 급격하게 내려보세요.,hint_command_sharp,Hint,Medium
+FeedbackCard.kt,149,より良い表現:,Better expression:,더 나은 표현:,label_better_expression,Label,Medium
+FeedbackCard.kt,177,詳細を隠す,Hide details,상세 숨기기,action_hide_details,Action,Medium
+FeedbackCard.kt,177,詳細を見る,See details,상세 보기,action_see_details,Action,Medium
+FeedbackCard.kt,216,確認済み,Acknowledged,확인됨,status_acknowledged,Status,Medium
+FeedbackCard.kt,228,適用,Apply,적용,action_apply,Action,Medium
+FeedbackCard.kt,243,間違い,Error,오류,severity_error,Label,Medium
+FeedbackCard.kt,244,注意,Warning,주의,severity_warning,Label,Medium
+FeedbackCard.kt,245,情報,Info,정보,severity_info,Label,Medium
+FeedbackCard.kt,304,文法,Grammar,문법,feedback_type_grammar,Label,Medium
+FeedbackCard.kt,305,不自然な表現,Unnatural expression,부자연스러운 표현,feedback_type_unnatural,Label,Medium
+FeedbackCard.kt,306,より良い表現,Better expression,더 나은 표현,feedback_type_better,Label,Medium
+FeedbackCard.kt,307,会話の流れ,Conversation flow,대화 흐름,feedback_type_flow,Label,Medium
+FeedbackCard.kt,308,敬語レベル,Politeness level,경어 레벨,feedback_type_politeness,Label,Medium
+AddVocabularyScreen.kt,31,単語を追加しました！,Word added!,단어를 추가했습니다!,message_word_added,Toast,Medium
+Charts.kt,35,分,minutes,분,unit_minutes,Unit,Low
