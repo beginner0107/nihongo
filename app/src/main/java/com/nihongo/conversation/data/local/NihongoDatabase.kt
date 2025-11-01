@@ -17,6 +17,8 @@ import com.nihongo.conversation.domain.model.ScenarioOutcome
 import com.nihongo.conversation.domain.model.SentenceCard
 import com.nihongo.conversation.domain.model.User
 import com.nihongo.conversation.domain.model.VocabularyEntry
+import com.nihongo.conversation.data.local.entity.TranslationCacheEntity
+import com.nihongo.conversation.data.local.dao.TranslationCacheDao
 
 @Database(
     entities = [
@@ -34,12 +36,13 @@ import com.nihongo.conversation.domain.model.VocabularyEntry
         SentenceCard::class,
         com.nihongo.conversation.domain.model.ConversationPattern::class,
         com.nihongo.conversation.domain.model.CachedResponse::class,
-        com.nihongo.conversation.domain.model.CacheAnalytics::class
+        com.nihongo.conversation.domain.model.CacheAnalytics::class,
+        TranslationCacheEntity::class
     ],
     views = [
         ConversationStats::class
     ],
-    version = 11,  // Phase 1: Added unique index to ConversationPattern
+    version = 12,  // Added TranslationCacheEntity for DeepL/MLKit translation caching
     exportSchema = false
 )
 abstract class NihongoDatabase : RoomDatabase() {
@@ -57,6 +60,7 @@ abstract class NihongoDatabase : RoomDatabase() {
     abstract fun conversationPatternDao(): ConversationPatternDao
     abstract fun cachedResponseDao(): CachedResponseDao
     abstract fun cacheAnalyticsDao(): CacheAnalyticsDao
+    abstract fun translationCacheDao(): TranslationCacheDao
 
     companion object {
         val MIGRATION_1_2 = object : Migration(1, 2) {
@@ -464,6 +468,27 @@ abstract class NihongoDatabase : RoomDatabase() {
                     CREATE UNIQUE INDEX IF NOT EXISTS index_conversation_patterns_scenarioId_difficultyLevel_pattern
                     ON conversation_patterns(scenarioId, difficultyLevel, pattern)
                 """)
+            }
+        }
+
+        // Add translation cache for DeepL/MLKit translation caching
+        val MIGRATION_11_12 = object : Migration(11, 12) {
+            override fun migrate(database: SupportSQLiteDatabase) {
+                // Create translation_cache table
+                database.execSQL("""
+                    CREATE TABLE IF NOT EXISTS translation_cache (
+                        sourceText TEXT NOT NULL PRIMARY KEY,
+                        translatedText TEXT NOT NULL,
+                        provider TEXT NOT NULL,
+                        timestamp INTEGER NOT NULL,
+                        sourceLang TEXT NOT NULL DEFAULT 'ja',
+                        targetLang TEXT NOT NULL DEFAULT 'ko'
+                    )
+                """)
+
+                // Create indices for translation_cache
+                database.execSQL("CREATE INDEX IF NOT EXISTS index_translation_cache_provider ON translation_cache(provider)")
+                database.execSQL("CREATE INDEX IF NOT EXISTS index_translation_cache_timestamp ON translation_cache(timestamp)")
             }
         }
     }

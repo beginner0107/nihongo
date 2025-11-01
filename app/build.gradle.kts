@@ -34,6 +34,11 @@ android {
             "GEMINI_API_KEY",
             "\"${properties.getProperty("GEMINI_API_KEY", "")}\""
         )
+        buildConfigField(
+            "String",
+            "DEEPL_API_KEY",
+            "\"${properties.getProperty("DEEPL_API_KEY", "")}\""
+        )
     }
 
     buildTypes {

@@ -3,6 +3,7 @@ package com.nihongo.conversation.core.di
 import android.content.Context
 import androidx.room.Room
 import com.nihongo.conversation.data.local.*
+import com.nihongo.conversation.data.local.dao.TranslationCacheDao
 import dagger.Module
 import dagger.Provides
 import dagger.hilt.InstallIn
@@ -34,7 +35,8 @@ object DatabaseModule {
                 NihongoDatabase.MIGRATION_7_8,  // Phase 3: Restored
                 NihongoDatabase.MIGRATION_8_9,
                 NihongoDatabase.MIGRATION_9_10,
-                NihongoDatabase.MIGRATION_10_11  // Phase 1: Unique index
+                NihongoDatabase.MIGRATION_10_11,  // Phase 1: Unique index
+                NihongoDatabase.MIGRATION_11_12   // DeepL translation cache
             )
             // Phase 3: All migrations provided - no destructive migration needed
             // This prevents user data loss in production
@@ -93,4 +95,8 @@ object DatabaseModule {
     @Provides
     fun provideCacheAnalyticsDao(database: NihongoDatabase): CacheAnalyticsDao =
         database.cacheAnalyticsDao()
+
+    @Provides
+    fun provideTranslationCacheDao(database: NihongoDatabase): TranslationCacheDao =
+        database.translationCacheDao()
 }
