@@ -41,6 +41,19 @@ class FuzzyMatcher {
     }
 
     /**
+     * Phase 2: Get adaptive threshold based on conversation turn
+     * First turns need lower threshold (more lenient)
+     * Later turns can be higher (more precise)
+     */
+    fun getAdaptiveThreshold(turnNumber: Int, scenarioId: Long? = null): Float {
+        return when {
+            turnNumber == 1 -> 0.7f  // First turn: more lenient
+            turnNumber < 5 -> 0.75f   // Early conversation: medium
+            else -> 0.85f             // Later turns: stricter
+        }
+    }
+
+    /**
      * Calculate similarity between two strings (0.0 to 1.0)
      * Higher score = more similar
      */

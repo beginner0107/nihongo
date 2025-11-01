@@ -152,6 +152,7 @@ class ResponseCacheRepository @Inject constructor(
 
     /**
      * Find matching pattern using fuzzy matching
+     * Phase 2: Two-stage matching with precomputed tokens
      */
     private suspend fun findMatchingPattern(
         userInput: String,
@@ -170,11 +171,34 @@ class ResponseCacheRepository @Inject constructor(
 
         if (patterns.isEmpty()) return null
 
-        // Find best match using fuzzy matcher
+        // Phase 2: Precompute normalized input and tokens once
+        val normalizedInput = fuzzyMatcher.normalizeForJapanese(userInput)
+        val inputTokens = fuzzyMatcher.tokenizeJapanese(userInput)
+
+        // Phase 2: Stage 1 - Cheap filtering (substring + token overlap)
+        val candidates = patterns.filter { pattern ->
+            val normalizedPattern = fuzzyMatcher.normalizeForJapanese(pattern.pattern)
+
+            // Quick substring check
+            val hasSubstring = normalizedInput.contains(normalizedPattern) ||
+                              normalizedPattern.contains(normalizedInput)
+
+            if (hasSubstring) return@filter true
+
+            // Token overlap check (Jaccard similarity approximation)
+            val patternTokens = fuzzyMatcher.tokenizeJapanese(pattern.pattern)
+            val intersection = inputTokens.intersect(patternTokens).size
+            val union = inputTokens.union(patternTokens).size
+
+            // Keep if >30% token overlap
+            union > 0 && (intersection.toFloat() / union) > 0.3f
+        }
+
+        // Phase 2: Stage 2 - Expensive Levenshtein only on candidates
         var bestMatch: Pair<ConversationPattern, Float>? = null
         var bestScore = 0.0f
 
-        for (pattern in patterns) {
+        for (pattern in candidates) {
             val keywords = pattern.keywords.split(",").filter { it.isNotBlank() }
             val similarity = fuzzyMatcher.calculateSimilarityWithKeywords(
                 input = userInput,
