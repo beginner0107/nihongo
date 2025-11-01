@@ -90,6 +90,22 @@
     <string name="voice_instruction_thinking">AIが応答を生成中…</string>
     <string name="voice_instruction_speaking">聞いてください</string>
 
+    <!-- Voice Only Mode -->
+    <string name="voice_ready">準備完了</string>
+    <string name="voice_instruction_start">ボタンを押して話し始めてください</string>
+    <string name="voice_instruction_speak_anything">何でも話してください</string>
+    <string name="voice_instruction_please_wait">少々お待ちください</string>
+    <string name="voice_instruction_listen_carefully">よく聞いてください</string>
+    <string name="voice_instruction_preparing">応答を準備しています</string>
+    <string name="remaining_minutes">残り %d 分</string>
+    <string name="session_complete">会話終了！</string>
+    <string name="conversation_time">会話時間:</string>
+    <string name="elapsed_minutes">%d 分</string>
+    <string name="message_count">メッセージ数:</string>
+    <string name="message_count_value">%d 件</string>
+    <string name="check_transcript">会話の記録を確認しますか？</string>
+    <string name="more_messages">... 他 %d 件</string>
+
     <!-- Errors -->
     <string name="error_network">ネットワークエラーが発生しました</string>
     <string name="error_api">APIエラーが発生しました</string>

@@ -90,6 +90,22 @@
     <string name="voice_instruction_thinking">AI가 응답 생성 중…</string>
     <string name="voice_instruction_speaking">들어보세요</string>
 
+    <!-- Voice Only Mode -->
+    <string name="voice_ready">준비 완료</string>
+    <string name="voice_instruction_start">버튼을 눌러 대화를 시작하세요</string>
+    <string name="voice_instruction_speak_anything">자유롭게 말하세요</string>
+    <string name="voice_instruction_please_wait">잠시만 기다려주세요</string>
+    <string name="voice_instruction_listen_carefully">잘 들어보세요</string>
+    <string name="voice_instruction_preparing">응답을 준비하고 있습니다</string>
+    <string name="remaining_minutes">남은 시간 %d 분</string>
+    <string name="session_complete">대화 종료!</string>
+    <string name="conversation_time">대화 시간:</string>
+    <string name="elapsed_minutes">%d 분</string>
+    <string name="message_count">메시지 수:</string>
+    <string name="message_count_value">%d 개</string>
+    <string name="check_transcript">대화 기록을 확인하시겠습니까?</string>
+    <string name="more_messages">... 외 %d 개</string>
+
     <!-- Errors -->
     <string name="error_network">네트워크 오류가 발생했습니다</string>
     <string name="error_api">API 오류가 발생했습니다</string>

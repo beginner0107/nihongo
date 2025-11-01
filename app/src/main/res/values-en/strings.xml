@@ -90,6 +90,22 @@
     <string name="voice_instruction_thinking">AI is generating response…</string>
     <string name="voice_instruction_speaking">Listen</string>
 
+    <!-- Voice Only Mode -->
+    <string name="voice_ready">Ready</string>
+    <string name="voice_instruction_start">Press the button to start talking</string>
+    <string name="voice_instruction_speak_anything">Say anything</string>
+    <string name="voice_instruction_please_wait">Please wait</string>
+    <string name="voice_instruction_listen_carefully">Listen carefully</string>
+    <string name="voice_instruction_preparing">Preparing response</string>
+    <string name="remaining_minutes">%d minutes left</string>
+    <string name="session_complete">Session complete!</string>
+    <string name="conversation_time">Conversation time:</string>
+    <string name="elapsed_minutes">%d min</string>
+    <string name="message_count">Messages:</string>
+    <string name="message_count_value">%d</string>
+    <string name="check_transcript">Check conversation transcript?</string>
+    <string name="more_messages">... %d more</string>
+
     <!-- Errors -->
     <string name="error_network">Network error occurred</string>
     <string name="error_api">API error occurred</string>

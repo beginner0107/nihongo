@@ -387,6 +387,10 @@ class ChatViewModel @Inject constructor(
         voiceManager.speak(text, speed = _uiState.value.speechSpeed)
     }
 
+    fun speakMessageSlowly(text: String) {
+        voiceManager.speak(text, speed = 0.7f)
+    }
+
     fun toggleAutoSpeak() {
         viewModelScope.launch {
             settingsDataStore.updateAutoSpeak(!_uiState.value.autoSpeak)

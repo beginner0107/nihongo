@@ -195,6 +195,9 @@ fun ChatScreen(
                         onSpeakMessage = if (!message.isUser) {
                             { viewModel.speakMessage(message.content) }
                         } else null,
+                        onSpeakSlowly = if (!message.isUser) {
+                            { viewModel.speakMessageSlowly(message.content) }
+                        } else null,
                         onLongPress = { viewModel.requestGrammarExplanation(message.content) },
                         isTranslationExpanded = message.id in uiState.expandedTranslations,
                         translation = uiState.translations[message.id],
@@ -431,6 +434,7 @@ fun ChatScreen(
 fun MessageBubble(
     message: Message,
     onSpeakMessage: (() -> Unit)? = null,
+    onSpeakSlowly: (() -> Unit)? = null,
     onLongPress: () -> Unit = {},
     isTranslationExpanded: Boolean = false,
     translation: String? = null,
@@ -662,21 +666,21 @@ fun MessageBubble(
                 )
 
                 // 천천히 읽기 (Read slowly - NEW)
-                androidx.compose.material3.DropdownMenuItem(
-                    text = { androidx.compose.material3.Text(stringResource(R.string.read_slowly)) },
-                    leadingIcon = {
-                        androidx.compose.material3.Icon(
-                            androidx.compose.material.icons.Icons.Default.Speed,
-                            contentDescription = null
-                        )
-                    },
-                    onClick = {
-                        // TODO: Implement slow TTS (0.7x speed)
-                        // For now, just speak normally
-                        onSpeakMessage()
-                        showContextMenu = false
-                    }
-                )
+                if (onSpeakSlowly != null) {
+                    androidx.compose.material3.DropdownMenuItem(
+                        text = { androidx.compose.material3.Text(stringResource(R.string.read_slowly)) },
+                        leadingIcon = {
+                            androidx.compose.material3.Icon(
+                                androidx.compose.material.icons.Icons.Default.Speed,
+                                contentDescription = null
+                            )
+                        },
+                        onClick = {
+                            onSpeakSlowly()
+                            showContextMenu = false
+                        }
+                    )
+                }
             }
 
             // 문법 분석 (If AI message)
