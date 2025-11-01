@@ -701,6 +701,8 @@ class ChatViewModel @Inject constructor(
                 repository.completeConversation(conversationId)
 
                 // Reset state for new conversation
+                // Stop collecting old conversation messages to prevent repopulation
+                messagesFlowJob?.cancel()
                 currentConversationId = null
                 _uiState.update {
                     it.copy(
@@ -723,6 +725,9 @@ class ChatViewModel @Inject constructor(
                 repository.completeConversation(conversationId)
             }
 
+            // Stop collecting from the previous conversation
+            messagesFlowJob?.cancel()
+
             // Create new conversation immediately
             currentConversationId = repository.getOrCreateConversation(currentUserId, currentScenarioId)
 
@@ -737,6 +742,23 @@ class ChatViewModel @Inject constructor(
                     grammarCache = ImmutableMap.empty(), // Clear grammar cache too
                     showNewChatToast = true
                 )
+            }
+
+            // Start collecting messages for the new conversation so UI updates immediately
+            val newConversationId = currentConversationId
+            if (newConversationId != null) {
+                messagesFlowJob = viewModelScope.launch {
+                    repository.getMessages(newConversationId)
+                        .collect { messages ->
+                            // Limit message history based on device memory
+                            val limitedMessages = if (messages.size > memoryConfig.maxMessageHistory) {
+                                messages.takeLast(memoryConfig.maxMessageHistory)
+                            } else {
+                                messages
+                            }
+                            _uiState.update { it.copy(messages = limitedMessages.toImmutableList()) }
+                        }
+                }
             }
         }
     }

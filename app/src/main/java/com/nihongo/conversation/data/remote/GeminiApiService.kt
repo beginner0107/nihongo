@@ -211,7 +211,8 @@ class GeminiApiService @Inject constructor(
             }
 
         } catch (e: Exception) {
-            emit("エラーが発生しました: ${e.message}")
+            // Re-throw exception so repository can handle it properly
+            throw e
         }
     }
 
