@@ -355,10 +355,69 @@ class GeminiApiService @Inject constructor(
     }
 
     /**
-     * Clean AI response text by removing markdown formatting and furigana
+     * Clean AI response text by removing markdown formatting, furigana, and internal reasoning
+     * AGGRESSIVE filtering for long conversations where reasoning might slip through
      */
     private fun cleanResponseText(text: String): String {
-        return text
+        var cleaned = text
+
+        // Step 0: AGGRESSIVE - Remove common reasoning keywords and their surrounding text
+        val reasoningPatterns = listOf(
+            // English thinking patterns
+            Regex("(?i)THINK[\\s\\S]*?(?=[\u3040-\u309F\u30A0-\u30FF\u4E00-\u9FAF]|$)", RegexOption.MULTILINE),
+            Regex("(?i)^.*?I should.*?$", RegexOption.MULTILINE),
+            Regex("(?i)^.*?I could.*?$", RegexOption.MULTILINE),
+            Regex("(?i)^.*?I will.*?$", RegexOption.MULTILINE),
+            Regex("(?i)^.*?I can.*?$", RegexOption.MULTILINE),
+            Regex("(?i)^.*?Let me.*?$", RegexOption.MULTILINE),
+            Regex("(?i)^.*?Let's.*?$", RegexOption.MULTILINE),
+            Regex("(?i)^.*?This is.*?$", RegexOption.MULTILINE),
+            Regex("(?i)^.*?That's.*?$", RegexOption.MULTILINE),
+            Regex("(?i)^.*?It's.*?$", RegexOption.MULTILINE),
+            Regex("(?i)^.*?Since.*?$", RegexOption.MULTILINE),
+            Regex("(?i)^.*?The user.*?$", RegexOption.MULTILINE),
+            Regex("(?i)^.*?They.*?said.*?$", RegexOption.MULTILINE),
+            Regex("(?i)^.*?In this.*?$", RegexOption.MULTILINE),
+            // Remove numbered reasoning (1., 2., etc.)
+            Regex("^\\d+\\.\\s*[A-Za-z].*?$", RegexOption.MULTILINE),
+            // Remove "Response:", "Answer:", etc.
+            Regex("(?i)^(Response|Answer|Reply):\\s*", RegexOption.MULTILINE)
+        )
+
+        reasoningPatterns.forEach { pattern ->
+            cleaned = cleaned.replace(pattern, "")
+        }
+
+        // Step 1: Remove internal reasoning blocks (THINK, English explanations, etc.)
+        // Find first line that contains Japanese characters
+        val japaneseCharPattern = Regex("[\u3040-\u309F\u30A0-\u30FF\u4E00-\u9FAF]")
+        val lines = cleaned.lines()
+
+        // Find the first line with Japanese content
+        val firstJapaneseLineIndex = lines.indexOfFirst { line ->
+            japaneseCharPattern.containsMatchIn(line) &&
+            // Exclude lines that are primarily English/thinking
+            !line.trim().matches(Regex("^[A-Za-z\\s:,\\.!?\"'()\\[\\]{}0-9]+$"))
+        }
+
+        // If found, take from that line onwards
+        if (firstJapaneseLineIndex >= 0) {
+            cleaned = lines.drop(firstJapaneseLineIndex).joinToString("\n")
+        }
+
+        // Step 2: Remove remaining English-only lines that might be reasoning
+        cleaned = cleaned.lines()
+            .filterNot { line ->
+                val trimmed = line.trim()
+                // Remove lines that are pure English (likely reasoning/thinking)
+                trimmed.isNotEmpty() &&
+                trimmed.matches(Regex("^[A-Za-z\\s:,\\.!?\"'()\\[\\]{}0-9-]+$")) &&
+                !japaneseCharPattern.containsMatchIn(trimmed)
+            }
+            .joinToString("\n")
+
+        // Step 3: Remove markdown formatting and furigana
+        return cleaned
             // Remove markdown bold (**text** or __text__)
             .replace(Regex("\\*\\*([^*]+)\\*\\*"), "$1")
             .replace(Regex("__([^_]+)__"), "$1")
@@ -368,6 +427,9 @@ class GeminiApiService @Inject constructor(
             // Remove furigana in parentheses (both full-width and half-width)
             .replace(Regex("（[^）]*）"), "")
             .replace(Regex("\\([^)]*\\)"), "")
+            // Clean up multiple blank lines
+            .replace(Regex("\n{3,}"), "\n\n")
+            .trim()
     }
 
     suspend fun generateHints(
@@ -860,17 +922,35 @@ class GeminiApiService @Inject constructor(
         history: List<Pair<String, Boolean>>,
         systemPrompt: String
     ) = buildList {
+        // Add initial system prompt
         add(
             content("model") {
                 text(systemPrompt)
             }
         )
-        history.forEach { (text, isUser) ->
+
+        // Short reminder for long conversations (invisible to user, reinforces rules)
+        val reminderPrompt = """
+            REMINDER: Output ONLY Japanese dialogue. NO English, NO thinking, NO explanations.
+            絶対厳守：日本語の会話文のみ。英語禁止、思考過程禁止。
+        """.trimIndent()
+
+        // Add history with periodic reminders to prevent rule drift
+        history.forEachIndexed { index, (text, isUser) ->
             add(
                 content(if (isUser) "user" else "model") {
                     text(text)
                 }
             )
+
+            // Every 8 messages, inject a reminder (but not too close to the end)
+            if (index > 0 && index % 8 == 0 && index < history.size - 2) {
+                add(
+                    content("model") {
+                        text(reminderPrompt)
+                    }
+                )
+            }
         }
     }
 }

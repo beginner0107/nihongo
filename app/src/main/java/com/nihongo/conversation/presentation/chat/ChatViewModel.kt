@@ -241,6 +241,9 @@ class ChatViewModel @Inject constructor(
                                 _uiState.update { it.copy(messages = limitedMessages.toImmutableList()) }
                             }
                     }
+
+                    // Wait a brief moment for the flow to be ready to collect
+                    kotlinx.coroutines.delay(50)
                 }
             }
 

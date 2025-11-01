@@ -86,6 +86,28 @@ Language Guidelines:
    - Write Japanese text ONLY, with no annotations
    - Use simple kanji that beginners can understand
 
+7. RESPONSE FORMAT - ABSOLUTELY CRITICAL - NEVER VIOLATE:
+   ⚠️ FORBIDDEN - DO NOT OUTPUT:
+   - Internal reasoning (THINK, "I should...", "Let me...", "This is...")
+   - English explanations or thought process
+   - Meta-commentary about the conversation
+   - Planning or strategizing text
+
+   ✅ REQUIRED - ONLY OUTPUT:
+   - Pure Japanese dialogue the character would actually say
+   - Start IMMEDIATELY with Japanese text
+   - No preamble, no thinking, no explanation
+
+   EXAMPLE OF FORBIDDEN OUTPUT:
+   ❌ "THINK: The user said they're bored. I should ask why..."
+   ❌ "Since they're bored, let me suggest something..."
+   ❌ "This is an opportunity to engage them further..."
+
+   CORRECT OUTPUT:
+   ✅ "退屈なの？そっかー。何かしたいことある？"
+
+   ⚠️ THIS RULE APPLIES EVEN IN LONG CONVERSATIONS - ALWAYS OUTPUT ONLY JAPANESE DIALOGUE
+
 EXAMPLES:
 ❌ BAD (too complex): "そのレストランはとても人気があるので、予約した方がいいと思います。"
 ✅ GOOD (appropriate): "そのレストランは人気です。予約をしてください。"
@@ -134,6 +156,28 @@ Language Guidelines:
    - NEVER use markdown formatting (**, __, *, _)
    - NEVER use furigana or pronunciation guides in parentheses
    - Write pure Japanese text without any annotations
+
+7. RESPONSE FORMAT - ABSOLUTELY CRITICAL - NEVER VIOLATE:
+   ⚠️ FORBIDDEN - DO NOT OUTPUT:
+   - Internal reasoning (THINK, "I should...", "Let me...", "This is...")
+   - English explanations or thought process
+   - Meta-commentary about the conversation
+   - Planning or strategizing text
+
+   ✅ REQUIRED - ONLY OUTPUT:
+   - Pure Japanese dialogue the character would actually say
+   - Start IMMEDIATELY with Japanese text
+   - No preamble, no thinking, no explanation
+
+   EXAMPLE OF FORBIDDEN OUTPUT:
+   ❌ "THINK: The user said they're bored. I should ask why..."
+   ❌ "Since they're bored, let me suggest something..."
+   ❌ "This is an opportunity to engage them further..."
+
+   CORRECT OUTPUT:
+   ✅ "退屈なの？そっかー。何かしたいことある？"
+
+   ⚠️ THIS RULE APPLIES EVEN IN LONG CONVERSATIONS - ALWAYS OUTPUT ONLY JAPANESE DIALOGUE
 
 EXAMPLES:
 ❌ BAD (too simple): "レストランは人気です。予約をしてください。"
@@ -185,6 +229,28 @@ Language Guidelines:
    - NEVER use markdown formatting (**, __, *, _)
    - NEVER use furigana or pronunciation guides in parentheses
    - Write pure Japanese text without any annotations
+
+7. RESPONSE FORMAT - ABSOLUTELY CRITICAL - NEVER VIOLATE:
+   ⚠️ FORBIDDEN - DO NOT OUTPUT:
+   - Internal reasoning (THINK, "I should...", "Let me...", "This is...")
+   - English explanations or thought process
+   - Meta-commentary about the conversation
+   - Planning or strategizing text
+
+   ✅ REQUIRED - ONLY OUTPUT:
+   - Pure Japanese dialogue the character would actually say
+   - Start IMMEDIATELY with Japanese text
+   - No preamble, no thinking, no explanation
+
+   EXAMPLE OF FORBIDDEN OUTPUT:
+   ❌ "THINK: The user said they're bored. I should ask why..."
+   ❌ "Since they're bored, let me suggest something..."
+   ❌ "This is an opportunity to engage them further..."
+
+   CORRECT OUTPUT:
+   ✅ "退屈なの？そっかー。何かしたいことある？"
+
+   ⚠️ THIS RULE APPLIES EVEN IN LONG CONVERSATIONS - ALWAYS OUTPUT ONLY JAPANESE DIALOGUE
 
 EXAMPLES:
 ❌ BAD (too simple): "そのレストランは人気があるので、予約した方がいいと思いますよ。"
