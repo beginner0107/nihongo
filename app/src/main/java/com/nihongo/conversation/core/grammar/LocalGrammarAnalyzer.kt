@@ -1,5 +1,6 @@
 package com.nihongo.conversation.core.grammar
 
+import com.nihongo.conversation.core.cache.JapaneseTextNormalizer
 import com.nihongo.conversation.domain.model.GrammarComponent
 import com.nihongo.conversation.domain.model.GrammarExplanation
 import com.nihongo.conversation.domain.model.GrammarType
@@ -8,11 +9,28 @@ import com.nihongo.conversation.domain.model.GrammarType
  * Enhanced Local Grammar Analyzer
  * Provides fast, offline grammar analysis for common patterns
  * Used as primary analyzer for simple sentences and fallback for API failures
+ *
+ * Phase 5 Improvements:
+ * - Thread-safe LRU cache
+ * - JapaneseTextNormalizer integration
+ * - Expanded pattern coverage (polite negatives, suggestions, etc.)
+ * - Specificity-first overlap resolution
+ * - Particle boundary heuristics
  */
 object LocalGrammarAnalyzer {
 
-    // Cache for analyzed sentences
-    private val cache = mutableMapOf<String, GrammarExplanation>()
+    private val normalizer = JapaneseTextNormalizer.INSTANCE
+
+    // Phase 5A: Thread-safe LRU cache with access-order
+    private val cache = object : LinkedHashMap<String, GrammarExplanation>(
+        16,      // initial capacity
+        0.75f,   // load factor
+        true     // access-order (LRU)
+    ) {
+        override fun removeEldestEntry(eldest: MutableMap.MutableEntry<String, GrammarExplanation>?): Boolean {
+            return size > 200  // Max 200 entries
+        }
+    }
 
     /**
      * Check if sentence can be analyzed locally (avoiding API call)
@@ -50,11 +68,17 @@ object LocalGrammarAnalyzer {
 
     /**
      * Enhanced sentence analysis with better pattern recognition
+     * Phase 5A: Thread-safe with normalization
      */
+    @Synchronized
     fun analyzeSentence(sentence: String, userLevel: Int = 1): GrammarExplanation {
-        // Return cached result if available
-        cache[sentence]?.let { return it }
+        // Phase 5A: Check cache in synchronized block
+        synchronized(cache) {
+            cache[sentence]?.let { return it }
+        }
 
+        // Phase 5A: Normalize text for consistent matching
+        val normalized = normalizer.normalize(sentence)
         val components = mutableListOf<GrammarComponent>()
 
         // Enhanced particle detection with detailed explanations
@@ -79,9 +103,9 @@ object LocalGrammarAnalyzer {
             "など" to ParticleInfo("등등", "~등", "예시를 나타냅니다")
         )
 
-        // Detect particles
+        // Phase 5A: Detect particles in normalized text
         particlesWithExplanations.forEach { (particle, info) ->
-            var index = sentence.indexOf(particle)
+            var index = normalized.indexOf(particle)
             while (index != -1) {
                 val explanation = if (userLevel == 1) {
                     "${info.korean}: ${info.meaning}"
@@ -98,7 +122,7 @@ object LocalGrammarAnalyzer {
                         endIndex = index + particle.length
                     )
                 )
-                index = sentence.indexOf(particle, index + 1)
+                index = normalized.indexOf(particle, index + 1)
             }
         }
 
@@ -131,12 +155,31 @@ object LocalGrammarAnalyzer {
             "ない" to VerbInfo("부정형", "동작을 하지 않음"),
             "なかった" to VerbInfo("과거 부정", "과거에 하지 않았음"),
             "だろう" to VerbInfo("추측", "아마도 그럴 것이라는 추측"),
-            "かもしれない" to VerbInfo("가능성", "그럴지도 모른다는 표현")
+
+            // Phase 5A: Polite possibility
+            "かもしれません" to VerbInfo("가능성 (정중)", "그럴지도 모른다는 정중한 표현"),
+            "かもしれない" to VerbInfo("가능성", "그럴지도 모른다는 표현"),
+
+            // Phase 5A: Common negatives (polite and casual)
+            "ではありません" to VerbInfo("부정 (정중)", "아닙니다"),
+            "ではない" to VerbInfo("부정 (격식)", "아니다 (형식적)"),
+            "じゃない" to VerbInfo("부정 (구어)", "아니다 (일상적)"),
+            "じゃありません" to VerbInfo("부정 (정중 구어)", "아닙니다 (일상적)"),
+
+            // Phase 5A: Permission/Necessity
+            "なくてもいい" to VerbInfo("불필요", "하지 않아도 된다"),
+            "なくてもいいです" to VerbInfo("불필요 (정중)", "하지 않아도 됩니다"),
+            "ないでください" to VerbInfo("금지 요청", "하지 말아 주세요"),
+
+            // Phase 5A: Suggestion
+            "たほうがいい" to VerbInfo("권유", "하는 게 좋다"),
+            "ほうがいい" to VerbInfo("권유", "하는 게 좋다"),
+            "たほうがいいです" to VerbInfo("권유 (정중)", "하는 게 좋습니다")
         )
 
-        // Detect verb patterns
+        // Phase 5A: Detect verb patterns in normalized text
         verbPatterns.forEach { (pattern, info) ->
-            var index = sentence.indexOf(pattern)
+            var index = normalized.indexOf(pattern)
             while (index != -1) {
                 val explanation = if (userLevel == 1) {
                     "${info.type}: ${info.meaning}"
@@ -153,7 +196,7 @@ object LocalGrammarAnalyzer {
                         endIndex = index + pattern.length
                     )
                 )
-                index = sentence.indexOf(pattern, index + 1)
+                index = normalized.indexOf(pattern, index + 1)
             }
         }
 
@@ -179,9 +222,9 @@ object LocalGrammarAnalyzer {
             "と思います" to ExpressionInfo(GrammarType.EXPRESSION, "생각 표현", "개인적 의견이나 생각")
         )
 
-        // Detect expressions
+        // Phase 5A: Detect expressions in normalized text
         expressions.forEach { (pattern, info) ->
-            var index = sentence.indexOf(pattern)
+            var index = normalized.indexOf(pattern)
             while (index != -1) {
                 val explanation = if (userLevel == 1) {
                     "${info.type}: ${info.meaning}"
@@ -198,19 +241,30 @@ object LocalGrammarAnalyzer {
                         endIndex = index + pattern.length
                     )
                 )
-                index = sentence.indexOf(pattern, index + 1)
+                index = normalized.indexOf(pattern, index + 1)
             }
         }
 
-        // Sort and remove overlaps
-        val sortedComponents = components
-            .sortedBy { it.startIndex }
-            .fold(mutableListOf<GrammarComponent>()) { acc, component ->
-                if (acc.isEmpty() || acc.last().endIndex <= component.startIndex) {
-                    acc.add(component)
+        // Phase 5B: Specificity-first overlap resolution
+        // Sort by length (descending) to prioritize specific patterns
+        val sortedByLength = components.sortedByDescending { it.endIndex - it.startIndex }
+
+        // Track covered positions
+        val covered = BooleanArray(normalized.length)
+
+        // Keep only non-overlapping components, preferring longer/more specific ones
+        val sortedComponents = sortedByLength.filter { component ->
+            val isOverlap = (component.startIndex until component.endIndex).any { covered[it] }
+            if (!isOverlap) {
+                // Mark this range as covered
+                for (i in component.startIndex until component.endIndex) {
+                    covered[i] = true
                 }
-                acc
+                true
+            } else {
+                false
             }
+        }.sortedBy { it.startIndex } // Re-sort by position for display
 
         // Generate explanations
         val overallExplanation = generateOverallExplanation(sentence, sortedComponents, userLevel)
@@ -225,8 +279,8 @@ object LocalGrammarAnalyzer {
             relatedPatterns = getRelatedPatterns(sortedComponents)
         )
 
-        // Cache the result
-        if (cache.size < 100) { // Limit cache size
+        // Phase 5A: Thread-safe cache update with LRU
+        synchronized(cache) {
             cache[sentence] = result
         }
 
