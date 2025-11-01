@@ -1,5 +1,6 @@
 package com.nihongo.conversation.presentation.scenario
 
+import androidx.compose.foundation.ExperimentalFoundationApi
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
@@ -18,7 +19,30 @@ import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
 import com.nihongo.conversation.domain.model.Scenario
 
-@OptIn(ExperimentalMaterial3Api::class)
+// 카테고리 정의
+sealed class ScenarioCategory(val id: String?, val label: String, val icon: String) {
+    object All : ScenarioCategory(null, "전체", "📚")
+    object Travel : ScenarioCategory("TRAVEL", "여행", "✈️")
+    object JLPT : ScenarioCategory("JLPT_PRACTICE", "JLPT", "📖")
+    object Business : ScenarioCategory("BUSINESS", "비즈니스", "💼")
+    object Other : ScenarioCategory("OTHER", "기타", "🎭")
+}
+
+// 섹션 헤더용 카테고리 매핑
+fun getCategoryLabel(category: String): String {
+    return when (category) {
+        "DAILY_CONVERSATION" -> "📚 일상 회화"
+        "TRAVEL" -> "✈️ 일본 여행"
+        "JLPT_PRACTICE" -> "📖 JLPT 연습"
+        "BUSINESS" -> "💼 비즈니스"
+        "ROMANCE" -> "💕 연애/관계"
+        "CULTURE" -> "🎭 문화/테마"
+        "EMERGENCY" -> "🚨 긴급 상황"
+        else -> "📚 기타"
+    }
+}
+
+@OptIn(ExperimentalMaterial3Api::class, ExperimentalFoundationApi::class)
 @Composable
 fun ScenarioListScreen(
     onScenarioSelected: (Long) -> Unit,
@@ -110,21 +134,85 @@ fun ScenarioListScreen(
                 CircularProgressIndicator()
             }
         } else {
-            LazyColumn(
+            Column(
                 modifier = Modifier
                     .fillMaxSize()
-                    .padding(padding),
-                contentPadding = PaddingValues(16.dp),
-                verticalArrangement = Arrangement.spacedBy(12.dp)
+                    .padding(padding)
             ) {
-                items(uiState.scenarios) { scenario ->
-                    ScenarioCard(
-                        scenario = scenario,
-                        onClick = { onScenarioSelected(scenario.id) },
-                        onDelete = if (scenario.isCustom) {
-                            { viewModel.deleteCustomScenario(scenario.id) }
-                        } else null
-                    )
+                // 탭 Row
+                val categories = listOf(
+                    ScenarioCategory.All,
+                    ScenarioCategory.Travel,
+                    ScenarioCategory.JLPT,
+                    ScenarioCategory.Business,
+                    ScenarioCategory.Other
+                )
+
+                ScrollableTabRow(
+                    selectedTabIndex = categories.indexOfFirst { it.id == uiState.selectedCategory },
+                    edgePadding = 16.dp
+                ) {
+                    categories.forEach { category ->
+                        Tab(
+                            selected = uiState.selectedCategory == category.id,
+                            onClick = { viewModel.selectCategory(category.id) },
+                            text = {
+                                Row(
+                                    horizontalArrangement = Arrangement.spacedBy(4.dp),
+                                    verticalAlignment = Alignment.CenterVertically
+                                ) {
+                                    Text(category.icon)
+                                    Text(category.label)
+                                }
+                            }
+                        )
+                    }
+                }
+
+                // 시나리오 리스트 (섹션 헤더 포함)
+                val groupedScenarios = if (uiState.selectedCategory == null) {
+                    // "전체" 탭: 카테고리별로 그룹화
+                    uiState.scenarios.groupBy { it.category }
+                } else {
+                    // 특정 카테고리: 그룹화 없이 표시
+                    mapOf("" to uiState.scenarios)
+                }
+
+                LazyColumn(
+                    modifier = Modifier.fillMaxSize(),
+                    contentPadding = PaddingValues(16.dp),
+                    verticalArrangement = Arrangement.spacedBy(12.dp)
+                ) {
+                    groupedScenarios.forEach { (category, scenarios) ->
+                        // 섹션 헤더 (전체 탭에서만 표시)
+                        if (uiState.selectedCategory == null && category.isNotEmpty()) {
+                            stickyHeader {
+                                Surface(
+                                    modifier = Modifier.fillMaxWidth(),
+                                    color = MaterialTheme.colorScheme.background
+                                ) {
+                                    Text(
+                                        text = "${getCategoryLabel(category)} (${scenarios.size})",
+                                        style = MaterialTheme.typography.titleMedium,
+                                        fontWeight = FontWeight.Bold,
+                                        color = MaterialTheme.colorScheme.primary,
+                                        modifier = Modifier.padding(vertical = 8.dp)
+                                    )
+                                }
+                            }
+                        }
+
+                        // 시나리오 카드들
+                        items(scenarios) { scenario ->
+                            ScenarioCard(
+                                scenario = scenario,
+                                onClick = { onScenarioSelected(scenario.id) },
+                                onDelete = if (scenario.isCustom) {
+                                    { viewModel.deleteCustomScenario(scenario.id) }
+                                } else null
+                            )
+                        }
+                    }
                 }
             }
         }

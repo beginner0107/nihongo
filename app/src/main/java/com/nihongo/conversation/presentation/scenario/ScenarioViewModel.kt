@@ -12,7 +12,9 @@ import kotlinx.coroutines.launch
 import javax.inject.Inject
 
 data class ScenarioUiState(
+    val allScenarios: List<Scenario> = emptyList(),
     val scenarios: List<Scenario> = emptyList(),
+    val selectedCategory: String? = null, // null = "전체"
     val isLoading: Boolean = true
 )
 
@@ -31,11 +33,33 @@ class ScenarioViewModel @Inject constructor(
     private fun loadScenarios() {
         viewModelScope.launch {
             repository.getAllScenarios().collect { scenarios ->
-                _uiState.value = ScenarioUiState(
-                    scenarios = scenarios,
+                _uiState.value = _uiState.value.copy(
+                    allScenarios = scenarios,
+                    scenarios = filterScenarios(scenarios, _uiState.value.selectedCategory),
                     isLoading = false
                 )
             }
+        }
+    }
+
+    fun selectCategory(category: String?) {
+        val filtered = filterScenarios(_uiState.value.allScenarios, category)
+        _uiState.value = _uiState.value.copy(
+            selectedCategory = category,
+            scenarios = filtered
+        )
+    }
+
+    private fun filterScenarios(scenarios: List<Scenario>, category: String?): List<Scenario> {
+        return when (category) {
+            null -> scenarios // "전체"
+            "TRAVEL" -> scenarios.filter { it.category == "TRAVEL" }
+            "JLPT_PRACTICE" -> scenarios.filter { it.category == "JLPT_PRACTICE" }
+            "BUSINESS" -> scenarios.filter { it.category == "BUSINESS" }
+            "OTHER" -> scenarios.filter {
+                it.category in listOf("DAILY_CONVERSATION", "EMERGENCY", "ROMANCE", "CULTURE")
+            }
+            else -> scenarios
         }
     }
 
