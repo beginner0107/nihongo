@@ -3,6 +3,7 @@ package com.nihongo.conversation
 import android.app.Application
 import android.util.Log
 import com.nihongo.conversation.core.memory.MemoryManager
+import com.nihongo.conversation.core.session.UserSessionManager
 import com.nihongo.conversation.core.util.DataInitializer
 import dagger.hilt.android.HiltAndroidApp
 import kotlinx.coroutines.CoroutineScope
@@ -21,6 +22,10 @@ class NihongoApp : Application() {
     @Inject
     lateinit var memoryManager: MemoryManager
 
+    // Phase 6C-2: Session management with auto-login
+    @Inject
+    lateinit var sessionManager: UserSessionManager
+
     private val applicationScope = CoroutineScope(SupervisorJob() + Dispatchers.Main)
 
     override fun onCreate() {
@@ -31,7 +36,16 @@ class NihongoApp : Application() {
         Log.d(TAG, "App started - Memory: ${memoryUsage.usedMemoryMB}MB / ${memoryUsage.maxMemoryMB}MB (${memoryUsage.percentageUsed}%)")
 
         applicationScope.launch {
+            // Phase 6C-2: Initialize data first, then ensure session
             dataInitializer.initializeDefaultData()
+
+            // Auto-login: Ensure user session is initialized
+            val sessionCreated = sessionManager.ensureSessionInitialized()
+            if (sessionCreated) {
+                Log.i(TAG, "Auto-login successful")
+            } else {
+                Log.d(TAG, "Session already exists or no default user available")
+            }
         }
     }
 
