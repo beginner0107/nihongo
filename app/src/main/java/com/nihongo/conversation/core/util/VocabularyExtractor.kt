@@ -50,37 +50,60 @@ class VocabularyExtractor @Inject constructor() {
 
     /**
      * Extract individual words/phrases from Japanese text
-     * This is a simplified version - in production, you'd use a proper tokenizer like Kuromoji
+     * Improved tokenization using character type boundaries and particle detection
      */
     private fun extractWordsFromText(text: String): List<String> {
-        // Remove punctuation and split
+        // Remove punctuation but preserve sentence structure
         val cleaned = text
-            .replace(Regex("[。、！？!?,.\\s]+"), " ")
+            .replace(Regex("[。、！？!?,.\\s]+"), "|")
             .trim()
 
-        // Simple splitting by particles and common patterns
-        // In production, use MeCab or Kuromoji for proper tokenization
         val words = mutableListOf<String>()
         var currentWord = StringBuilder()
+        var previousCharType: CharType? = null
 
         for (char in cleaned) {
+            val currentCharType = getCharType(char)
+
             when {
-                // Japanese particles (simple detection)
-                char in listOf('は', 'が', 'を', 'に', 'で', 'と', 'の', 'も', 'や', 'か') -> {
+                // Sentence boundary marker
+                char == '|' -> {
                     if (currentWord.isNotEmpty()) {
                         words.add(currentWord.toString())
                         currentWord = StringBuilder()
                     }
+                    previousCharType = null
                 }
-                // Space
-                char == ' ' -> {
+                // Particles that mark word boundaries
+                isParticle(char) -> {
                     if (currentWord.isNotEmpty()) {
                         words.add(currentWord.toString())
                         currentWord = StringBuilder()
                     }
+                    // Include particle with following content for some cases
+                    previousCharType = currentCharType
+                }
+                // Auxiliary verbs that should be separated
+                isAuxiliaryVerbStart(currentWord.toString(), char) -> {
+                    if (currentWord.isNotEmpty()) {
+                        words.add(currentWord.toString())
+                        currentWord = StringBuilder()
+                    }
+                    currentWord.append(char)
+                    previousCharType = currentCharType
+                }
+                // Character type boundary (e.g., kanji -> hiragana)
+                shouldSplitOnCharTypeChange(previousCharType, currentCharType, char) -> {
+                    if (currentWord.isNotEmpty()) {
+                        words.add(currentWord.toString())
+                        currentWord = StringBuilder()
+                    }
+                    currentWord.append(char)
+                    previousCharType = currentCharType
                 }
                 else -> {
                     currentWord.append(char)
+                    previousCharType = currentCharType
                 }
             }
         }
@@ -90,7 +113,78 @@ class VocabularyExtractor @Inject constructor() {
             words.add(currentWord.toString())
         }
 
-        return words.filter { it.length >= 2 } // Filter very short words
+        // Filter and clean results
+        return words
+            .filter { it.length >= 2 }
+            .map { it.trim() }
+            .filter { it.isNotBlank() }
+    }
+
+    /**
+     * Character type classification for tokenization
+     */
+    private enum class CharType {
+        KANJI, HIRAGANA, KATAKANA, ALPHABET, NUMBER, OTHER
+    }
+
+    /**
+     * Determine the type of a character
+     */
+    private fun getCharType(char: Char): CharType {
+        return when (char) {
+            in '\u4E00'..'\u9FFF' -> CharType.KANJI
+            in 'ぁ'..'ん' -> CharType.HIRAGANA
+            in 'ァ'..'ン' -> CharType.KATAKANA
+            in 'a'..'z', in 'A'..'Z' -> CharType.ALPHABET
+            in '0'..'9' -> CharType.NUMBER
+            else -> CharType.OTHER
+        }
+    }
+
+    /**
+     * Check if character is a Japanese particle
+     */
+    private fun isParticle(char: Char): Boolean {
+        // Common single-character particles that mark word boundaries
+        return char in listOf('は', 'が', 'を', 'に', 'で', 'と', 'の', 'も', 'や', 'へ', 'か')
+    }
+
+    /**
+     * Check if we should split on character type change
+     * Only split when transitioning from Kanji to Hiragana (verb/adjective stems)
+     */
+    private fun shouldSplitOnCharTypeChange(
+        previousType: CharType?,
+        currentType: CharType,
+        currentChar: Char
+    ): Boolean {
+        if (previousType == null) return false
+
+        return when {
+            // Kanji compound -> Hiragana (likely verb/adjective ending)
+            previousType == CharType.KANJI && currentType == CharType.HIRAGANA -> {
+                // Don't split if it's a verb ending we want to keep
+                !currentChar.toString().matches(Regex("[うくぐすつぬむるぶ]")) // Common verb endings to keep
+            }
+            // Hiragana -> Kanji (new word starting)
+            previousType == CharType.HIRAGANA && currentType == CharType.KANJI -> true
+            // Katakana -> non-Katakana
+            previousType == CharType.KATAKANA && currentType != CharType.KATAKANA -> true
+            // non-Katakana -> Katakana
+            previousType != CharType.KATAKANA && currentType == CharType.KATAKANA -> true
+            else -> false
+        }
+    }
+
+    /**
+     * Check if this is the start of an auxiliary verb that should be split
+     */
+    private fun isAuxiliaryVerbStart(currentWord: String, nextChar: Char): Boolean {
+        // Common auxiliary verbs: ている、てある、ておく、てくる、ていく、てしまう
+        if (currentWord.endsWith("て") || currentWord.endsWith("で")) {
+            return nextChar in listOf('い', 'お', 'く', 'し')
+        }
+        return false
     }
 
     /**
