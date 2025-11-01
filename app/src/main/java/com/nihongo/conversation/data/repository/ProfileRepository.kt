@@ -41,8 +41,7 @@ class ProfileRepository @Inject constructor(
         learningGoal: String,
         favoriteScenarios: List<Long>,
         nativeLanguage: String,
-        bio: String,
-        level: Int
+        bio: String
     ): Long {
         val currentUser = getCurrentUserImmediate()
 
@@ -53,8 +52,7 @@ class ProfileRepository @Inject constructor(
                 learningGoal = learningGoal,
                 favoriteScenarios = favoriteScenarios.joinToString(","),
                 nativeLanguage = nativeLanguage,
-                bio = bio,
-                level = level
+                bio = bio
             )
         } else {
             User(
@@ -64,8 +62,7 @@ class ProfileRepository @Inject constructor(
                 learningGoal = learningGoal,
                 favoriteScenarios = favoriteScenarios.joinToString(","),
                 nativeLanguage = nativeLanguage,
-                bio = bio,
-                level = level
+                bio = bio
             )
         }
 
@@ -118,14 +115,6 @@ class ProfileRepository @Inject constructor(
         }
 
         parts.add("Their native language is ${user.nativeLanguage}")
-
-        val levelDescription = when (user.level) {
-            1 -> "beginner (JLPT N5-N4 level)"
-            2 -> "intermediate (JLPT N3-N2 level)"
-            3 -> "advanced (JLPT N1 level)"
-            else -> "beginner"
-        }
-        parts.add("Their Japanese level is $levelDescription")
 
         return if (parts.isNotEmpty()) {
             "\n\nUser Context:\n" + parts.joinToString("\n") + "\n\nTailor your responses to be appropriate for their level and goals.\n"

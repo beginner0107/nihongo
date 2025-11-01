@@ -114,8 +114,8 @@ fun UserSelectionScreen(
         if (uiState.showCreateUserDialog) {
             CreateUserDialog(
                 onDismiss = { viewModel.hideCreateUserDialog() },
-                onConfirm = { name, level, avatarId ->
-                    viewModel.createUser(name, level, avatarId)
+                onConfirm = { name, _, avatarId ->
+                    viewModel.createUser(name, avatarId)
                 }
             )
         }
@@ -174,12 +174,6 @@ fun UserCard(
                     text = user.name,
                     style = MaterialTheme.typography.titleMedium,
                     fontWeight = FontWeight.Bold
-                )
-                Spacer(modifier = Modifier.height(4.dp))
-                Text(
-                    text = getLevelText(user.level),
-                    style = MaterialTheme.typography.bodyMedium,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant
                 )
                 if (user.learningGoal.isNotBlank()) {
                     Spacer(modifier = Modifier.height(4.dp))

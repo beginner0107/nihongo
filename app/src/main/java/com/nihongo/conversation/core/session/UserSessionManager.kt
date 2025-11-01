@@ -228,27 +228,24 @@ class UserSessionManager @Inject constructor(
      *
      * @param userId User ID from database
      * @param userName User's display name
-     * @param userLevel User's learning level (will be clamped to 1-3)
      * @param addToRecent Whether to add this user to recent users list (default: true)
      */
-    suspend fun setCurrentUser(userId: Long, userName: String, userLevel: Int, addToRecent: Boolean = true) {
-        val validLevel = userLevel.coerceIn(1, 3)
+    suspend fun setCurrentUser(userId: Long, userName: String, addToRecent: Boolean = true) {
         context.userSessionDataStore.edit { preferences ->
             preferences[PreferencesKeys.USER_ID] = userId
             preferences[PreferencesKeys.USER_NAME] = userName
-            preferences[PreferencesKeys.USER_LEVEL] = validLevel
         }
 
         // Add to recent users for quick switching
         if (addToRecent) {
-            addRecentUserInternal(userId, userName, validLevel)
+            addRecentUserInternal(userId, userName)
         }
     }
 
     /**
      * Add user to recent users LRU cache (internal use)
      */
-    private suspend fun addRecentUserInternal(userId: Long, userName: String, userLevel: Int) {
+    private suspend fun addRecentUserInternal(userId: Long, userName: String) {
         context.userSessionDataStore.edit { preferences ->
             val currentRecentUsers = preferences[PreferencesKeys.RECENT_USERS] ?: ""
             val currentList = if (currentRecentUsers.isEmpty()) {
@@ -260,8 +257,8 @@ class UserSessionManager @Inject constructor(
             // Remove existing entry for this user (if any)
             val filteredList = currentList.filter { it.id != userId }
 
-            // Add new entry at the front (most recent)
-            val newUser = RecentUser(userId, userName, userLevel, System.currentTimeMillis())
+            // Add new entry at the front (most recent) - level fixed to 1 (unused)
+            val newUser = RecentUser(userId, userName, 1, System.currentTimeMillis())
             val updatedList = listOf(newUser) + filteredList
 
             // Keep only MAX_RECENT_USERS entries (LRU eviction)
@@ -363,11 +360,10 @@ class UserSessionManager @Inject constructor(
         val defaultUser = repository.getUser(DEFAULT_USER_ID).first()
 
         if (defaultUser != null) {
-            Log.i(TAG, "Auto-login: Setting session to default user (id=$DEFAULT_USER_ID, name=${defaultUser.name}, level=${defaultUser.level})")
+            Log.i(TAG, "Auto-login: Setting session to default user (id=$DEFAULT_USER_ID, name=${defaultUser.name})")
             setCurrentUser(
                 userId = defaultUser.id,
-                userName = defaultUser.name,
-                userLevel = defaultUser.level
+                userName = defaultUser.name
             )
             return true
         } else {
@@ -389,11 +385,10 @@ class UserSessionManager @Inject constructor(
         val user = repository.getUser(userId).first()
 
         return if (user != null) {
-            Log.i(TAG, "Switching to user: id=$userId, name=${user.name}, level=${user.level}")
+            Log.i(TAG, "Switching to user: id=$userId, name=${user.name}")
             setCurrentUser(
                 userId = user.id,
                 userName = user.name,
-                userLevel = user.level,
                 addToRecent = true
             )
             true

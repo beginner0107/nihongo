@@ -18,7 +18,6 @@ data class ProfileUiState(
     val selectedScenarios: Set<Long> = emptySet(),
     val nativeLanguage: String = "Korean",
     val bio: String = "",
-    val level: Int = 1,
     val isLoading: Boolean = false,
     val isSaving: Boolean = false,
     val error: String? = null,
@@ -68,7 +67,6 @@ class ProfileViewModel @Inject constructor(
                                 selectedScenarios = favoriteScenarios,
                                 nativeLanguage = user.nativeLanguage,
                                 bio = user.bio,
-                                level = user.level,
                                 isLoading = false
                             )
                         }
@@ -117,10 +115,6 @@ class ProfileViewModel @Inject constructor(
         _uiState.update { it.copy(bio = bio) }
     }
 
-    fun updateLevel(level: Int) {
-        _uiState.update { it.copy(level = level) }
-    }
-
     fun saveProfile() {
         viewModelScope.launch {
             _uiState.update { it.copy(isSaving = true, error = null, saveSuccess = false) }
@@ -146,8 +140,7 @@ class ProfileViewModel @Inject constructor(
                     learningGoal = state.learningGoal,
                     favoriteScenarios = state.selectedScenarios.toList(),
                     nativeLanguage = state.nativeLanguage,
-                    bio = state.bio,
-                    level = state.level
+                    bio = state.bio
                 )
 
                 _uiState.update {

@@ -76,12 +76,6 @@ class SettingsViewModel @Inject constructor(
         }
     }
 
-    fun updateDifficultyLevel(level: Int) {
-        viewModelScope.launch {
-            settingsDataStore.updateDifficultyLevel(level)
-        }
-    }
-
     fun updateSpeechSpeed(speed: Float) {
         viewModelScope.launch {
             settingsDataStore.updateSpeechSpeed(speed)

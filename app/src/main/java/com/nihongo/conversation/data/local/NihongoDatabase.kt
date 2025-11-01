@@ -42,7 +42,7 @@ import com.nihongo.conversation.data.local.dao.TranslationCacheDao
     views = [
         ConversationStats::class
     ],
-    version = 13,  // Added isCustom to scenarios for deletable custom scenarios
+    version = 14,  // Removed User.level field (use scenario difficulty instead)
     exportSchema = false
 )
 abstract class NihongoDatabase : RoomDatabase() {
@@ -497,6 +497,35 @@ abstract class NihongoDatabase : RoomDatabase() {
             override fun migrate(database: SupportSQLiteDatabase) {
                 // Add isCustom column to scenarios table
                 database.execSQL("ALTER TABLE scenarios ADD COLUMN isCustom INTEGER NOT NULL DEFAULT 0")
+            }
+        }
+
+        // Remove level column from users table (use scenario difficulty instead)
+        val MIGRATION_13_14 = object : Migration(13, 14) {
+            override fun migrate(database: SupportSQLiteDatabase) {
+                // SQLite doesn't support DROP COLUMN directly, so we need to recreate the table
+                database.execSQL("""
+                    CREATE TABLE users_new (
+                        id INTEGER PRIMARY KEY AUTOINCREMENT NOT NULL,
+                        name TEXT NOT NULL,
+                        avatarId INTEGER NOT NULL,
+                        learningGoal TEXT NOT NULL,
+                        favoriteScenarios TEXT NOT NULL,
+                        nativeLanguage TEXT NOT NULL,
+                        bio TEXT NOT NULL,
+                        studyStartDate INTEGER NOT NULL,
+                        createdAt INTEGER NOT NULL
+                    )
+                """.trimIndent())
+
+                database.execSQL("""
+                    INSERT INTO users_new (id, name, avatarId, learningGoal, favoriteScenarios, nativeLanguage, bio, studyStartDate, createdAt)
+                    SELECT id, name, avatarId, learningGoal, favoriteScenarios, nativeLanguage, bio, studyStartDate, createdAt
+                    FROM users
+                """.trimIndent())
+
+                database.execSQL("DROP TABLE users")
+                database.execSQL("ALTER TABLE users_new RENAME TO users")
             }
         }
     }

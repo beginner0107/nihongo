@@ -261,9 +261,8 @@ class ChatViewModel @Inject constructor(
             // Get personalized prompt prefix
             val personalizedPrefix = profileRepository.getPersonalizedPromptPrefix()
 
-            // Get difficulty-specific guidelines (using compact version for token efficiency)
-            val user = _uiState.value.user
-            val difficultyLevel = DifficultyLevel.fromInt(user?.level ?: 1)
+            // Get difficulty-specific guidelines from scenario (using compact version for token efficiency)
+            val difficultyLevel = DifficultyLevel.fromInt(scenario.difficulty)
             val difficultyPrompt = difficultyManager.getCompactDifficultyPrompt(difficultyLevel)
 
             // Add adaptive nudge if last AI response was off-target (Phase 2)
@@ -403,12 +402,13 @@ class ChatViewModel @Inject constructor(
             _uiState.update { it.copy(isLoadingHints = true, showHintDialog = true) }
 
             try {
-                // Get user level from session
-                val userLevel = userSessionManager.getCurrentUserLevelSync()
+                // Get scenario difficulty
+                val scenario = _uiState.value.scenario
+                val scenarioDifficulty = scenario?.difficulty ?: 1
 
                 val hints = repository.getHints(
                     conversationHistory = _uiState.value.messages.items,
-                    userLevel = userLevel
+                    userLevel = scenarioDifficulty
                 )
                 _uiState.update {
                     it.copy(
@@ -462,9 +462,9 @@ class ChatViewModel @Inject constructor(
                 return@launch
             }
 
-            val user = _uiState.value.user
-            val userLevel = user?.level ?: 1
-            android.util.Log.d("GrammarDebug", "User level: $userLevel")
+            val scenario = _uiState.value.scenario
+            val scenarioDifficulty = scenario?.difficulty ?: 1
+            android.util.Log.d("GrammarDebug", "Scenario difficulty: $scenarioDifficulty")
 
             // Check if we can analyze locally (simple patterns) to avoid API call
             val canAnalyzeLocally = com.nihongo.conversation.core.grammar.LocalGrammarAnalyzer.canAnalyzeLocally(sentence)
@@ -475,7 +475,7 @@ class ChatViewModel @Inject constructor(
                 // Use local analyzer for simple sentences
                 val localExplanation = com.nihongo.conversation.core.grammar.LocalGrammarAnalyzer.analyzeSentence(
                     sentence = sentence,
-                    userLevel = userLevel
+                    userLevel = scenarioDifficulty
                 )
                 android.util.Log.d("GrammarDebug", "Local analysis completed: ${localExplanation.components.size} components found")
 
@@ -519,7 +519,7 @@ class ChatViewModel @Inject constructor(
                 val grammarExplanation = repository.explainGrammar(
                     sentence = sentence,
                     conversationHistory = _uiState.value.messages.items,
-                    userLevel = userLevel
+                    userLevel = scenarioDifficulty
                 )
                 android.util.Log.d("GrammarDebug", "API response received: ${grammarExplanation.overallExplanation}")
 
@@ -557,7 +557,7 @@ class ChatViewModel @Inject constructor(
                 android.util.Log.d("GrammarDebug", "Falling back to LOCAL analyzer due to exception")
                 val fallbackExplanation = com.nihongo.conversation.core.grammar.LocalGrammarAnalyzer.analyzeSentence(
                     sentence = sentence,
-                    userLevel = userLevel
+                    userLevel = scenarioDifficulty
                 )
 
                 _uiState.update {
@@ -882,7 +882,8 @@ class ChatViewModel @Inject constructor(
                     .takeLast(5)
                     .map { it.content }
 
-                val userLevel = _uiState.value.user?.level ?: 1
+                val scenario = _uiState.value.scenario
+                val scenarioDifficulty = scenario?.difficulty ?: 1
 
                 // Analyze message using AI
                 val feedbackList = grammarFeedbackRepository.analyzeMessage(
@@ -890,7 +891,7 @@ class ChatViewModel @Inject constructor(
                     messageId = messageId,
                     userMessage = userMessage,
                     conversationContext = conversationContext,
-                    userLevel = userLevel
+                    userLevel = scenarioDifficulty
                 )
 
                 // Update state with feedback

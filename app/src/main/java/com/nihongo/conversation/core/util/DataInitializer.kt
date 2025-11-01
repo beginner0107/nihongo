@@ -118,8 +118,7 @@ $rules
             repository.createUser(
                 User(
                     id = 1L,
-                    name = "학습자",
-                    level = 1
+                    name = "학습자"
                 )
             )
         }

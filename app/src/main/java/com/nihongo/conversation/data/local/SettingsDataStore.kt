@@ -20,7 +20,6 @@ class SettingsDataStore @Inject constructor(
     @ApplicationContext private val context: Context
 ) {
     private object PreferencesKeys {
-        val DIFFICULTY_LEVEL = intPreferencesKey("difficulty_level")
         val SPEECH_SPEED = floatPreferencesKey("speech_speed")
         val AUTO_SPEAK = booleanPreferencesKey("auto_speak")
         val SHOW_ROMAJI = booleanPreferencesKey("show_romaji")
@@ -37,19 +36,12 @@ class SettingsDataStore @Inject constructor(
         }
         .map { preferences ->
             UserSettings(
-                difficultyLevel = preferences[PreferencesKeys.DIFFICULTY_LEVEL] ?: 1,
                 speechSpeed = preferences[PreferencesKeys.SPEECH_SPEED] ?: 1.0f,
                 autoSpeak = preferences[PreferencesKeys.AUTO_SPEAK] ?: true,
                 showRomaji = preferences[PreferencesKeys.SHOW_ROMAJI] ?: true,
                 feedbackEnabled = preferences[PreferencesKeys.FEEDBACK_ENABLED] ?: true
             )
         }
-
-    suspend fun updateDifficultyLevel(level: Int) {
-        context.dataStore.edit { preferences ->
-            preferences[PreferencesKeys.DIFFICULTY_LEVEL] = level
-        }
-    }
 
     suspend fun updateSpeechSpeed(speed: Float) {
         context.dataStore.edit { preferences ->

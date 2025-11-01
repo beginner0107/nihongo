@@ -47,19 +47,6 @@ fun SettingsScreen(
                 .padding(16.dp),
             verticalArrangement = Arrangement.spacedBy(24.dp)
         ) {
-            // Difficulty Level Section
-            SettingsSection(
-                title = "난이도 레벨",
-                icon = Icons.Default.TrendingUp
-            ) {
-                DifficultySlider(
-                    value = settings.difficultyLevel,
-                    onValueChange = { viewModel.updateDifficultyLevel(it) }
-                )
-            }
-
-            HorizontalDivider()
-
             // Speech Speed Section
             SettingsSection(
                 title = "음성 속도",

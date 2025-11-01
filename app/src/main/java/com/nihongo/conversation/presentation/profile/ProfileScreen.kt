@@ -183,54 +183,6 @@ fun ProfileScreen(
                     }
                 }
 
-                // Level Section
-                item {
-                    ProfileSection(
-                        title = "일본어 레벨",
-                        icon = Icons.Default.TrendingUp
-                    ) {
-                        Column(
-                            verticalArrangement = Arrangement.spacedBy(8.dp)
-                        ) {
-                            Text(
-                                text = getLevelText(uiState.level),
-                                style = MaterialTheme.typography.titleMedium,
-                                fontWeight = FontWeight.Bold,
-                                color = MaterialTheme.colorScheme.primary
-                            )
-
-                            Slider(
-                                value = uiState.level.toFloat(),
-                                onValueChange = { viewModel.updateLevel(it.toInt()) },
-                                valueRange = 1f..3f,
-                                steps = 1,
-                                modifier = Modifier.fillMaxWidth()
-                            )
-
-                            Row(
-                                modifier = Modifier.fillMaxWidth(),
-                                horizontalArrangement = Arrangement.SpaceBetween
-                            ) {
-                                Text(
-                                    text = "초급",
-                                    style = MaterialTheme.typography.bodySmall,
-                                    color = MaterialTheme.colorScheme.onSurfaceVariant
-                                )
-                                Text(
-                                    text = "중급",
-                                    style = MaterialTheme.typography.bodySmall,
-                                    color = MaterialTheme.colorScheme.onSurfaceVariant
-                                )
-                                Text(
-                                    text = "상급",
-                                    style = MaterialTheme.typography.bodySmall,
-                                    color = MaterialTheme.colorScheme.onSurfaceVariant
-                                )
-                            }
-                        }
-                    }
-                }
-
                 // Favorite Scenarios Section
                 item {
                     ProfileSection(

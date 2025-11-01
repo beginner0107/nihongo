@@ -260,7 +260,7 @@ fun ScenarioCard(
                 modifier = Modifier.weight(1f),
                 verticalArrangement = Arrangement.spacedBy(4.dp)
             ) {
-                // Title with custom badge
+                // Title with badges (difficulty + custom)
                 Row(
                     horizontalArrangement = Arrangement.spacedBy(8.dp),
                     verticalAlignment = Alignment.CenterVertically
@@ -270,6 +270,36 @@ fun ScenarioCard(
                         style = MaterialTheme.typography.titleMedium,
                         fontWeight = FontWeight.Bold
                     )
+
+                    // Difficulty badge
+                    Surface(
+                        shape = MaterialTheme.shapes.small,
+                        color = when (scenario.difficulty) {
+                            1 -> MaterialTheme.colorScheme.tertiary.copy(alpha = 0.2f)
+                            2 -> MaterialTheme.colorScheme.secondary.copy(alpha = 0.2f)
+                            3 -> MaterialTheme.colorScheme.error.copy(alpha = 0.2f)
+                            else -> MaterialTheme.colorScheme.tertiary.copy(alpha = 0.2f)
+                        }
+                    ) {
+                        Text(
+                            text = when (scenario.difficulty) {
+                                1 -> "초급"
+                                2 -> "중급"
+                                3 -> "고급"
+                                else -> "초급"
+                            },
+                            modifier = Modifier.padding(horizontal = 6.dp, vertical = 2.dp),
+                            style = MaterialTheme.typography.labelSmall,
+                            color = when (scenario.difficulty) {
+                                1 -> MaterialTheme.colorScheme.tertiary
+                                2 -> MaterialTheme.colorScheme.secondary
+                                3 -> MaterialTheme.colorScheme.error
+                                else -> MaterialTheme.colorScheme.tertiary
+                            },
+                            fontWeight = FontWeight.Bold
+                        )
+                    }
+
                     if (scenario.isCustom) {
                         Surface(
                             shape = MaterialTheme.shapes.small,

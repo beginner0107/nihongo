@@ -72,8 +72,7 @@ class UserSelectionViewModel @Inject constructor(
             try {
                 userSessionManager.setCurrentUser(
                     userId = user.id,
-                    userName = user.name,
-                    userLevel = user.level
+                    userName = user.name
                 )
                 _uiState.update { it.copy(currentUserId = user.id) }
             } catch (e: Exception) {
@@ -87,12 +86,11 @@ class UserSelectionViewModel @Inject constructor(
     /**
      * Create a new user
      */
-    fun createUser(name: String, level: Int = 1, avatarId: Int = 0) {
+    fun createUser(name: String, avatarId: Int = 0) {
         viewModelScope.launch {
             try {
                 val newUser = User(
                     name = name,
-                    level = level,
                     avatarId = avatarId,
                     nativeLanguage = "Korean",
                     studyStartDate = System.currentTimeMillis(),
@@ -103,8 +101,7 @@ class UserSelectionViewModel @Inject constructor(
                 // Auto-select newly created user
                 userSessionManager.setCurrentUser(
                     userId = userId,
-                    userName = name,
-                    userLevel = level
+                    userName = name
                 )
 
                 _uiState.update {
