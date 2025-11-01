@@ -255,12 +255,12 @@ class ChatViewModel @Inject constructor(
             // Get personalized prompt prefix
             val personalizedPrefix = profileRepository.getPersonalizedPromptPrefix()
 
-            // Get difficulty-specific guidelines
+            // Get difficulty-specific guidelines (using compact version for token efficiency)
             val user = _uiState.value.user
             val difficultyLevel = DifficultyLevel.fromInt(user?.level ?: 1)
-            val difficultyPrompt = difficultyManager.getDifficultyPrompt(difficultyLevel)
+            val difficultyPrompt = difficultyManager.getCompactDifficultyPrompt(difficultyLevel)
 
-            // Combine all prompts (optimized by API service)
+            // Combine all prompts (optimized by API service to ~500 chars)
             val enhancedPrompt = scenario.systemPrompt + personalizedPrefix + difficultyPrompt
 
             // Use streaming API for instant response feel
