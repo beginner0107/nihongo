@@ -1,15 +1,33 @@
 package com.nihongo.conversation.core.difficulty
 
+import com.nihongo.conversation.core.cache.JapaneseTextNormalizer
+
 /**
  * Common Japanese vocabulary for quick complexity analysis
- * Lightweight alternative to full JLPT word lists
- * Contains 100-200 most frequently used words per level
+ * Phase 4 Improvements:
+ * - Uses JapaneseTextNormalizer for consistent text processing
+ * - Character-based coverage instead of word-based (better for Japanese)
+ * - Particle filtering to avoid inflating coverage
+ * - Grammar patterns removed (moved to GrammarPatterns)
+ * - Calibrated thresholds with target ranges
  */
 object CommonVocabulary {
 
+    private val normalizer = JapaneseTextNormalizer.INSTANCE
+
     /**
-     * N5 level - Most basic words (100 words)
-     * Beginner learners should recognize all of these
+     * Common Japanese particles (excluded from coverage analysis)
+     * These are structural elements, not content vocabulary
+     */
+    private val PARTICLES = setOf(
+        "は", "が", "を", "に", "で", "と", "の", "へ", "も",
+        "から", "まで", "や", "より", "か", "ね", "よ", "な",
+        "わ", "さ", "ぞ", "ぜ"
+    )
+
+    /**
+     * N5 level - Most basic words (100+ words)
+     * Pure vocabulary - no grammar patterns
      */
     val N5_COMMON = setOf(
         // Verbs
@@ -33,13 +51,14 @@ object CommonVocabulary {
         "月", "火", "水", "木", "金", "土", "日", "春", "夏", "秋", "冬",
         "水", "お茶", "コーヒー", "食べ物", "魚", "肉", "野菜", "果物",
 
-        // Common phrases
+        // Common greetings (lexical items)
         "ありがとう", "すみません", "ごめんなさい", "おはよう", "こんにちは",
         "こんばんは", "さようなら", "お願いします", "いただきます", "ごちそうさま"
     )
 
     /**
-     * N4 level - Basic conversation words (100 words)
+     * N4 level - Basic conversation words (100+ words)
+     * Grammar patterns moved to GrammarPatterns
      */
     val N4_COMMON = setOf(
         // Verbs
@@ -60,15 +79,12 @@ object CommonVocabulary {
         "意見", "気持ち", "考え", "理由", "原因", "結果", "問題", "答え",
         "練習", "試験", "宿題", "質問", "説明", "相談", "連絡", "返事",
         "天気", "季節", "自然", "世界", "社会", "文化", "歴史", "科学",
-        "趣味", "旅行", "運動", "音楽", "映画", "写真", "料理", "買い物",
-
-        // Expressions
-        "多分", "きっと", "たぶん", "もちろん", "実は", "やっぱり",
-        "ちょっと", "もう", "まだ", "また", "すぐ", "ゆっくり"
+        "趣味", "旅行", "運動", "音楽", "映画", "写真", "料理", "買い物"
     )
 
     /**
-     * N3 level - Intermediate words (100 words)
+     * N3 level - Intermediate words (100+ words)
+     * Grammar patterns moved to GrammarPatterns
      */
     val N3_COMMON = setOf(
         // Verbs
@@ -88,62 +104,160 @@ object CommonVocabulary {
         "能力", "才能", "性格", "態度", "雰囲気", "印象", "評価", "批判",
         "知識", "情報", "技術", "方法", "手段", "過程", "段階", "順序",
         "現象", "事実", "真実", "嘘", "秘密", "噂", "誤解", "理解",
-        "発展", "進歩", "改善", "変化", "成長", "減少", "増加",
-
-        // Expressions
-        "によって", "に対して", "について", "に関して", "のために",
-        "ようだ", "そうだ", "らしい", "はずだ", "べきだ", "わけだ"
+        "発展", "進歩", "改善", "変化", "成長", "減少", "増加"
     )
 
     /**
-     * Check if text primarily uses vocabulary from a specific level
-     * Returns the percentage of words that match the given level (0.0 - 1.0)
+     * All vocabulary combined (for advanced learners)
+     */
+    val ALL_VOCABULARY = N5_COMMON + N4_COMMON + N3_COMMON
+
+    /**
+     * Coverage target ranges per difficulty level
+     * Based on typical learner comprehension rates
+     */
+    data class CoverageTarget(
+        val low: Float,      // Below this = too hard
+        val target: Float,   // Ideal range
+        val high: Float      // Above this = too easy
+    )
+
+    val COVERAGE_TARGETS = mapOf(
+        DifficultyLevel.BEGINNER to CoverageTarget(0.5f, 0.7f, 0.85f),
+        DifficultyLevel.INTERMEDIATE to CoverageTarget(0.4f, 0.6f, 0.75f),
+        DifficultyLevel.ADVANCED to CoverageTarget(0.3f, 0.5f, 0.65f)
+    )
+
+    /**
+     * Analyze vocabulary level using character-based coverage
+     * Phase 4: More accurate than word-based for Japanese
      */
     fun analyzeVocabularyLevel(text: String): VocabularyLevel {
-        // Simple tokenization by common separators
-        val words = text.split(Regex("[\\s、。！？　]+"))
-            .filter { it.isNotEmpty() }
+        // Normalize text
+        val normalized = normalizer.normalize(text)
+        if (normalized.isEmpty()) return VocabularyLevel.UNKNOWN
 
-        if (words.isEmpty()) return VocabularyLevel.UNKNOWN
+        // Remove particles for analysis
+        val contentText = removeParticles(normalized)
+        if (contentText.isEmpty()) return VocabularyLevel.UNKNOWN
 
-        val n5Matches = words.count { word -> N5_COMMON.any { word.contains(it) } }
-        val n4Matches = words.count { word -> N4_COMMON.any { word.contains(it) } }
-        val n3Matches = words.count { word -> N3_COMMON.any { word.contains(it) } }
-
-        val n5Ratio = n5Matches.toFloat() / words.size
-        val n4Ratio = n4Matches.toFloat() / words.size
-        val n3Ratio = n3Matches.toFloat() / words.size
+        // Calculate character-based coverage
+        val n5Coverage = calculateCharacterCoverage(contentText, N5_COMMON)
+        val n4Coverage = calculateCharacterCoverage(contentText, N4_COMMON)
+        val n3Coverage = calculateCharacterCoverage(contentText, N3_COMMON)
 
         return when {
-            n5Ratio > 0.6 -> VocabularyLevel.N5
-            n4Ratio > 0.4 -> VocabularyLevel.N4
-            n3Ratio > 0.3 -> VocabularyLevel.N3
-            n5Ratio + n4Ratio > 0.5 -> VocabularyLevel.N4_N5
+            n5Coverage > 0.7 -> VocabularyLevel.N5
+            n5Coverage > 0.5 && n4Coverage > 0.3 -> VocabularyLevel.N4_N5
+            n4Coverage > 0.5 -> VocabularyLevel.N4
+            n3Coverage > 0.4 -> VocabularyLevel.N3
+            n3Coverage > 0.2 -> VocabularyLevel.N2_N1
             else -> VocabularyLevel.N2_N1
         }
     }
 
     /**
-     * Get vocabulary coverage ratio for a text at a given level
-     * Returns 0.0 - 1.0 indicating how much of the text uses known vocabulary
+     * Get character-based coverage ratio
+     * Phase 4: Better than word-based for Japanese (no word boundaries)
      */
     fun getCoverageRatio(text: String, level: DifficultyLevel): Float {
-        val words = text.split(Regex("[\\s、。！？　]+"))
-            .filter { it.isNotEmpty() }
+        val normalized = normalizer.normalize(text)
+        if (normalized.isEmpty()) return 0f
 
-        if (words.isEmpty()) return 0f
+        val contentText = removeParticles(normalized)
+        if (contentText.isEmpty()) return 0f
 
         val knownWords = when (level) {
             DifficultyLevel.BEGINNER -> N5_COMMON
-            DifficultyLevel.INTERMEDIATE -> N5_COMMON + N4_COMMON + N3_COMMON
-            DifficultyLevel.ADVANCED -> N5_COMMON + N4_COMMON + N3_COMMON
+            DifficultyLevel.INTERMEDIATE -> N5_COMMON + N4_COMMON
+            DifficultyLevel.ADVANCED -> ALL_VOCABULARY
         }
 
-        val matchCount = words.count { word ->
-            knownWords.any { known -> word.contains(known) }
+        return calculateCharacterCoverage(contentText, knownWords)
+    }
+
+    /**
+     * Calculate what percentage of characters are covered by known vocabulary
+     * More accurate than word-based counting for Japanese
+     */
+    private fun calculateCharacterCoverage(text: String, knownWords: Set<String>): Float {
+        if (text.isEmpty()) return 0f
+
+        // Normalize known words
+        val normalizedKnown = knownWords.map { normalizer.normalize(it) }.toSet()
+
+        // Track which characters are covered
+        val coveredChars = BooleanArray(text.length) { false }
+
+        // For each known word, mark covered characters
+        for (word in normalizedKnown) {
+            if (word.isEmpty()) continue
+
+            var startIndex = 0
+            while (startIndex < text.length) {
+                val index = text.indexOf(word, startIndex)
+                if (index == -1) break
+
+                // Mark characters as covered
+                for (i in index until (index + word.length).coerceAtMost(text.length)) {
+                    coveredChars[i] = true
+                }
+
+                startIndex = index + 1
+            }
         }
 
-        return matchCount.toFloat() / words.size
+        // Calculate coverage ratio
+        val coveredCount = coveredChars.count { it }
+        return coveredCount.toFloat() / text.length
+    }
+
+    /**
+     * Remove particles from text for cleaner analysis
+     */
+    private fun removeParticles(text: String): String {
+        var result = text
+        for (particle in PARTICLES) {
+            result = result.replace(particle, "")
+        }
+        return result
+    }
+
+    /**
+     * Get coverage assessment for a text
+     */
+    fun assessCoverage(text: String, level: DifficultyLevel): CoverageAssessment {
+        val coverage = getCoverageRatio(text, level)
+        val target = COVERAGE_TARGETS[level] ?: COVERAGE_TARGETS[DifficultyLevel.BEGINNER]!!
+
+        return when {
+            coverage < target.low -> CoverageAssessment.TOO_HARD
+            coverage > target.high -> CoverageAssessment.TOO_EASY
+            coverage < target.target -> CoverageAssessment.SLIGHTLY_HARD
+            coverage > target.target -> CoverageAssessment.SLIGHTLY_EASY
+            else -> CoverageAssessment.OPTIMAL
+        }
+    }
+
+    /**
+     * Generate adaptive nudge based on coverage
+     */
+    fun getAdaptiveNudge(text: String, level: DifficultyLevel): String? {
+        val assessment = assessCoverage(text, level)
+
+        return when (assessment) {
+            CoverageAssessment.TOO_HARD -> when (level) {
+                DifficultyLevel.BEGINNER -> "もっと簡単な言葉で、短い文で話してください。"
+                DifficultyLevel.INTERMEDIATE -> "少し簡単な表現を使ってください。"
+                DifficultyLevel.ADVANCED -> "もう少し分かりやすく説明してください。"
+            }
+            CoverageAssessment.TOO_EASY -> when (level) {
+                DifficultyLevel.BEGINNER -> null  // Easy is fine for beginners
+                DifficultyLevel.INTERMEDIATE -> "もう少し自然な表現を使ってもいいですよ。"
+                DifficultyLevel.ADVANCED -> "より高度な語彙や表現を使ってください。"
+            }
+            else -> null  // Optimal or close enough
+        }
     }
 }
 
@@ -157,4 +271,15 @@ enum class VocabularyLevel {
     N3,       // Intermediate
     N2_N1,    // Advanced
     UNKNOWN   // Cannot determine
+}
+
+/**
+ * Coverage assessment result
+ */
+enum class CoverageAssessment {
+    TOO_HARD,      // Coverage below low threshold
+    SLIGHTLY_HARD, // Coverage below target
+    OPTIMAL,       // Coverage at target
+    SLIGHTLY_EASY, // Coverage above target
+    TOO_EASY       // Coverage above high threshold
 }

@@ -5,15 +5,66 @@ import javax.inject.Singleton
 
 /**
  * Difficulty levels for Japanese language learning
+ * Phase 4: Enhanced with display labels and target metrics
  */
-enum class DifficultyLevel(val value: Int) {
-    BEGINNER(1),    // 初級: JLPT N5-N4
-    INTERMEDIATE(2), // 中級: JLPT N3-N2
-    ADVANCED(3);     // 上級: JLPT N1
+enum class DifficultyLevel(
+    val value: Int,
+    val displayNameJa: String,
+    val displayNameKo: String,
+    val jlptLevel: String,
+    val code: String  // Stable code for analytics/serialization
+) {
+    BEGINNER(
+        value = 1,
+        displayNameJa = "初級",
+        displayNameKo = "초급",
+        jlptLevel = "N5-N4",
+        code = "B1"
+    ),
+    INTERMEDIATE(
+        value = 2,
+        displayNameJa = "中級",
+        displayNameKo = "중급",
+        jlptLevel = "N3-N2",
+        code = "I1"
+    ),
+    ADVANCED(
+        value = 3,
+        displayNameJa = "上級",
+        displayNameKo = "고급",
+        jlptLevel = "N1",
+        code = "A1"
+    );
 
     companion object {
         fun fromInt(value: Int): DifficultyLevel {
             return values().find { it.value == value } ?: BEGINNER
+        }
+
+        fun fromCode(code: String): DifficultyLevel {
+            return values().find { it.code == code } ?: BEGINNER
+        }
+    }
+
+    /**
+     * Get target vocabulary complexity for this level
+     */
+    fun targetComplexity(): VocabularyComplexity {
+        return when (this) {
+            BEGINNER -> VocabularyComplexity.BASIC
+            INTERMEDIATE -> VocabularyComplexity.COMMON
+            ADVANCED -> VocabularyComplexity.ADVANCED
+        }
+    }
+
+    /**
+     * Get target coverage range for this level
+     */
+    fun targetCoverage(): ClosedFloatingPointRange<Float> {
+        return when (this) {
+            BEGINNER -> 0.6f..0.8f
+            INTERMEDIATE -> 0.5f..0.7f
+            ADVANCED -> 0.4f..0.6f
         }
     }
 }
