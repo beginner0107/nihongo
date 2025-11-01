@@ -1,6 +1,9 @@
 package com.nihongo.conversation.presentation.chat
 
 import android.Manifest
+import android.content.Intent
+import android.net.Uri
+import android.provider.Settings
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.background
@@ -26,6 +29,7 @@ import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.input.ImeAction
 import androidx.compose.ui.unit.dp
@@ -47,21 +51,54 @@ fun ChatScreen(
     val snackbarHostState = remember { SnackbarHostState() }
 
     // Permission handling
+    val context = LocalContext.current
     var hasRecordPermission by remember { mutableStateOf(false) }
+    var showPermissionDeniedDialog by remember { mutableStateOf(false) }
+    var isPermanentlyDenied by remember { mutableStateOf(false) }
+
     val permissionLauncher = rememberLauncherForActivityResult(
         contract = ActivityResultContracts.RequestPermission()
     ) { isGranted ->
         hasRecordPermission = isGranted
+
+        if (!isGranted) {
+            // Check if permission was permanently denied
+            val activity = context as? android.app.Activity
+            val shouldShowRationale = activity?.shouldShowRequestPermissionRationale(
+                Manifest.permission.RECORD_AUDIO
+            ) ?: false
+
+            isPermanentlyDenied = !shouldShowRationale && activity != null
+            showPermissionDeniedDialog = true
+        }
     }
 
     LaunchedEffect(Unit) {
         viewModel.initConversation(userId, scenarioId)
-        permissionLauncher.launch(Manifest.permission.RECORD_AUDIO)
+
+        // Check if permission is already granted
+        hasRecordPermission = context.checkSelfPermission(
+            Manifest.permission.RECORD_AUDIO
+        ) == android.content.pm.PackageManager.PERMISSION_GRANTED
+
+        // Request permission if not granted
+        if (!hasRecordPermission) {
+            permissionLauncher.launch(Manifest.permission.RECORD_AUDIO)
+        }
     }
 
+    // Smart auto-scroll: only scroll if user is near bottom
     LaunchedEffect(uiState.messages.size) {
         if (uiState.messages.isNotEmpty()) {
-            listState.animateScrollToItem(uiState.messages.size - 1)
+            val lastVisibleIndex = listState.layoutInfo.visibleItemsInfo.lastOrNull()?.index ?: 0
+            val lastItemIndex = uiState.messages.size - 1
+
+            // Auto-scroll only if user is within 2 items of the bottom
+            val isNearBottom = lastItemIndex - lastVisibleIndex <= 2
+
+            if (isNearBottom) {
+                listState.animateScrollToItem(lastItemIndex)
+            }
         }
     }
 
@@ -135,10 +172,6 @@ fun ChatScreen(
                 .fillMaxSize()
                 .padding(padding)
         ) {
-            // Remember optimized animations
-            val messageEnterTransition = ChatAnimations.rememberMessageEnterTransition()
-            val messageExitTransition = ChatAnimations.rememberMessageExitTransition()
-
             LazyColumn(
                 modifier = Modifier
                     .weight(1f)
@@ -151,34 +184,30 @@ fun ChatScreen(
                     items = uiState.messages,
                     key = { it.id }
                 ) { message ->
-                    AnimatedVisibility(
-                        visible = true,
-                        enter = messageEnterTransition,
-                        exit = messageExitTransition
-                    ) {
-                        MessageBubble(
-                            message = message,
-                            onSpeakMessage = if (!message.isUser) {
-                                { viewModel.speakMessage(message.content) }
-                            } else null,
-                            onLongPress = { viewModel.requestGrammarExplanation(message.content) },
-                            isTranslationExpanded = message.id in uiState.expandedTranslations,
-                            translation = uiState.translations[message.id],
-                            translationError = uiState.translationErrors[message.id],
-                            onToggleTranslation = if (!message.isUser) {
-                                { viewModel.toggleMessageTranslation(message.id) }
-                            } else null,
-                            onRequestTranslation = if (!message.isUser) {
-                                { viewModel.requestTranslation(message.id, message.content) }
-                            } else null,
-                            onRetryTranslation = if (!message.isUser) {
-                                { viewModel.retryTranslation(message.id, message.content) }
-                            } else null,
-                            onPracticePronunciation = if (!message.isUser) {
-                                { viewModel.startPronunciationPractice(message.content) }
-                            } else null
-                        )
-                    }
+                    // No AnimatedVisibility wrapper - messages are stable content
+                    // LazyColumn handles item animations internally via animateItemPlacement
+                    MessageBubble(
+                        message = message,
+                        onSpeakMessage = if (!message.isUser) {
+                            { viewModel.speakMessage(message.content) }
+                        } else null,
+                        onLongPress = { viewModel.requestGrammarExplanation(message.content) },
+                        isTranslationExpanded = message.id in uiState.expandedTranslations,
+                        translation = uiState.translations[message.id],
+                        translationError = uiState.translationErrors[message.id],
+                        onToggleTranslation = if (!message.isUser) {
+                            { viewModel.toggleMessageTranslation(message.id) }
+                        } else null,
+                        onRequestTranslation = if (!message.isUser) {
+                            { viewModel.requestTranslation(message.id, message.content) }
+                        } else null,
+                        onRetryTranslation = if (!message.isUser) {
+                            { viewModel.retryTranslation(message.id, message.content) }
+                        } else null,
+                        onPracticePronunciation = if (!message.isUser) {
+                            { viewModel.startPronunciationPractice(message.content) }
+                        } else null
+                    )
                 }
 
                 if (uiState.isLoading) {
@@ -311,6 +340,55 @@ fun ChatScreen(
                 dismissButton = {
                     TextButton(onClick = viewModel::dismissEndChatDialog) {
                         Text("취소")
+                    }
+                }
+            )
+        }
+
+        // Permission Denied Dialog
+        if (showPermissionDeniedDialog) {
+            AlertDialog(
+                onDismissRequest = { showPermissionDeniedDialog = false },
+                icon = {
+                    Icon(
+                        imageVector = Icons.Default.Mic,
+                        contentDescription = null
+                    )
+                },
+                title = {
+                    Text(if (isPermanentlyDenied) "マイク権限が必要です" else "音声認識について")
+                },
+                text = {
+                    Text(
+                        if (isPermanentlyDenied) {
+                            "音声認識機能を使うには、設定でマイク権限を有効にしてください。\n\n設定 > アプリ > Nihongo Conversation > 権限 > マイク"
+                        } else {
+                            "音声で日本語を話すには、マイク権限が必要です。もう一度試しますか？"
+                        }
+                    )
+                },
+                confirmButton = {
+                    TextButton(
+                        onClick = {
+                            if (isPermanentlyDenied) {
+                                // Open app settings
+                                val intent = Intent(Settings.ACTION_APPLICATION_DETAILS_SETTINGS).apply {
+                                    data = Uri.fromParts("package", context.packageName, null)
+                                }
+                                context.startActivity(intent)
+                            } else {
+                                // Try requesting permission again
+                                permissionLauncher.launch(Manifest.permission.RECORD_AUDIO)
+                            }
+                            showPermissionDeniedDialog = false
+                        }
+                    ) {
+                        Text(if (isPermanentlyDenied) "設定を開く" else "許可する")
+                    }
+                },
+                dismissButton = {
+                    TextButton(onClick = { showPermissionDeniedDialog = false }) {
+                        Text("後で")
                     }
                 }
             )
