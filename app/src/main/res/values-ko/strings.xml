@@ -1,0 +1,97 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="app_name">Nihongo Conversation</string>
+
+    <!-- Common -->
+    <string name="ok">확인</string>
+    <string name="cancel">취소</string>
+    <string name="close">닫기</string>
+    <string name="retry">재시도</string>
+    <string name="later">나중에</string>
+    <string name="settings">설정</string>
+
+    <!-- Navigation -->
+    <string name="back">뒤로</string>
+    <string name="chat">채팅</string>
+    <string name="review">복습</string>
+
+    <!-- Chat Screen -->
+    <string name="new_chat">새 채팅</string>
+    <string name="end_chat">채팅 종료</string>
+    <string name="auto_speak">자동 음성</string>
+    <string name="type_message">메시지 입력</string>
+    <string name="send">전송</string>
+    <string name="hint">힌트</string>
+
+    <!-- End Chat Dialog -->
+    <string name="end_chat_title">채팅을 종료하시겠습니까?</string>
+    <string name="end_chat_message">현재 대화를 기록에 저장하고 새로운 채팅을 시작합니다.</string>
+    <string name="end_chat_confirm">종료</string>
+
+    <!-- Permission Dialog -->
+    <string name="mic_permission_needed">마이크 권한 필요</string>
+    <string name="mic_permission_about">음성 인식 안내</string>
+    <string name="mic_permission_rationale">음성으로 일본어를 말하려면 마이크 권한이 필요합니다. 다시 시도하시겠습니까?</string>
+    <string name="mic_permission_permanently_denied">음성 인식 기능을 사용하려면 설정에서 마이크 권한을 활성화해주세요.\n\n설정 > 앱 > Nihongo Conversation > 권한 > 마이크</string>
+    <string name="mic_permission_grant">허용</string>
+    <string name="mic_permission_open_settings">설정 열기</string>
+
+    <!-- Context Menu -->
+    <string name="copy">복사</string>
+    <string name="copy_success">복사되었습니다</string>
+    <string name="read_aloud">읽기</string>
+    <string name="read_slowly">천천히 읽기</string>
+    <string name="grammar_analysis">문법 분석</string>
+    <string name="toggle_translation">번역 표시 전환</string>
+    <string name="add_to_vocabulary">단어장에 추가</string>
+    <string name="added_to_vocabulary">단어장에 추가되었습니다</string>
+
+    <!-- Hint Dialog -->
+    <string name="hint_dialog_title">힌트</string>
+    <string name="hint_loading">힌트 불러오는 중…</string>
+    <string name="hint_use">이 힌트 사용</string>
+
+    <!-- Grammar Sheet -->
+    <string name="grammar_sheet_title">문법 분석</string>
+    <string name="grammar_loading">문법 분석 중…</string>
+    <string name="grammar_error">문법 분석 실패</string>
+    <string name="grammar_breakdown">문장 분해</string>
+    <string name="grammar_explanation">문법 설명</string>
+    <string name="grammar_level">레벨</string>
+    <string name="grammar_tips">학습 팁</string>
+
+    <!-- Translation -->
+    <string name="translation_loading">번역 중…</string>
+    <string name="translation_error">번역 실패</string>
+    <string name="show_translation">번역 표시</string>
+    <string name="hide_translation">번역 숨기기</string>
+
+    <!-- Pronunciation Practice -->
+    <string name="pronunciation_title">발음 연습</string>
+    <string name="pronunciation_target">목표 문장</string>
+    <string name="pronunciation_your_speech">당신의 발음</string>
+    <string name="pronunciation_accuracy">정확도</string>
+    <string name="pronunciation_start">녹음 시작</string>
+    <string name="pronunciation_stop">녹음 중지</string>
+    <string name="pronunciation_listen">예시 듣기</string>
+
+    <!-- Voice State -->
+    <string name="voice_idle">대기 중</string>
+    <string name="voice_listening">듣고 있습니다…</string>
+    <string name="voice_processing">처리 중…</string>
+    <string name="voice_thinking">생각 중…</string>
+    <string name="voice_speaking">말하고 있습니다…</string>
+    <string name="voice_error">오류</string>
+
+    <!-- Voice Instructions -->
+    <string name="voice_instruction_idle">마이크 버튼을 눌러 말하세요</string>
+    <string name="voice_instruction_listening">일본어로 말하세요</string>
+    <string name="voice_instruction_processing">음성 인식 중…</string>
+    <string name="voice_instruction_thinking">AI가 응답 생성 중…</string>
+    <string name="voice_instruction_speaking">들어보세요</string>
+
+    <!-- Errors -->
+    <string name="error_network">네트워크 오류가 발생했습니다</string>
+    <string name="error_api">API 오류가 발생했습니다</string>
+    <string name="error_unknown">오류가 발생했습니다</string>
+</resources>

@@ -1,0 +1,97 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="app_name">Nihongo Conversation</string>
+
+    <!-- Common -->
+    <string name="ok">OK</string>
+    <string name="cancel">Cancel</string>
+    <string name="close">Close</string>
+    <string name="retry">Retry</string>
+    <string name="later">Later</string>
+    <string name="settings">Settings</string>
+
+    <!-- Navigation -->
+    <string name="back">Back</string>
+    <string name="chat">Chat</string>
+    <string name="review">Review</string>
+
+    <!-- Chat Screen -->
+    <string name="new_chat">New Chat</string>
+    <string name="end_chat">End Chat</string>
+    <string name="auto_speak">Auto Speak</string>
+    <string name="type_message">Type a message</string>
+    <string name="send">Send</string>
+    <string name="hint">Hint</string>
+
+    <!-- End Chat Dialog -->
+    <string name="end_chat_title">End this chat?</string>
+    <string name="end_chat_message">The current conversation will be saved to history and a new chat will start.</string>
+    <string name="end_chat_confirm">End</string>
+
+    <!-- Permission Dialog -->
+    <string name="mic_permission_needed">Microphone Permission Required</string>
+    <string name="mic_permission_about">About Voice Recognition</string>
+    <string name="mic_permission_rationale">Microphone permission is required to speak Japanese. Try again?</string>
+    <string name="mic_permission_permanently_denied">To use voice recognition, please enable microphone permission in settings.\n\nSettings > Apps > Nihongo Conversation > Permissions > Microphone</string>
+    <string name="mic_permission_grant">Grant</string>
+    <string name="mic_permission_open_settings">Open Settings</string>
+
+    <!-- Context Menu -->
+    <string name="copy">Copy</string>
+    <string name="copy_success">Copied</string>
+    <string name="read_aloud">Read Aloud</string>
+    <string name="read_slowly">Read Slowly</string>
+    <string name="grammar_analysis">Grammar Analysis</string>
+    <string name="toggle_translation">Toggle Translation</string>
+    <string name="add_to_vocabulary">Add to Vocabulary</string>
+    <string name="added_to_vocabulary">Added to vocabulary</string>
+
+    <!-- Hint Dialog -->
+    <string name="hint_dialog_title">Hint</string>
+    <string name="hint_loading">Loading hints…</string>
+    <string name="hint_use">Use this hint</string>
+
+    <!-- Grammar Sheet -->
+    <string name="grammar_sheet_title">Grammar Analysis</string>
+    <string name="grammar_loading">Analyzing grammar…</string>
+    <string name="grammar_error">Grammar analysis failed</string>
+    <string name="grammar_breakdown">Sentence Breakdown</string>
+    <string name="grammar_explanation">Grammar Explanation</string>
+    <string name="grammar_level">Level</string>
+    <string name="grammar_tips">Learning Tips</string>
+
+    <!-- Translation -->
+    <string name="translation_loading">Translating…</string>
+    <string name="translation_error">Translation failed</string>
+    <string name="show_translation">Show Translation</string>
+    <string name="hide_translation">Hide Translation</string>
+
+    <!-- Pronunciation Practice -->
+    <string name="pronunciation_title">Pronunciation Practice</string>
+    <string name="pronunciation_target">Target Sentence</string>
+    <string name="pronunciation_your_speech">Your Pronunciation</string>
+    <string name="pronunciation_accuracy">Accuracy</string>
+    <string name="pronunciation_start">Start Recording</string>
+    <string name="pronunciation_stop">Stop Recording</string>
+    <string name="pronunciation_listen">Listen to Example</string>
+
+    <!-- Voice State -->
+    <string name="voice_idle">Idle</string>
+    <string name="voice_listening">Listening…</string>
+    <string name="voice_processing">Processing…</string>
+    <string name="voice_thinking">Thinking…</string>
+    <string name="voice_speaking">Speaking…</string>
+    <string name="voice_error">Error</string>
+
+    <!-- Voice Instructions -->
+    <string name="voice_instruction_idle">Tap the microphone button to speak</string>
+    <string name="voice_instruction_listening">Speak in Japanese</string>
+    <string name="voice_instruction_processing">Recognizing speech…</string>
+    <string name="voice_instruction_thinking">AI is generating response…</string>
+    <string name="voice_instruction_speaking">Listen</string>
+
+    <!-- Errors -->
+    <string name="error_network">Network error occurred</string>
+    <string name="error_api">API error occurred</string>
+    <string name="error_unknown">An error occurred</string>
+</resources>

@@ -30,11 +30,15 @@ import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.platform.LocalClipboardManager
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.input.ImeAction
+import androidx.compose.ui.text.AnnotatedString
 import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
 import com.nihongo.conversation.domain.model.Message
+import com.nihongo.conversation.R
 
 @OptIn(ExperimentalMaterial3Api::class, ExperimentalFoundationApi::class)
 @Composable
@@ -116,12 +120,12 @@ fun ChatScreen(
     Scaffold(
         topBar = {
             TopAppBar(
-                title = { Text(uiState.scenario?.title ?: "Chat") },
+                title = { Text(uiState.scenario?.title ?: stringResource(R.string.chat)) },
                 navigationIcon = {
                     IconButton(onClick = onBackClick) {
                         Icon(
                             imageVector = Icons.AutoMirrored.Filled.ArrowBack,
-                            contentDescription = "戻る"
+                            contentDescription = stringResource(R.string.back)
                         )
                     }
                 },
@@ -131,7 +135,7 @@ fun ChatScreen(
                         IconButton(onClick = { viewModel.startNewChat() }) {
                             Icon(
                                 imageVector = Icons.Default.Refresh,
-                                contentDescription = "新しいチャット"
+                                contentDescription = stringResource(R.string.new_chat)
                             )
                         }
                     }
@@ -140,14 +144,14 @@ fun ChatScreen(
                         IconButton(onClick = { viewModel.showEndChatDialog() }) {
                             Icon(
                                 imageVector = Icons.Default.Done,
-                                contentDescription = "チャット終了"
+                                contentDescription = stringResource(R.string.end_chat)
                             )
                         }
                     }
                     IconButton(onClick = onReviewClick) {
                         Icon(
                             imageVector = Icons.Default.HistoryEdu,
-                            contentDescription = "復習"
+                            contentDescription = stringResource(R.string.review)
                         )
                     }
                     IconButton(onClick = { viewModel.toggleAutoSpeak() }) {
@@ -157,7 +161,7 @@ fun ChatScreen(
                             } else {
                                 Icons.Default.VolumeOff
                             },
-                            contentDescription = "自動音声"
+                            contentDescription = stringResource(R.string.auto_speak)
                         )
                     }
                 }
@@ -327,19 +331,19 @@ fun ChatScreen(
                     )
                 },
                 title = {
-                    Text("채팅을 종료하시겠습니까?")
+                    Text(stringResource(R.string.end_chat_title))
                 },
                 text = {
-                    Text("현재 대화를 기록에 저장하고 새로운 채팅을 시작합니다.")
+                    Text(stringResource(R.string.end_chat_message))
                 },
                 confirmButton = {
                     TextButton(onClick = viewModel::confirmEndChat) {
-                        Text("종료")
+                        Text(stringResource(R.string.end_chat_confirm))
                     }
                 },
                 dismissButton = {
                     TextButton(onClick = viewModel::dismissEndChatDialog) {
-                        Text("취소")
+                        Text(stringResource(R.string.cancel))
                     }
                 }
             )
@@ -356,14 +360,19 @@ fun ChatScreen(
                     )
                 },
                 title = {
-                    Text(if (isPermanentlyDenied) "マイク権限が必要です" else "音声認識について")
+                    Text(
+                        if (isPermanentlyDenied)
+                            stringResource(R.string.mic_permission_needed)
+                        else
+                            stringResource(R.string.mic_permission_about)
+                    )
                 },
                 text = {
                     Text(
                         if (isPermanentlyDenied) {
-                            "音声認識機能を使うには、設定でマイク権限を有効にしてください。\n\n設定 > アプリ > Nihongo Conversation > 権限 > マイク"
+                            stringResource(R.string.mic_permission_permanently_denied)
                         } else {
-                            "音声で日本語を話すには、マイク権限が必要です。もう一度試しますか？"
+                            stringResource(R.string.mic_permission_rationale)
                         }
                     )
                 },
@@ -383,12 +392,17 @@ fun ChatScreen(
                             showPermissionDeniedDialog = false
                         }
                     ) {
-                        Text(if (isPermanentlyDenied) "設定を開く" else "許可する")
+                        Text(
+                            if (isPermanentlyDenied)
+                                stringResource(R.string.mic_permission_open_settings)
+                            else
+                                stringResource(R.string.mic_permission_grant)
+                        )
                     }
                 },
                 dismissButton = {
                     TextButton(onClick = { showPermissionDeniedDialog = false }) {
-                        Text("後で")
+                        Text(stringResource(R.string.later))
                     }
                 }
             )
@@ -558,7 +572,7 @@ fun MessageBubble(
                                     onRequestTranslation?.invoke()
                                 }
                                 Text(
-                                    text = "번역 중...",
+                                    text = stringResource(R.string.translation_loading),
                                     style = MaterialTheme.typography.bodySmall,
                                     color = MaterialTheme.colorScheme.onSecondaryContainer.copy(alpha = 0.5f)
                                 )
@@ -575,12 +589,12 @@ fun MessageBubble(
                         ) {
                             Icon(
                                 imageVector = Icons.Default.RecordVoiceOver,
-                                contentDescription = "発音練習",
+                                contentDescription = stringResource(R.string.pronunciation_title),
                                 modifier = Modifier.size(16.dp)
                             )
                             Spacer(modifier = Modifier.width(4.dp))
                             Text(
-                                text = "発音練習",
+                                text = stringResource(R.string.pronunciation_title),
                                 style = MaterialTheme.typography.labelSmall
                             )
                         }
@@ -613,7 +627,7 @@ fun MessageBubble(
         ) {
             // 복사 (Always available)
             androidx.compose.material3.DropdownMenuItem(
-                text = { androidx.compose.material3.Text("복사") },
+                text = { androidx.compose.material3.Text(stringResource(R.string.copy)) },
                 leadingIcon = {
                     androidx.compose.material3.Icon(
                         androidx.compose.material.icons.Icons.Default.ContentCopy,
@@ -622,7 +636,11 @@ fun MessageBubble(
                 },
                 onClick = {
                     clipboardManager.setText(androidx.compose.ui.text.AnnotatedString(message.content))
-                    android.widget.Toast.makeText(context, "복사되었습니다", android.widget.Toast.LENGTH_SHORT).show()
+                    android.widget.Toast.makeText(
+                        context,
+                        context.getString(R.string.copy_success),
+                        android.widget.Toast.LENGTH_SHORT
+                    ).show()
                     showContextMenu = false
                 }
             )
@@ -630,7 +648,7 @@ fun MessageBubble(
             // 읽기 (If TTS available)
             if (onSpeakMessage != null) {
                 androidx.compose.material3.DropdownMenuItem(
-                    text = { androidx.compose.material3.Text("읽기") },
+                    text = { androidx.compose.material3.Text(stringResource(R.string.read_aloud)) },
                     leadingIcon = {
                         androidx.compose.material3.Icon(
                             androidx.compose.material.icons.Icons.Default.VolumeUp,
@@ -642,12 +660,29 @@ fun MessageBubble(
                         showContextMenu = false
                     }
                 )
+
+                // 천천히 읽기 (Read slowly - NEW)
+                androidx.compose.material3.DropdownMenuItem(
+                    text = { androidx.compose.material3.Text(stringResource(R.string.read_slowly)) },
+                    leadingIcon = {
+                        androidx.compose.material3.Icon(
+                            androidx.compose.material.icons.Icons.Default.Speed,
+                            contentDescription = null
+                        )
+                    },
+                    onClick = {
+                        // TODO: Implement slow TTS (0.7x speed)
+                        // For now, just speak normally
+                        onSpeakMessage()
+                        showContextMenu = false
+                    }
+                )
             }
 
             // 문법 분석 (If AI message)
             if (!message.isUser) {
                 androidx.compose.material3.DropdownMenuItem(
-                    text = { androidx.compose.material3.Text("문법 분석") },
+                    text = { androidx.compose.material3.Text(stringResource(R.string.grammar_analysis)) },
                     leadingIcon = {
                         androidx.compose.material3.Icon(
                             androidx.compose.material.icons.Icons.Default.MenuBook,
@@ -659,6 +694,26 @@ fun MessageBubble(
                         showContextMenu = false
                     }
                 )
+
+                // 단어장에 추가 (Add to vocabulary - NEW)
+                androidx.compose.material3.DropdownMenuItem(
+                    text = { androidx.compose.material3.Text(stringResource(R.string.add_to_vocabulary)) },
+                    leadingIcon = {
+                        androidx.compose.material3.Icon(
+                            androidx.compose.material.icons.Icons.Default.BookmarkAdd,
+                            contentDescription = null
+                        )
+                    },
+                    onClick = {
+                        // TODO: Implement add to vocabulary
+                        android.widget.Toast.makeText(
+                            context,
+                            context.getString(R.string.added_to_vocabulary),
+                            android.widget.Toast.LENGTH_SHORT
+                        ).show()
+                        showContextMenu = false
+                    }
+                )
             }
 
             // 번역 토글 (If AI message and translation available)
@@ -666,7 +721,10 @@ fun MessageBubble(
                 androidx.compose.material3.DropdownMenuItem(
                     text = {
                         androidx.compose.material3.Text(
-                            if (isTranslationExpanded) "번역 숨기기" else "번역 보기"
+                            if (isTranslationExpanded)
+                                stringResource(R.string.hide_translation)
+                            else
+                                stringResource(R.string.show_translation)
                         )
                     },
                     leadingIcon = {

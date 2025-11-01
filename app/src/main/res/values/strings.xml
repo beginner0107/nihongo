@@ -1,4 +1,97 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
     <string name="app_name">Nihongo Conversation</string>
+
+    <!-- Common -->
+    <string name="ok">OK</string>
+    <string name="cancel">キャンセル</string>
+    <string name="close">閉じる</string>
+    <string name="retry">再試行</string>
+    <string name="later">後で</string>
+    <string name="settings">設定</string>
+
+    <!-- Navigation -->
+    <string name="back">戻る</string>
+    <string name="chat">チャット</string>
+    <string name="review">復習</string>
+
+    <!-- Chat Screen -->
+    <string name="new_chat">新しいチャット</string>
+    <string name="end_chat">チャット終了</string>
+    <string name="auto_speak">自動音声</string>
+    <string name="type_message">メッセージを入力</string>
+    <string name="send">送信</string>
+    <string name="hint">ヒント</string>
+
+    <!-- End Chat Dialog -->
+    <string name="end_chat_title">チャットを終了しますか？</string>
+    <string name="end_chat_message">現在の対話を記録に保存し、新しいチャットを始めます。</string>
+    <string name="end_chat_confirm">終了</string>
+
+    <!-- Permission Dialog -->
+    <string name="mic_permission_needed">マイク権限が必要です</string>
+    <string name="mic_permission_about">音声認識について</string>
+    <string name="mic_permission_rationale">音声で日本語を話すには、マイク権限が必要です。もう一度試しますか？</string>
+    <string name="mic_permission_permanently_denied">音声認識機能を使うには、設定でマイク権限を有効にしてください。\n\n設定 > アプリ > Nihongo Conversation > 権限 > マイク</string>
+    <string name="mic_permission_grant">許可する</string>
+    <string name="mic_permission_open_settings">設定を開く</string>
+
+    <!-- Context Menu -->
+    <string name="copy">コピー</string>
+    <string name="copy_success">コピーしました</string>
+    <string name="read_aloud">読み上げ</string>
+    <string name="read_slowly">ゆっくり読む</string>
+    <string name="grammar_analysis">文法分析</string>
+    <string name="toggle_translation">翻訳表示切替</string>
+    <string name="add_to_vocabulary">単語帳に追加</string>
+    <string name="added_to_vocabulary">単語帳に追加しました</string>
+
+    <!-- Hint Dialog -->
+    <string name="hint_dialog_title">ヒント</string>
+    <string name="hint_loading">ヒントを読み込み中…</string>
+    <string name="hint_use">このヒントを使う</string>
+
+    <!-- Grammar Sheet -->
+    <string name="grammar_sheet_title">文法分析</string>
+    <string name="grammar_loading">文法を分析中…</string>
+    <string name="grammar_error">文法分析に失敗しました</string>
+    <string name="grammar_breakdown">文の分解</string>
+    <string name="grammar_explanation">文法説明</string>
+    <string name="grammar_level">レベル</string>
+    <string name="grammar_tips">学習のヒント</string>
+
+    <!-- Translation -->
+    <string name="translation_loading">翻訳中…</string>
+    <string name="translation_error">翻訳に失敗しました</string>
+    <string name="show_translation">翻訳を表示</string>
+    <string name="hide_translation">翻訳を非表示</string>
+
+    <!-- Pronunciation Practice -->
+    <string name="pronunciation_title">発音練習</string>
+    <string name="pronunciation_target">目標文</string>
+    <string name="pronunciation_your_speech">あなたの発音</string>
+    <string name="pronunciation_accuracy">正確度</string>
+    <string name="pronunciation_start">録音開始</string>
+    <string name="pronunciation_stop">録音停止</string>
+    <string name="pronunciation_listen">お手本を聞く</string>
+
+    <!-- Voice State -->
+    <string name="voice_idle">待機中</string>
+    <string name="voice_listening">聞いています…</string>
+    <string name="voice_processing">処理中…</string>
+    <string name="voice_thinking">考え中…</string>
+    <string name="voice_speaking">話しています…</string>
+    <string name="voice_error">エラー</string>
+
+    <!-- Voice Instructions -->
+    <string name="voice_instruction_idle">マイクボタンをタップして話してください</string>
+    <string name="voice_instruction_listening">日本語で話してください</string>
+    <string name="voice_instruction_processing">音声を認識中…</string>
+    <string name="voice_instruction_thinking">AIが応答を生成中…</string>
+    <string name="voice_instruction_speaking">聞いてください</string>
+
+    <!-- Errors -->
+    <string name="error_network">ネットワークエラーが発生しました</string>
+    <string name="error_api">APIエラーが発生しました</string>
+    <string name="error_unknown">エラーが発生しました</string>
 </resources>
