@@ -245,7 +245,7 @@ class GeminiApiService @Inject constructor(
             // First collapse multiple newlines but preserve line breaks
             .replace(Regex("\\n+"), "\n")
             // Then collapse runs of spaces/tabs etc. (not newlines)
-            .replace(Regex("[ \t\x0B\f\r]+"), " ")
+            .replace(Regex("[ \\t\\u000B\\f\\r]+"), " ")
             .trim()
 
         // Truncate if exceeds maximum length
@@ -306,7 +306,8 @@ class GeminiApiService @Inject constructor(
 
         return try {
             // Fail fast if API key/model unavailable
-            if (model == null) {
+            val activeModel = model
+            if (activeModel == null) {
                 return BatchResponse(
                     grammar = null,
                     hints = emptyList(),
@@ -316,7 +317,7 @@ class GeminiApiService @Inject constructor(
             }
 
             val response = kotlinx.coroutines.withTimeout(10000) {
-                model.generateContent(batchPrompt)
+                activeModel.generateContent(batchPrompt)
             }
             parseBatchResponse(response?.text ?: "{}", sentence, conversationContext)
         } catch (e: Exception) {

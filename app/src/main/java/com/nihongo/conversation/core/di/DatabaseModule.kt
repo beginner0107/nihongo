@@ -28,7 +28,8 @@ object DatabaseModule {
                 NihongoDatabase.MIGRATION_1_2,
                 NihongoDatabase.MIGRATION_5_6,
                 NihongoDatabase.MIGRATION_6_7,
-                NihongoDatabase.MIGRATION_8_9
+                NihongoDatabase.MIGRATION_8_9,
+                NihongoDatabase.MIGRATION_9_10
                 // Removed MIGRATION_2_3 and MIGRATION_3_4 due to SQL formatting issues
                 // These migrations will fallback to destructive migration
             )

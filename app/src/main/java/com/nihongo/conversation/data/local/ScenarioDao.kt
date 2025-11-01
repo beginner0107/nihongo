@@ -12,6 +12,9 @@ interface ScenarioDao {
     @Query("SELECT * FROM scenarios WHERE id = :id")
     fun getScenarioById(id: Long): Flow<Scenario?>
 
+    @Query("SELECT * FROM scenarios WHERE slug = :slug LIMIT 1")
+    fun getScenarioBySlug(slug: String): Flow<Scenario?>
+
     @Insert(onConflict = OnConflictStrategy.REPLACE)
     suspend fun insertScenario(scenario: Scenario): Long
 

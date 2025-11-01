@@ -39,7 +39,7 @@ import com.nihongo.conversation.domain.model.VocabularyEntry
     views = [
         ConversationStats::class
     ],
-    version = 9,
+    version = 10,
     exportSchema = false
 )
 abstract class NihongoDatabase : RoomDatabase() {
@@ -422,6 +422,36 @@ abstract class NihongoDatabase : RoomDatabase() {
                 database.execSQL("CREATE INDEX IF NOT EXISTS index_cache_analytics_userId ON cache_analytics(userId)")
                 database.execSQL("CREATE INDEX IF NOT EXISTS index_cache_analytics_scenarioId ON cache_analytics(scenarioId)")
                 database.execSQL("CREATE INDEX IF NOT EXISTS index_cache_analytics_date ON cache_analytics(date)")
+            }
+        }
+
+        val MIGRATION_9_10 = object : Migration(9, 10) {
+            override fun migrate(database: SupportSQLiteDatabase) {
+                // Add slug and promptVersion to scenarios
+                database.execSQL("ALTER TABLE scenarios ADD COLUMN slug TEXT NOT NULL DEFAULT ''")
+                database.execSQL("ALTER TABLE scenarios ADD COLUMN promptVersion INTEGER NOT NULL DEFAULT 1")
+
+                // Backfill slugs for known seeded IDs (1..12)
+                val mappings = mapOf(
+                    1 to "restaurant_ordering",
+                    2 to "shopping",
+                    3 to "hotel_checkin",
+                    4 to "making_friends",
+                    5 to "phone_reservation",
+                    6 to "hospital_visit",
+                    7 to "job_interview",
+                    8 to "complaint_handling",
+                    9 to "emergency_help",
+                    10 to "dating_invite",
+                    11 to "business_presentation",
+                    12 to "girlfriend_conversation"
+                )
+                for ((id, slug) in mappings) {
+                    database.execSQL("UPDATE scenarios SET slug = '$slug' WHERE id = $id")
+                }
+
+                // Create unique index on slug
+                database.execSQL("CREATE UNIQUE INDEX IF NOT EXISTS index_scenarios_slug ON scenarios(slug)")
             }
         }
     }

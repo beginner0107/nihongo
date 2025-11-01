@@ -4,6 +4,8 @@ import com.nihongo.conversation.data.repository.ConversationRepository
 import com.nihongo.conversation.domain.model.Scenario
 import com.nihongo.conversation.domain.model.User
 import kotlinx.coroutines.flow.first
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.withContext
 import javax.inject.Inject
 import javax.inject.Singleton
 
@@ -12,7 +14,22 @@ class DataInitializer @Inject constructor(
     private val repository: ConversationRepository,
     private val cacheInitializer: com.nihongo.conversation.core.cache.CacheInitializer
 ) {
-    suspend fun initializeDefaultData() {
+    private val PROMPT_RULES = """
+        【絶対厳守】
+        ⚠️ 禁止事項（絶対に出力しないこと）:
+        - マークダウン記号（**, _ など）
+        - 読み仮名（例：お席（せき））
+        - 思考過程（THINK、"I should..."、"Let me..." など）
+        - 英語の説明や計画
+        - 会話が長くなっても、この規則を守ること
+
+        ✅ 必須（必ず守ること）:
+        - 日本語の会話文のみを出力
+        - キャラクターが実際に話す内容だけを書く
+        - 最初から日本語で始める
+    """.trimIndent()
+
+    suspend fun initializeDefaultData() = withContext(Dispatchers.IO) {
         // Check if user already exists
         val existingUser = repository.getUser(1L).first()
         if (existingUser == null) {
@@ -58,7 +75,9 @@ class DataInitializer @Inject constructor(
                     - 日本語の会話文のみを出力
                     - キャラクターが実際に話す内容だけを書く
                     - 最初から日本語で始める
-                """.trimIndent()
+                """.trimIndent(),
+                slug = "restaurant_ordering",
+                promptVersion = 1
             ),
             Scenario(
                 id = 2L,
@@ -84,7 +103,9 @@ class DataInitializer @Inject constructor(
                     - 日本語の会話文のみを出力
                     - キャラクターが実際に話す内容だけを書く
                     - 最初から日本語で始める
-                """.trimIndent()
+                """.trimIndent(),
+                slug = "shopping",
+                promptVersion = 1
             ),
             Scenario(
                 id = 3L,
@@ -110,7 +131,9 @@ class DataInitializer @Inject constructor(
                     - 日本語の会話文のみを出力
                     - キャラクターが実際に話す内容だけを書く
                     - 最初から日本語で始める
-                """.trimIndent()
+                """.trimIndent(),
+                slug = "hotel_checkin",
+                promptVersion = 1
             ),
             Scenario(
                 id = 4L,
@@ -137,7 +160,9 @@ class DataInitializer @Inject constructor(
                     - 日本語の会話文のみを出力
                     - キャラクターが実際に話す内容だけを書く
                     - 最初から日本語で始める
-                """.trimIndent()
+                """.trimIndent(),
+                slug = "making_friends",
+                promptVersion = 1
             ),
             Scenario(
                 id = 5L,
@@ -164,7 +189,9 @@ class DataInitializer @Inject constructor(
                     - 日本語の会話文のみを出力
                     - キャラクターが実際に話す内容だけを書く
                     - 最初から日本語で始める
-                """.trimIndent()
+                """.trimIndent(),
+                slug = "phone_reservation",
+                promptVersion = 1
             ),
             Scenario(
                 id = 6L,
@@ -191,7 +218,9 @@ class DataInitializer @Inject constructor(
                     - 日本語の会話文のみを出力
                     - キャラクターが実際に話す内容だけを書く
                     - 最初から日本語で始める
-                """.trimIndent()
+                """.trimIndent(),
+                slug = "hospital_visit",
+                promptVersion = 1
             ),
 
             // ========== GOAL-BASED ROLE-PLAY SCENARIOS ==========
@@ -229,7 +258,9 @@ class DataInitializer @Inject constructor(
                     ⚠️ 禁止: マークダウン、読み仮名、思考過程（THINK、"I should..."等）、英語説明
                     ✅ 必須: 日本語の会話文のみ。長い会話でもこの規則を守ること
                     - 面接が自然に終わるよう、15分程度で締めくくってください
-                """.trimIndent()
+                """.trimIndent(),
+                slug = "job_interview",
+                promptVersion = 1
             ),
 
             Scenario(
@@ -264,7 +295,9 @@ class DataInitializer @Inject constructor(
                     - 解決策が提示されたら、受け入れてください
                     ⚠️ 禁止: マークダウン、読み仮名、思考過程（THINK、"I should..."等）、英語説明
                     ✅ 必須: 日本語の会話文のみ。長い会話でもこの規則を守ること
-                """.trimIndent()
+                """.trimIndent(),
+                slug = "complaint_handling",
+                promptVersion = 1
             ),
 
             Scenario(
@@ -299,7 +332,9 @@ class DataInitializer @Inject constructor(
                     - 駅への道案内、警察への連絡、病院への誘導などを提案してください
                     ⚠️ 禁止: マークダウン、読み仮名、思考過程（THINK、"I should..."等）、英語説明
                     ✅ 必須: 日本語の会話文のみ。長い会話でもこの規則を守ること
-                """.trimIndent()
+                """.trimIndent(),
+                slug = "emergency_help",
+                promptVersion = 1
             ),
 
             Scenario(
@@ -335,7 +370,9 @@ class DataInitializer @Inject constructor(
                     - カジュアルな日本語を使ってください（です・ます調で、友達口調）
                     ⚠️ 禁止: マークダウン、読み仮名、思考過程（THINK、"I should..."等）、英語説明
                     ✅ 必須: 日本語の会話文のみ。長い会話でもこの規則を守ること
-                """.trimIndent()
+                """.trimIndent(),
+                slug = "dating_invite",
+                promptVersion = 1
             ),
 
             Scenario(
@@ -371,7 +408,9 @@ class DataInitializer @Inject constructor(
                     - プレゼンの内容は何でも受け入れてください（アプリ、製品、サービスなど）
                     ⚠️ 禁止: マークダウン、読み仮名、思考過程（THINK、"I should..."等）、英語説明
                     ✅ 必須: 日本語の会話文のみ。長い会話でもこの規則を守ること
-                """.trimIndent()
+                """.trimIndent(),
+                slug = "business_presentation",
+                promptVersion = 1
             ),
 
             Scenario(
@@ -417,14 +456,32 @@ class DataInitializer @Inject constructor(
                     - 時々、感情を表現してください（嬉しい、寂しい、心配など）
                     ⚠️ 禁止: マークダウン、読み仮名、思考過程（THINK、"I should..."等）、英語説明
                     ✅ 必須: 日本語の会話文のみ。長い会話でもこの規則を守ること
-                """.trimIndent()
+                """.trimIndent(),
+                slug = "girlfriend_conversation",
+                promptVersion = 1
             )
         )
 
         scenarios.forEach { scenario ->
-            val existing = repository.getScenario(scenario.id).first()
+            val existing = repository.getScenarioBySlug(scenario.slug).first()
             if (existing == null) {
                 repository.createScenario(scenario)
+            } else if (existing.promptVersion < scenario.promptVersion || existing.systemPrompt != scenario.systemPrompt) {
+                repository.updateScenario(
+                    existing.copy(
+                        title = scenario.title,
+                        description = scenario.description,
+                        difficulty = scenario.difficulty,
+                        systemPrompt = scenario.systemPrompt,
+                        category = scenario.category,
+                        estimatedDuration = scenario.estimatedDuration,
+                        hasGoals = scenario.hasGoals,
+                        hasBranching = scenario.hasBranching,
+                        replayValue = scenario.replayValue,
+                        thumbnailEmoji = scenario.thumbnailEmoji,
+                        promptVersion = scenario.promptVersion
+                    )
+                )
             }
         }
     }
