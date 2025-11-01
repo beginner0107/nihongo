@@ -1,6 +1,7 @@
 package com.nihongo.conversation.data.local.entity
 
 import androidx.room.Entity
+import androidx.room.Index
 import androidx.room.PrimaryKey
 
 /**
@@ -13,7 +14,13 @@ import androidx.room.PrimaryKey
  * - 30일 이상 된 캐시는 자동 삭제
  * - ML Kit 번역도 캐싱하여 성능 향상
  */
-@Entity(tableName = "translation_cache")
+@Entity(
+    tableName = "translation_cache",
+    indices = [
+        Index(value = ["provider"]),
+        Index(value = ["timestamp"])
+    ]
+)
 data class TranslationCacheEntity(
     @PrimaryKey
     val sourceText: String,

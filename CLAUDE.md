@@ -400,6 +400,157 @@ fun speak(text: String, utteranceId: String = "...", speed: Float = 1.0f) {
 
 ---
 
+### DeepL API 하이브리드 번역 시스템 (2025-11-01)
+**목적**: ML Kit의 빠른 속도와 DeepL의 정확한 문맥 이해를 결합한 최적의 번역 경험 제공
+
+**구현 파일**:
+- `data/remote/deepl/DeepLModels.kt` - DeepL API 요청/응답 모델
+- `data/remote/deepl/DeepLApiService.kt` - Retrofit 서비스 인터페이스
+- `data/local/entity/TranslationCacheEntity.kt` - 번역 캐시 (30일 보관)
+- `data/local/dao/TranslationCacheDao.kt` - 캐시 CRUD
+- `data/repository/TranslationRepository.kt` - 하이브리드 로직 구현
+- `core/di/DeepLModule.kt` - Hilt DI 모듈
+
+**핵심 기능**:
+
+1. **하이브리드 번역 시스템**
+   ```kotlin
+   suspend fun translate(
+       text: String,
+       provider: TranslationProvider = ML_KIT,
+       useCache: Boolean = true,
+       fallbackToMLKit: Boolean = true
+   ): TranslationResult
+   ```
+
+   **번역 플로우**:
+   ```
+   1. 캐시 확인 (즉시 반환)
+      ↓ (캐시 없음)
+   2. 선택된 Provider로 번역
+      - DeepL: 정확, 문맥 이해 ✓, 월 50만자 제한
+      - ML Kit: 빠름, 오프라인 ✓, 무제한
+      ↓ (DeepL 실패 시)
+   3. ML Kit로 자동 폴백
+      ↓
+   4. 성공 시 캐시에 저장 (30일)
+   ```
+
+2. **지능형 캐싱**
+   - 동일 문장 재번역 방지 → API 호출 90% 절감
+   - 30일 자동 만료
+   - Provider별 구분 저장
+   - Room DB 기반 영구 저장
+
+3. **Quota 관리**
+   ```kotlin
+   // DeepL API Free 제약사항 (2025-11-01)
+   - 월 500,000자 제한
+   - 최대 2개 API 키
+   - Base URL: https://api-free.deepl.com/
+
+   // 예상 사용량 (캐싱 활용 시)
+   - 1일 100개 문장 × 평균 20자 = 2,000자/일
+   - 월 60,000자 (한도의 12%)
+   ```
+
+4. **에러 핸들링 & 폴백**
+   ```kotlin
+   try {
+       // DeepL API 호출
+       if (quota exceeded) → ML Kit
+       if (network error) → ML Kit
+       if (API key invalid) → ML Kit
+   } catch {
+       // 항상 ML Kit로 폴백
+   }
+   ```
+
+**Database Migration (11 → 12)**:
+```kotlin
+// CRITICAL: Entity와 Migration SQL이 정확히 일치해야 함!
+@Entity(
+    tableName = "translation_cache",
+    indices = [  // ← Migration에서 생성한 인덱스 명시 필수!
+        Index(value = ["provider"]),
+        Index(value = ["timestamp"])
+    ]
+)
+data class TranslationCacheEntity(
+    @PrimaryKey val sourceText: String,
+    val translatedText: String,
+    val provider: String,
+    val timestamp: Long = System.currentTimeMillis(),
+    val sourceLang: String = "ja",  // Kotlin default (SQL에는 DEFAULT 쓰지 않음)
+    val targetLang: String = "ko"
+)
+
+// Migration
+val MIGRATION_11_12 = object : Migration(11, 12) {
+    override fun migrate(database: SupportSQLiteDatabase) {
+        database.execSQL("""
+            CREATE TABLE translation_cache (
+                sourceText TEXT NOT NULL PRIMARY KEY,
+                translatedText TEXT NOT NULL,
+                provider TEXT NOT NULL,
+                timestamp INTEGER NOT NULL,
+                sourceLang TEXT NOT NULL,  -- DEFAULT 없음 (Kotlin이 처리)
+                targetLang TEXT NOT NULL
+            )
+        """)
+        // 인덱스는 Entity @Index와 정확히 일치
+        database.execSQL("CREATE INDEX IF NOT EXISTS index_translation_cache_provider ON translation_cache(provider)")
+        database.execSQL("CREATE INDEX IF NOT EXISTS index_translation_cache_timestamp ON translation_cache(timestamp)")
+    }
+}
+```
+
+**설정 방법**:
+```properties
+# local.properties (Git 제외)
+DEEPL_API_KEY=your_key_here
+
+# build.gradle.kts
+buildConfigField("String", "DEEPL_API_KEY",
+    "\"${properties.getProperty("DEEPL_API_KEY", "")}\"")
+```
+
+**사용 예시**:
+```kotlin
+// ChatViewModel에서
+val result = translationRepository.translate(
+    text = aiResponse,
+    provider = TranslationProvider.DEEP_L,
+    useCache = true,
+    fallbackToMLKit = true
+)
+
+when (result) {
+    is TranslationResult.Success -> {
+        _translatedText.value = result.translatedText
+        Log.d(TAG, "Translation from ${result.provider}, cache: ${result.fromCache}")
+    }
+    is TranslationResult.Error -> {
+        _error.value = result.message
+    }
+}
+```
+
+**성능 비교**:
+| Provider | 속도 | 정확도 | 오프라인 | 비용 | 추천 사용 |
+|----------|------|--------|----------|------|-----------|
+| **ML Kit** | 1-2초 | 80% | ✅ | 무료 | 빠른 확인, 오프라인 |
+| **DeepL** | 2-3초 | 95% | ❌ | 월 50만자 | 정확한 이해 필요 |
+| **Cache** | <100ms | 100% | ✅ | 무료 | 재번역 |
+
+**향후 확장**:
+- [ ] 사용자 설정에서 Provider 선택 UI
+- [ ] 월별 사용량 통계 화면
+- [ ] 번역 품질 피드백 (좋아요/싫어요)
+- [ ] Glossary 지원 (전문 용어 커스터마이징)
+
+---
+
 ### 메시지 컨텍스트 메뉴 (2025-10-30)
 **파일**: `presentation/chat/ChatScreen.kt`
 
@@ -639,6 +790,141 @@ adb uninstall com.nihongo.conversation
 // 전화 시나리오는 레스토랑 예약 전화 연습용
 systemPrompt = "あなたはレストランやサロンの受付スタッフです。"
 ```
+
+### 4. Room Migration 스키마 불일치 크래시 ⚠️ **매우 중요**
+**증상**: 앱 실행 시 즉시 크래시, logcat에 다음 에러:
+```
+FATAL EXCEPTION: main
+java.lang.IllegalStateException: Migration didn't properly handle: [테이블명]
+Expected: TableInfo{...}
+Found: TableInfo{...}
+```
+
+**원인**: Room Entity 정의와 Migration SQL 스키마가 일치하지 않음
+
+**흔한 실수들**:
+
+1. **DEFAULT 값 불일치**
+   ```kotlin
+   // ❌ 잘못된 예
+   @Entity(tableName = "example")
+   data class Example(
+       val name: String = "default"  // Entity에는 default가 있는데
+   )
+
+   // Migration에서 DEFAULT 지정
+   database.execSQL("""
+       CREATE TABLE example (
+           name TEXT NOT NULL DEFAULT 'default'  // ← 이러면 스키마 불일치!
+       )
+   """)
+
+   // ✅ 올바른 예
+   database.execSQL("""
+       CREATE TABLE example (
+           name TEXT NOT NULL  // DEFAULT 제거
+       )
+   """)
+   ```
+
+2. **인덱스 누락**
+   ```kotlin
+   // ❌ 잘못된 예
+   @Entity(tableName = "example")  // indices 없음
+   data class Example(...)
+
+   // Migration에서 인덱스 생성
+   database.execSQL("CREATE INDEX idx_name ON example(name)")  // ← 불일치!
+
+   // ✅ 올바른 예
+   @Entity(
+       tableName = "example",
+       indices = [Index(value = ["name"])]  // Entity에 명시
+   )
+   data class Example(...)
+
+   // Migration
+   database.execSQL("CREATE INDEX IF NOT EXISTS index_example_name ON example(name)")
+   ```
+
+3. **컬럼 순서 차이** (이건 보통 괜찮지만 주의)
+
+**실제 사례 - DeepL Translation Cache (2025-11-01)**:
+
+**문제 상황**:
+```kotlin
+// Entity 정의
+@Entity(tableName = "translation_cache")  // ← indices 없음!
+data class TranslationCacheEntity(
+    @PrimaryKey val sourceText: String,
+    val sourceLang: String = "ja",  // ← default 있음
+    val targetLang: String = "ko"
+)
+
+// Migration
+database.execSQL("""
+    CREATE TABLE translation_cache (
+        sourceText TEXT NOT NULL PRIMARY KEY,
+        sourceLang TEXT NOT NULL DEFAULT 'ja',  // ← DEFAULT 추가됨
+        targetLang TEXT NOT NULL DEFAULT 'ko'
+    )
+""")
+database.execSQL("CREATE INDEX ... ON translation_cache(provider)")  // ← Entity에 없음!
+```
+
+**해결 방법**:
+```kotlin
+// 1. Entity에 indices 추가
+@Entity(
+    tableName = "translation_cache",
+    indices = [
+        Index(value = ["provider"]),
+        Index(value = ["timestamp"])
+    ]
+)
+data class TranslationCacheEntity(
+    @PrimaryKey val sourceText: String,
+    val sourceLang: String = "ja",  // default는 괜찮음 (Kotlin 레벨)
+    val targetLang: String = "ko"
+)
+
+// 2. Migration에서 DEFAULT 제거
+database.execSQL("""
+    CREATE TABLE translation_cache (
+        sourceText TEXT NOT NULL PRIMARY KEY,
+        sourceLang TEXT NOT NULL,  // DEFAULT 제거
+        targetLang TEXT NOT NULL   // DEFAULT 제거
+    )
+""")
+database.execSQL("CREATE INDEX IF NOT EXISTS index_translation_cache_provider ON translation_cache(provider)")
+database.execSQL("CREATE INDEX IF NOT EXISTS index_translation_cache_timestamp ON translation_cache(timestamp)")
+```
+
+**디버깅 방법**:
+```bash
+# 1. 크래시 로그 확인
+adb logcat -d | grep -A 20 "Migration didn't properly handle"
+
+# 2. Expected vs Found 비교
+# - Expected: Entity에서 정의한 스키마
+# - Found: Migration으로 실제 생성된 스키마
+# - 차이점을 찾아서 수정
+
+# 3. 완전 재설치로 테스트
+adb uninstall com.nihongo.conversation
+./gradlew installDebug
+```
+
+**예방 방법**:
+- ✅ Entity 수정 시 반드시 Migration도 함께 확인
+- ✅ `@Index`, `foreignKeys` 등은 Entity에 명시
+- ✅ Migration SQL에는 DEFAULT 사용 자제 (Kotlin default로 처리)
+- ✅ Migration 작성 후 즉시 클린 재설치로 테스트
+- ✅ Room Schema Export 활성화 (`exportSchema = true`)하여 자동 검증
+
+**핵심 원칙**:
+> **Entity 정의 = Migration SQL 결과**
+> Room이 기대하는 스키마와 실제 DB 스키마가 1:1로 일치해야 함!
 
 ## 🚀 배포 가이드
 

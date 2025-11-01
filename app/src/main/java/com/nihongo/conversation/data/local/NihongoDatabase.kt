@@ -481,8 +481,8 @@ abstract class NihongoDatabase : RoomDatabase() {
                         translatedText TEXT NOT NULL,
                         provider TEXT NOT NULL,
                         timestamp INTEGER NOT NULL,
-                        sourceLang TEXT NOT NULL DEFAULT 'ja',
-                        targetLang TEXT NOT NULL DEFAULT 'ko'
+                        sourceLang TEXT NOT NULL,
+                        targetLang TEXT NOT NULL
                     )
                 """)
 
