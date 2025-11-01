@@ -226,7 +226,7 @@ fun ConversationCard(
                             fontWeight = FontWeight.Bold
                         )
                         Text(
-                            text = "完了: " + timeFormatter.format(Date(conversationDetails.conversation.updatedAt)),
+                            text = "완료: " + timeFormatter.format(Date(conversationDetails.conversation.updatedAt)),
                             style = MaterialTheme.typography.bodySmall,
                             color = MaterialTheme.colorScheme.onSurfaceVariant
                         )
@@ -243,7 +243,7 @@ fun ConversationCard(
                     } else {
                         Icons.Default.ExpandMore
                     },
-                    contentDescription = if (conversationDetails.isExpanded) "閉じる" else "開く",
+                    contentDescription = if (conversationDetails.isExpanded) "닫기" else "열기",
                     tint = MaterialTheme.colorScheme.onSurfaceVariant
                 )
             }
@@ -287,7 +287,7 @@ fun ConversationCard(
                                 tint = MaterialTheme.colorScheme.onSurfaceVariant
                             )
                             Text(
-                                text = "${durationMinutes}分",
+                                text = "${durationMinutes}분",
                                 style = MaterialTheme.typography.bodySmall,
                                 color = MaterialTheme.colorScheme.onSurfaceVariant
                             )
@@ -306,7 +306,7 @@ fun ConversationCard(
                             tint = MaterialTheme.colorScheme.onSurfaceVariant
                         )
                         Text(
-                            text = "~${conversationDetails.stats.totalWords}語",
+                            text = "~${conversationDetails.stats.totalWords}개",
                             style = MaterialTheme.typography.bodySmall,
                             color = MaterialTheme.colorScheme.onSurfaceVariant
                         )
@@ -354,7 +354,7 @@ fun ConversationCard(
                                 tint = MaterialTheme.colorScheme.tertiary
                             )
                             Text(
-                                text = "重要フレーズ",
+                                text = "중요 표현",
                                 style = MaterialTheme.typography.titleSmall,
                                 fontWeight = FontWeight.Bold,
                                 color = MaterialTheme.colorScheme.tertiary
@@ -424,7 +424,7 @@ fun ReviewMessageBubble(
                     ) {
                         Icon(
                             imageVector = Icons.Default.VolumeUp,
-                            contentDescription = "再生",
+                            contentDescription = "재생",
                             modifier = Modifier.size(16.dp),
                             tint = MaterialTheme.colorScheme.onSecondaryContainer
                         )

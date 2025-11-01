@@ -364,21 +364,21 @@ fun FlashcardStatsScreen(
                         ) {
                             AchievementRow(
                                 icon = Icons.Default.WorkspacePremium,
-                                title = "最高正解率",
+                                title = "최고 정답률",
                                 value = "${uiState.bestAccuracy}%",
                                 iconTint = Color(0xFFFFD700)
                             )
                             Divider()
                             AchievementRow(
                                 icon = Icons.Default.TrendingUp,
-                                title = "1日最多復習",
-                                value = "${uiState.bestDailyReviews}単語",
+                                title = "1일 최다 복습",
+                                value = "${uiState.bestDailyReviews}단어",
                                 iconTint = MaterialTheme.colorScheme.primary
                             )
                             Divider()
                             AchievementRow(
                                 icon = Icons.Default.Speed,
-                                title = "最速習得",
+                                title = "최속 습득",
                                 value = uiState.fastestMastery,
                                 iconTint = MaterialTheme.colorScheme.tertiary
                             )
@@ -390,7 +390,7 @@ fun FlashcardStatsScreen(
                 if (uiState.topImprovedWords.isNotEmpty()) {
                     item {
                         Text(
-                            "最も上達した単語",
+                            "가장 많이 향상된 단어",
                             style = MaterialTheme.typography.titleLarge,
                             fontWeight = FontWeight.Bold,
                             modifier = Modifier.padding(top = 8.dp)
@@ -427,7 +427,7 @@ fun FlashcardStatsScreen(
                 modifier = Modifier.padding(16.dp),
                 action = {
                     TextButton(onClick = { viewModel.clearError() }) {
-                        Text("閉じる")
+                        Text("닫기")
                     }
                 }
             ) {
@@ -450,13 +450,13 @@ fun CalendarHeatmap(
     ) {
         Column(modifier = Modifier.padding(16.dp)) {
             Text(
-                "学習カレンダー（過去30日）",
+                "학습 캘린더 (최근 30일)",
                 style = MaterialTheme.typography.titleMedium,
                 fontWeight = FontWeight.Bold
             )
             Spacer(modifier = Modifier.height(8.dp))
             Text(
-                "濃い色ほど多くの単語を復習した日",
+                "진한 색일수록 더 많은 단어를 복습한 날",
                 style = MaterialTheme.typography.bodySmall,
                 color = MaterialTheme.colorScheme.onSurfaceVariant
             )
@@ -659,7 +659,7 @@ fun WordProgressItem(
                     color = MaterialTheme.colorScheme.onSurfaceVariant
                 )
                 Text(
-                    "${wordProgress.reviewCount}回復習",
+                    "${wordProgress.reviewCount}회 복습",
                     style = MaterialTheme.typography.bodySmall,
                     color = MaterialTheme.colorScheme.onSurfaceVariant
                 )
@@ -683,7 +683,7 @@ fun WordProgressItem(
                 )
             }
             Text(
-                "向上",
+                "향상",
                 style = MaterialTheme.typography.bodySmall,
                 color = MaterialTheme.colorScheme.onSurfaceVariant
             )

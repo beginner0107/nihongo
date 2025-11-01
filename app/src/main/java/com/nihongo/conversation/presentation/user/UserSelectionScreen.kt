@@ -47,11 +47,11 @@ fun UserSelectionScreen(
                 title = {
                     Column {
                         Text(
-                            text = "ユーザー選択",
+                            text = "프로필",
                             style = MaterialTheme.typography.titleLarge
                         )
                         Text(
-                            text = "学習を続けるユーザーを選んでください",
+                            text = "당신의 일본어 경험에 맞춰 시작하세요",
                             style = MaterialTheme.typography.bodySmall,
                             color = MaterialTheme.colorScheme.onSurfaceVariant
                         )
@@ -65,10 +65,10 @@ fun UserSelectionScreen(
                 icon = {
                     Icon(
                         imageVector = Icons.Default.Add,
-                        contentDescription = "新しいユーザー"
+                        contentDescription = "새 사용자"
                     )
                 },
-                text = { Text("新しいユーザー") }
+                text = { Text("새 사용자") }
             )
         },
         snackbarHost = {
@@ -256,7 +256,7 @@ fun CreateUserDialog(
 
     AlertDialog(
         onDismissRequest = onDismiss,
-        title = { Text("新しいユーザーを作成") },
+        title = { Text("새 사용자 만들기") },
         text = {
             Column(
                 modifier = Modifier.fillMaxWidth(),
