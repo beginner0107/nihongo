@@ -1,5 +1,6 @@
 package com.nihongo.conversation.presentation.vocabulary
 
+import android.content.Intent
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
@@ -9,8 +10,10 @@ import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
+import androidx.core.content.FileProvider
 import androidx.hilt.navigation.compose.hiltViewModel
 import com.nihongo.conversation.domain.model.VocabularyEntry
 
@@ -25,8 +28,10 @@ fun VocabularyListScreen(
     val vocabularyStats by viewModel.vocabularyStats.collectAsState()
     val uiState by viewModel.uiState.collectAsState()
 
+    val context = LocalContext.current
     var searchQuery by remember { mutableStateOf("") }
     var showAddDialog by remember { mutableStateOf(false) }
+    var showExportDialog by remember { mutableStateOf(false) }
 
     Scaffold(
         topBar = {
@@ -38,6 +43,14 @@ fun VocabularyListScreen(
                     }
                 },
                 actions = {
+                    // Anki Export Button
+                    IconButton(
+                        onClick = { showExportDialog = true },
+                        enabled = vocabularyList.isNotEmpty()
+                    ) {
+                        Icon(Icons.Default.Download, "Ankiにエクスポート")
+                    }
+                    // Flashcard Button
                     IconButton(onClick = onStartFlashcard) {
                         Icon(Icons.Default.Style, "フラッシュカード")
                     }
@@ -125,6 +138,101 @@ fun VocabularyListScreen(
             viewModel.clearMessage()
         }
     }
+
+    // Anki Export Dialog
+    if (showExportDialog) {
+        AnkiExportDialog(
+            vocabularyCount = vocabularyList.size,
+            preview = viewModel.getExportPreview(vocabularyList),
+            onConfirm = {
+                val file = viewModel.exportToAnki(vocabularyList)
+                if (file != null) {
+                    try {
+                        val uri = FileProvider.getUriForFile(
+                            context,
+                            "${context.packageName}.fileprovider",
+                            file
+                        )
+                        val intent = Intent(Intent.ACTION_SEND).apply {
+                            type = "text/csv"
+                            putExtra(Intent.EXTRA_STREAM, uri)
+                            addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION)
+                        }
+                        context.startActivity(Intent.createChooser(intent, "Ankiにエクスポート"))
+                        showExportDialog = false
+                    } catch (e: Exception) {
+                        // Error handling is done in viewModel
+                    }
+                }
+            },
+            onDismiss = { showExportDialog = false }
+        )
+    }
+}
+
+@Composable
+fun AnkiExportDialog(
+    vocabularyCount: Int,
+    preview: String,
+    onConfirm: () -> Unit,
+    onDismiss: () -> Unit
+) {
+    AlertDialog(
+        onDismissRequest = onDismiss,
+        icon = { Icon(Icons.Default.Download, contentDescription = null) },
+        title = { Text("Ankiにエクスポート") },
+        text = {
+            Column(
+                verticalArrangement = Arrangement.spacedBy(8.dp)
+            ) {
+                Text(
+                    text = "$vocabularyCount 個の単語をエクスポートします",
+                    style = MaterialTheme.typography.bodyMedium
+                )
+
+                Spacer(modifier = Modifier.height(8.dp))
+
+                Text(
+                    text = "プレビュー:",
+                    style = MaterialTheme.typography.labelMedium,
+                    fontWeight = FontWeight.Bold
+                )
+
+                Surface(
+                    modifier = Modifier.fillMaxWidth(),
+                    color = MaterialTheme.colorScheme.surfaceVariant,
+                    shape = MaterialTheme.shapes.small
+                ) {
+                    Text(
+                        text = preview,
+                        style = MaterialTheme.typography.bodySmall,
+                        modifier = Modifier.padding(12.dp),
+                        fontFamily = androidx.compose.ui.text.font.FontFamily.Monospace
+                    )
+                }
+
+                Spacer(modifier = Modifier.height(8.dp))
+
+                Text(
+                    text = "※ エクスポートしたCSVファイルをAnkiで開いてインポートしてください",
+                    style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                )
+            }
+        },
+        confirmButton = {
+            Button(onClick = onConfirm) {
+                Icon(Icons.Default.Share, contentDescription = null)
+                Spacer(modifier = Modifier.width(8.dp))
+                Text("エクスポート")
+            }
+        },
+        dismissButton = {
+            TextButton(onClick = onDismiss) {
+                Text("キャンセル")
+            }
+        }
+    )
 }
 
 @Composable
