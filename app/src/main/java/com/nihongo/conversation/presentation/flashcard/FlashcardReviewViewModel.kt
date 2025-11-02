@@ -69,7 +69,7 @@ class FlashcardReviewViewModel @Inject constructor(
                         it.copy(
                             isLoading = false,
                             isSessionComplete = true,
-                            error = "復習するカードがありません"
+                            error = "복습할 카드가 없습니다"
                         )
                     }
                 } else {

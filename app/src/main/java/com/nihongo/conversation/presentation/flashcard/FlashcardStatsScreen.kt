@@ -256,7 +256,7 @@ fun FlashcardStatsScreen(
                                             Text(label)
                                         }
                                         Text(
-                                            "$count 単語",
+                                            "$count 단어",
                                             fontWeight = FontWeight.Bold
                                         )
                                     }
@@ -498,7 +498,7 @@ fun CalendarHeatmap(
                 verticalAlignment = Alignment.CenterVertically
             ) {
                 Text(
-                    "少",
+                    "적음",
                     style = MaterialTheme.typography.bodySmall,
                     color = MaterialTheme.colorScheme.onSurfaceVariant
                 )
@@ -516,7 +516,7 @@ fun CalendarHeatmap(
                     )
                 }
                 Text(
-                    "多",
+                    "많음",
                     style = MaterialTheme.typography.bodySmall,
                     color = MaterialTheme.colorScheme.onSurfaceVariant
                 )

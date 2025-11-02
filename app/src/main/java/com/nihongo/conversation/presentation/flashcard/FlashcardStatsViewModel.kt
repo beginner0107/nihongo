@@ -42,7 +42,7 @@ data class FlashcardStatsUiState(
     // Personal Bests
     val bestAccuracy: Int = 0,
     val bestDailyReviews: Int = 0,
-    val fastestMastery: String = "未達成",
+    val fastestMastery: String = "미달성",
 
     // Improvement Per Word
     val topImprovedWords: List<WordProgress> = emptyList()
@@ -132,7 +132,7 @@ class FlashcardStatsViewModel @Inject constructor(
                 _uiState.update {
                     it.copy(
                         isLoading = false,
-                        error = "統計の読み込みに失敗しました: ${e.message}"
+                        error = "통계 로딩 실패: ${e.message}"
                     )
                 }
             }
@@ -201,9 +201,9 @@ class FlashcardStatsViewModel @Inject constructor(
         val new = allWords.count { it.reviewCount == 0 }
 
         return listOf(
-            "マスター済み" to mastered,
-            "学習中" to learning,
-            "新規" to new
+            "마스터 완료" to mastered,
+            "학습중" to learning,
+            "신규" to new
         )
     }
 
@@ -275,7 +275,7 @@ class FlashcardStatsViewModel @Inject constructor(
 
     private fun calculateFastestMastery(allWords: List<VocabularyEntry>): String {
         val masteredWords = allWords.filter { it.isMastered }
-        if (masteredWords.isEmpty()) return "未達成"
+        if (masteredWords.isEmpty()) return "미달성"
 
         val fastest = masteredWords.minByOrNull { word ->
             val createdAt = word.createdAt
@@ -285,10 +285,10 @@ class FlashcardStatsViewModel @Inject constructor(
 
         if (fastest != null) {
             val days = ((fastest.lastReviewedAt ?: fastest.createdAt) - fastest.createdAt) / (24 * 60 * 60 * 1000)
-            return "${days}日"
+            return "${days}일"
         }
 
-        return "未達成"
+        return "미달성"
     }
 
     private suspend fun calculateTopImprovedWords(allWords: List<VocabularyEntry>): List<WordProgress> {
