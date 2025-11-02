@@ -213,12 +213,12 @@ class FlashcardReviewViewModel @Inject constructor(
         val remainingSeconds = seconds % 60
 
         return when {
-            minutes == 0 -> "${seconds}秒"
-            minutes < 60 -> "${minutes}分${remainingSeconds}秒"
+            minutes == 0 -> "${seconds}초"
+            minutes < 60 -> "${minutes}분${remainingSeconds}초"
             else -> {
                 val hours = minutes / 60
                 val remainingMinutes = minutes % 60
-                "${hours}時間${remainingMinutes}分"
+                "${hours}시간${remainingMinutes}분"
             }
         }
     }

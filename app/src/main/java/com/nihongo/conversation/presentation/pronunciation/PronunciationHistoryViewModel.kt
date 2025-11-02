@@ -141,9 +141,9 @@ class PronunciationHistoryViewModel @Inject constructor(
         val hours = durationMs / (1000 * 60 * 60)
 
         return when {
-            hours > 0 -> "${hours}時間${minutes}分"
-            minutes > 0 -> "${minutes}分${seconds}秒"
-            else -> "${seconds}秒"
+            hours > 0 -> "${hours}시간${minutes}분"
+            minutes > 0 -> "${minutes}분${seconds}초"
+            else -> "${seconds}초"
         }
     }
 
