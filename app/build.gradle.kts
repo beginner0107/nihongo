@@ -161,6 +161,11 @@ dependencies {
     // WorkManager - Background tasks
     implementation("androidx.work:work-runtime-ktx:2.9.0")
 
+    // Vico - Charts
+    implementation("com.patrykandpatrick.vico:compose:1.13.1")
+    implementation("com.patrykandpatrick.vico:compose-m3:1.13.1")
+    implementation("com.patrykandpatrick.vico:core:1.13.1")
+
     // Testing
     testImplementation("junit:junit:4.13.2")
     androidTestImplementation("androidx.test.ext:junit:1.1.5")
