@@ -2,7 +2,6 @@ package com.nihongo.conversation.presentation.profile
 
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
-import androidx.compose.foundation.lazy.items
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.filled.*
@@ -13,7 +12,6 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
-import com.nihongo.conversation.domain.model.Scenario
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -23,7 +21,6 @@ fun ProfileScreen(
     viewModel: ProfileViewModel = hiltViewModel()
 ) {
     val uiState by viewModel.uiState.collectAsState()
-    val availableScenarios by viewModel.availableScenarios.collectAsState()
 
     // Handle save success
     LaunchedEffect(uiState.saveSuccess) {
@@ -183,34 +180,6 @@ fun ProfileScreen(
                     }
                 }
 
-                // Favorite Scenarios Section
-                item {
-                    ProfileSection(
-                        title = "즐겨찾기 시나리오",
-                        icon = Icons.Default.Favorite
-                    ) {
-                        if (availableScenarios.isEmpty()) {
-                            Text(
-                                text = "시나리오가 로드되지 않았습니다",
-                                style = MaterialTheme.typography.bodyMedium,
-                                color = MaterialTheme.colorScheme.onSurfaceVariant
-                            )
-                        } else {
-                            Column(
-                                verticalArrangement = Arrangement.spacedBy(8.dp)
-                            ) {
-                                availableScenarios.forEach { scenario ->
-                                    ScenarioCheckbox(
-                                        scenario = scenario,
-                                        isSelected = uiState.selectedScenarios.contains(scenario.id),
-                                        onToggle = { viewModel.toggleScenario(scenario.id) }
-                                    )
-                                }
-                            }
-                        }
-                    }
-                }
-
                 // Native Language Section
                 item {
                     ProfileSection(
@@ -322,72 +291,3 @@ fun ProfileSection(
     }
 }
 
-@Composable
-fun ScenarioCheckbox(
-    scenario: Scenario,
-    isSelected: Boolean,
-    onToggle: () -> Unit,
-    modifier: Modifier = Modifier
-) {
-    Row(
-        modifier = modifier
-            .fillMaxWidth()
-            .padding(vertical = 4.dp),
-        horizontalArrangement = Arrangement.spacedBy(12.dp),
-        verticalAlignment = Alignment.CenterVertically
-    ) {
-        Checkbox(
-            checked = isSelected,
-            onCheckedChange = { onToggle() }
-        )
-
-        Column(
-            modifier = Modifier.weight(1f)
-        ) {
-            Text(
-                text = scenario.title,
-                style = MaterialTheme.typography.bodyMedium,
-                fontWeight = FontWeight.Medium
-            )
-            Text(
-                text = scenario.description,
-                style = MaterialTheme.typography.bodySmall,
-                color = MaterialTheme.colorScheme.onSurfaceVariant
-            )
-        }
-
-        DifficultyBadge(difficulty = scenario.difficulty)
-    }
-}
-
-@Composable
-fun DifficultyBadge(difficulty: Int) {
-    val (text, color) = when (difficulty) {
-        1 -> "초급" to MaterialTheme.colorScheme.tertiary
-        2 -> "중급" to MaterialTheme.colorScheme.secondary
-        3 -> "상급" to MaterialTheme.colorScheme.error
-        else -> "초급" to MaterialTheme.colorScheme.tertiary
-    }
-
-    Surface(
-        shape = MaterialTheme.shapes.small,
-        color = color.copy(alpha = 0.2f)
-    ) {
-        Text(
-            text = text,
-            modifier = Modifier.padding(horizontal = 8.dp, vertical = 4.dp),
-            style = MaterialTheme.typography.labelSmall,
-            color = color,
-            fontWeight = FontWeight.Bold
-        )
-    }
-}
-
-private fun getLevelText(level: Int): String {
-    return when (level) {
-        1 -> "초급 (JLPT N5-N4)"
-        2 -> "중급 (JLPT N3-N2)"
-        3 -> "상급 (JLPT N1)"
-        else -> "초급"
-    }
-}

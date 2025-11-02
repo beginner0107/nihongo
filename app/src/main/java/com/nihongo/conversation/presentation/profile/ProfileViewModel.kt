@@ -15,7 +15,6 @@ data class ProfileUiState(
     val name: String = "",
     val selectedAvatarId: Int = 0,
     val learningGoal: String = "",
-    val selectedScenarios: Set<Long> = emptySet(),
     val nativeLanguage: String = "Korean",
     val bio: String = "",
     val isLoading: Boolean = false,
@@ -26,20 +25,11 @@ data class ProfileUiState(
 
 @HiltViewModel
 class ProfileViewModel @Inject constructor(
-    private val profileRepository: ProfileRepository,
-    private val conversationRepository: ConversationRepository
+    private val profileRepository: ProfileRepository
 ) : ViewModel() {
 
     private val _uiState = MutableStateFlow(ProfileUiState())
     val uiState: StateFlow<ProfileUiState> = _uiState.asStateFlow()
-
-    // Available scenarios for selection
-    val availableScenarios = conversationRepository.getAllScenarios()
-        .stateIn(
-            scope = viewModelScope,
-            started = SharingStarted.WhileSubscribed(5000),
-            initialValue = emptyList()
-        )
 
     init {
         loadProfile()
@@ -52,19 +42,12 @@ class ProfileViewModel @Inject constructor(
             try {
                 profileRepository.getCurrentUser().collect { user ->
                     if (user != null) {
-                        val favoriteScenarios = user.favoriteScenarios
-                            .split(",")
-                            .filter { it.isNotBlank() }
-                            .mapNotNull { it.toLongOrNull() }
-                            .toSet()
-
                         _uiState.update {
                             it.copy(
                                 user = user,
                                 name = user.name,
                                 selectedAvatarId = user.avatarId,
                                 learningGoal = user.learningGoal,
-                                selectedScenarios = favoriteScenarios,
                                 nativeLanguage = user.nativeLanguage,
                                 bio = user.bio,
                                 isLoading = false
@@ -97,16 +80,6 @@ class ProfileViewModel @Inject constructor(
         _uiState.update { it.copy(learningGoal = goal) }
     }
 
-    fun toggleScenario(scenarioId: Long) {
-        val current = _uiState.value.selectedScenarios
-        val updated = if (current.contains(scenarioId)) {
-            current - scenarioId
-        } else {
-            current + scenarioId
-        }
-        _uiState.update { it.copy(selectedScenarios = updated) }
-    }
-
     fun updateNativeLanguage(language: String) {
         _uiState.update { it.copy(nativeLanguage = language) }
     }
@@ -133,12 +106,15 @@ class ProfileViewModel @Inject constructor(
                     return@launch
                 }
 
+                // Get current favorite scenarios from repository (don't modify them)
+                val currentFavorites = profileRepository.getFavoriteScenarioIds()
+
                 // Save profile
                 profileRepository.saveProfile(
                     name = state.name,
                     avatarId = state.selectedAvatarId,
                     learningGoal = state.learningGoal,
-                    favoriteScenarios = state.selectedScenarios.toList(),
+                    favoriteScenarios = currentFavorites,  // Keep existing favorites
                     nativeLanguage = state.nativeLanguage,
                     bio = state.bio
                 )

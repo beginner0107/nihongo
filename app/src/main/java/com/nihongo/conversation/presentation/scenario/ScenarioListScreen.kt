@@ -153,6 +153,107 @@ fun ScenarioListScreen(
                     .fillMaxSize()
                     .padding(padding)
             ) {
+                // 검색창
+                OutlinedTextField(
+                    value = uiState.searchQuery,
+                    onValueChange = { viewModel.updateSearchQuery(it) },
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(horizontal = 16.dp, vertical = 8.dp),
+                    placeholder = { Text("🔍 시나리오 검색...") },
+                    leadingIcon = {
+                        Icon(
+                            imageVector = Icons.Default.Search,
+                            contentDescription = "검색"
+                        )
+                    },
+                    trailingIcon = {
+                        if (uiState.searchQuery.isNotEmpty()) {
+                            IconButton(onClick = { viewModel.updateSearchQuery("") }) {
+                                Icon(Icons.Default.Clear, "지우기")
+                            }
+                        }
+                    },
+                    singleLine = true
+                )
+
+                // 필터 칩 (검색어나 난이도 필터가 선택된 경우에만 표시)
+                if (uiState.searchQuery.isNotEmpty() || uiState.selectedDifficulties.isNotEmpty()) {
+                    Row(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .padding(horizontal = 16.dp, vertical = 4.dp),
+                        horizontalArrangement = Arrangement.spacedBy(8.dp),
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        Text(
+                            "필터:",
+                            style = MaterialTheme.typography.labelMedium,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant
+                        )
+
+                        FilterChip(
+                            selected = 1 in uiState.selectedDifficulties,
+                            onClick = { viewModel.toggleDifficulty(1) },
+                            label = { Text("초급") },
+                            leadingIcon = {
+                                if (1 in uiState.selectedDifficulties) {
+                                    Icon(
+                                        imageVector = Icons.Default.Check,
+                                        contentDescription = null,
+                                        modifier = Modifier.size(18.dp)
+                                    )
+                                }
+                            }
+                        )
+
+                        FilterChip(
+                            selected = 2 in uiState.selectedDifficulties,
+                            onClick = { viewModel.toggleDifficulty(2) },
+                            label = { Text("중급") },
+                            leadingIcon = {
+                                if (2 in uiState.selectedDifficulties) {
+                                    Icon(
+                                        imageVector = Icons.Default.Check,
+                                        contentDescription = null,
+                                        modifier = Modifier.size(18.dp)
+                                    )
+                                }
+                            }
+                        )
+
+                        FilterChip(
+                            selected = 3 in uiState.selectedDifficulties,
+                            onClick = { viewModel.toggleDifficulty(3) },
+                            label = { Text("고급") },
+                            leadingIcon = {
+                                if (3 in uiState.selectedDifficulties) {
+                                    Icon(
+                                        imageVector = Icons.Default.Check,
+                                        contentDescription = null,
+                                        modifier = Modifier.size(18.dp)
+                                    )
+                                }
+                            }
+                        )
+
+                        Spacer(modifier = Modifier.weight(1f))
+
+                        // Clear all filters button
+                        if (uiState.searchQuery.isNotEmpty() || uiState.selectedDifficulties.isNotEmpty()) {
+                            TextButton(onClick = { viewModel.clearFilters() }) {
+                                Icon(
+                                    imageVector = Icons.Default.Clear,
+                                    contentDescription = null,
+                                    modifier = Modifier.size(16.dp)
+                                )
+                                Spacer(modifier = Modifier.width(4.dp))
+                                Text("초기화", style = MaterialTheme.typography.labelSmall)
+                            }
+                        }
+                    }
+                }
+
                 // 탭 Row (9개 주요 카테고리)
                 val categories = listOf(
                     ScenarioCategory.All,
@@ -252,175 +353,138 @@ fun ScenarioCard(
         modifier = Modifier.fillMaxWidth(),
         elevation = CardDefaults.cardElevation(defaultElevation = 2.dp)
     ) {
-        Row(
+        Column(
             modifier = Modifier
                 .fillMaxWidth()
                 .clickable { onClick() }
-                .padding(16.dp),
-            horizontalArrangement = Arrangement.spacedBy(16.dp),
-            verticalAlignment = Alignment.CenterVertically
+                .padding(20.dp),  // Increased padding for better touch
+            verticalArrangement = Arrangement.spacedBy(12.dp)
         ) {
-            // Icon based on scenario
-            Surface(
-                shape = MaterialTheme.shapes.medium,
-                color = MaterialTheme.colorScheme.primaryContainer,
-                modifier = Modifier.size(56.dp)
+            // First row: Title + Favorite star
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.SpaceBetween,
+                verticalAlignment = Alignment.CenterVertically
             ) {
-                Box(
-                    contentAlignment = Alignment.Center
-                ) {
-                    Icon(
-                        imageVector = getScenarioIcon(scenario.id),
-                        contentDescription = null,
-                        modifier = Modifier.size(32.dp),
-                        tint = MaterialTheme.colorScheme.onPrimaryContainer
-                    )
-                }
-            }
-
-            // Content
-            Column(
-                modifier = Modifier.weight(1f),
-                verticalArrangement = Arrangement.spacedBy(4.dp)
-            ) {
-                // Title with badges (difficulty + custom)
                 Row(
+                    modifier = Modifier.weight(1f),
                     horizontalArrangement = Arrangement.spacedBy(8.dp),
                     verticalAlignment = Alignment.CenterVertically
                 ) {
                     Text(
-                        text = scenario.title,
+                        text = "${scenario.thumbnailEmoji} ${scenario.title}",
                         style = MaterialTheme.typography.titleMedium,
                         fontWeight = FontWeight.Bold
                     )
+                }
 
-                    // Difficulty badge
+                // Favorite button (larger touch area)
+                IconButton(
+                    onClick = { onFavoriteClick() },
+                    modifier = Modifier.size(40.dp)
+                ) {
+                    Icon(
+                        imageVector = if (isFavorite) Icons.Filled.Star else Icons.Default.StarBorder,
+                        contentDescription = if (isFavorite) "즐겨찾기 해제" else "즐겨찾기",
+                        modifier = Modifier.size(28.dp),  // Larger star icon
+                        tint = if (isFavorite) androidx.compose.ui.graphics.Color(0xFFFFD700) else MaterialTheme.colorScheme.onSurfaceVariant
+                    )
+                }
+            }
+
+            // Second row: Category + Difficulty badge
+            Row(
+                horizontalArrangement = Arrangement.spacedBy(8.dp),
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                Text(
+                    text = getCategoryLabel(scenario.category),
+                    style = MaterialTheme.typography.labelMedium,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                )
+
+                Text(
+                    text = "·",
+                    style = MaterialTheme.typography.labelMedium,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                )
+
+                // Difficulty badge
+                Surface(
+                    shape = MaterialTheme.shapes.small,
+                    color = when (scenario.difficulty) {
+                        1 -> MaterialTheme.colorScheme.primaryContainer
+                        2 -> MaterialTheme.colorScheme.tertiaryContainer
+                        3 -> MaterialTheme.colorScheme.errorContainer
+                        else -> MaterialTheme.colorScheme.surfaceVariant
+                    }
+                ) {
+                    Text(
+                        text = when (scenario.difficulty) {
+                            1 -> "초급"
+                            2 -> "중급"
+                            3 -> "고급"
+                            else -> "초급"
+                        },
+                        modifier = Modifier.padding(horizontal = 8.dp, vertical = 4.dp),
+                        style = MaterialTheme.typography.labelSmall,
+                        fontWeight = FontWeight.Bold,
+                        color = when (scenario.difficulty) {
+                            1 -> MaterialTheme.colorScheme.onPrimaryContainer
+                            2 -> MaterialTheme.colorScheme.onTertiaryContainer
+                                3 -> MaterialTheme.colorScheme.onErrorContainer
+                                else -> MaterialTheme.colorScheme.onSurfaceVariant
+                        }
+                    )
+                }
+
+                if (scenario.isCustom) {
                     Surface(
                         shape = MaterialTheme.shapes.small,
-                        color = when (scenario.difficulty) {
-                            1 -> MaterialTheme.colorScheme.tertiary.copy(alpha = 0.2f)
-                            2 -> MaterialTheme.colorScheme.secondary.copy(alpha = 0.2f)
-                            3 -> MaterialTheme.colorScheme.error.copy(alpha = 0.2f)
-                            else -> MaterialTheme.colorScheme.tertiary.copy(alpha = 0.2f)
-                        }
+                        color = MaterialTheme.colorScheme.primary.copy(alpha = 0.2f)
                     ) {
                         Text(
-                            text = when (scenario.difficulty) {
-                                1 -> "초급"
-                                2 -> "중급"
-                                3 -> "고급"
-                                else -> "초급"
-                            },
-                            modifier = Modifier.padding(horizontal = 6.dp, vertical = 2.dp),
+                            text = "커스텀",
+                            modifier = Modifier.padding(horizontal = 8.dp, vertical = 4.dp),
                             style = MaterialTheme.typography.labelSmall,
-                            color = when (scenario.difficulty) {
-                                1 -> MaterialTheme.colorScheme.tertiary
-                                2 -> MaterialTheme.colorScheme.secondary
-                                3 -> MaterialTheme.colorScheme.error
-                                else -> MaterialTheme.colorScheme.tertiary
-                            },
+                            color = MaterialTheme.colorScheme.primary,
                             fontWeight = FontWeight.Bold
                         )
                     }
-
-                    if (scenario.isCustom) {
-                        Surface(
-                            shape = MaterialTheme.shapes.small,
-                            color = MaterialTheme.colorScheme.primary.copy(alpha = 0.2f)
-                        ) {
-                            Text(
-                                text = "커스텀",
-                                modifier = Modifier.padding(horizontal = 6.dp, vertical = 2.dp),
-                                style = MaterialTheme.typography.labelSmall,
-                                color = MaterialTheme.colorScheme.primary,
-                                fontWeight = FontWeight.Bold
-                            )
-                        }
-                    }
                 }
-
-                // Description
-                Text(
-                    text = scenario.description,
-                    style = MaterialTheme.typography.bodyMedium,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant
-                )
             }
 
-            // Favorite button (always visible)
-            IconButton(
-                onClick = { onFavoriteClick() }
-            ) {
-                Icon(
-                    imageVector = if (isFavorite) Icons.Filled.Star else Icons.Default.StarBorder,
-                    contentDescription = if (isFavorite) "즐겨찾기 해제" else "즐겨찾기",
-                    tint = if (isFavorite) androidx.compose.ui.graphics.Color(0xFFFFD700) else MaterialTheme.colorScheme.onSurfaceVariant
-                )
-            }
+            // Third row: Description
+            Text(
+                text = scenario.description,
+                style = MaterialTheme.typography.bodyMedium,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                lineHeight = MaterialTheme.typography.bodyMedium.lineHeight
+            )
 
-            // Delete button for custom scenarios or arrow for default scenarios
+            // Bottom row: Delete button for custom scenarios (if applicable)
             if (onDelete != null) {
-                IconButton(
-                    onClick = {
-                        onDelete()
-                    }
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.End
                 ) {
-                    Icon(
-                        imageVector = Icons.Default.Delete,
-                        contentDescription = "삭제",
-                        tint = MaterialTheme.colorScheme.error
-                    )
+                    TextButton(
+                        onClick = { onDelete() },
+                        colors = ButtonDefaults.textButtonColors(
+                            contentColor = MaterialTheme.colorScheme.error
+                        )
+                    ) {
+                        Icon(
+                            imageVector = Icons.Default.Delete,
+                            contentDescription = null,
+                            modifier = Modifier.size(20.dp)
+                        )
+                        Spacer(modifier = Modifier.width(4.dp))
+                        Text("삭제")
+                    }
                 }
-            } else {
-                Icon(
-                    imageVector = Icons.Default.ChevronRight,
-                    contentDescription = "시작",
-                    tint = MaterialTheme.colorScheme.onSurfaceVariant
-                )
             }
         }
     }
 }
 
-@Composable
-fun DifficultyBadge(difficulty: Int) {
-    val (text, color) = when (difficulty) {
-        1 -> "초급" to MaterialTheme.colorScheme.tertiary
-        2 -> "중급" to MaterialTheme.colorScheme.secondary
-        3 -> "고급" to MaterialTheme.colorScheme.error
-        else -> "초급" to MaterialTheme.colorScheme.tertiary
-    }
-
-    Surface(
-        shape = MaterialTheme.shapes.small,
-        color = color.copy(alpha = 0.2f)
-    ) {
-        Text(
-            text = text,
-            modifier = Modifier.padding(horizontal = 8.dp, vertical = 4.dp),
-            style = MaterialTheme.typography.labelSmall,
-            color = color,
-            fontWeight = FontWeight.Bold
-        )
-    }
-}
-
-@Composable
-fun getScenarioIcon(scenarioId: Long): ImageVector {
-    return when (scenarioId) {
-        1L -> Icons.Default.Restaurant      // 레스토랑
-        2L -> Icons.Default.ShoppingCart    // 쇼핑
-        3L -> Icons.Default.Hotel           // 호텔
-        4L -> Icons.Default.People          // 친구
-        5L -> Icons.Default.Phone           // 전화
-        6L -> Icons.Default.MedicalServices // 병원
-        10L -> Icons.Default.Work           // 취업 면접
-        11L -> Icons.Default.Report         // 클레임 대응
-        12L -> Icons.Default.LocalHospital  // 긴급 상황
-        13L -> Icons.Default.Favorite       // 데이트
-        14L -> Icons.Default.BusinessCenter // 비즈니스 프레젠테이션
-        15L -> Icons.Default.Chat           // 여자친구와의 대화
-        16L -> Icons.Default.BusinessCenter // IT기업 기술 면접 (커스텀)
-        else -> Icons.Default.Chat
-    }
-}
