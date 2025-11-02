@@ -1416,7 +1416,7 @@ IconButton(onClick = {
 | 7 | **접근성 개선** | 2일 | ⭐⭐⭐ | 중간 | ✅ **완료** (2025-11-02) |
 | 8 | **메시지 편집/삭제** | 1일 | ⭐⭐⭐ | 낮음 | ✅ **완료** (2025-11-02) |
 | 9 | **에러 복구 강화** | 2일 | ⭐⭐⭐⭐ | 중간 | ⏳ 대기 |
-| 10 | **성능 최적화** | 2일 | ⭐⭐⭐ | 중간 | ⏳ 대기 |
+| 10 | **성능 최적화** | 2일 | ⭐⭐⭐ | 중간 | ✅ **완료** (2025-11-02) |
 | 11 | **외부 사전 연동** | 1일 | ⭐⭐⭐⭐ | 낮음 | ⏳ 대기 |
 
 **예상 코드 라인**: ~1,200 lines
@@ -1506,9 +1506,11 @@ IconButton(onClick = {
 - [ ] 에러 복구 강화
   - [ ] Gemini API fallback chain
   - [ ] 자동 재시도 로직
-- [ ] 성능 최적화
-  - [ ] Coil image loading
-  - [ ] WorkManager cache cleanup
+- [x] 성능 최적화 ✅ **완료** (2025-11-02)
+  - [x] Coil image loading
+  - [x] WorkManager cache cleanup
+  - [x] CacheManager 구현
+  - [x] Settings UI에 캐시 관리 섹션 추가
 - [ ] 외부 사전 연동
   - [ ] Word selection UI
   - [ ] Jisho.org intent

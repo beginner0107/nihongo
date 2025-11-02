@@ -119,6 +119,25 @@ fun SettingsScreen(
 
             HorizontalDivider()
 
+            // Cache Management
+            SettingsSection(
+                title = "캐시 관리",
+                icon = Icons.Default.Storage
+            ) {
+                val cacheSize by viewModel.cacheSize.collectAsState()
+                val cacheCleanupState by viewModel.cacheCleanupState.collectAsState()
+
+                CacheManagementSection(
+                    cacheSize = cacheSize,
+                    cleanupState = cacheCleanupState,
+                    onRefresh = { viewModel.loadCacheSize() },
+                    onClearAll = { viewModel.clearAllCaches() },
+                    onDismissSuccess = { viewModel.resetCacheCleanupState() }
+                )
+            }
+
+            HorizontalDivider()
+
             // Translation Model Management
             val modelState by viewModel.translationModelState.collectAsState()
             TranslationModelSection(
@@ -590,5 +609,199 @@ fun TextSizeSelector(
                 textAlign = TextAlign.Center
             )
         }
+    }
+}
+
+@Composable
+fun CacheManagementSection(
+    cacheSize: com.nihongo.conversation.core.cache.CacheSize,
+    cleanupState: com.nihongo.conversation.presentation.settings.CacheCleanupState,
+    onRefresh: () -> Unit,
+    onClearAll: () -> Unit,
+    onDismissSuccess: () -> Unit
+) {
+    Column(
+        verticalArrangement = Arrangement.spacedBy(12.dp)
+    ) {
+        // Cache size display
+        Card(
+            modifier = Modifier.fillMaxWidth(),
+            colors = CardDefaults.cardColors(
+                containerColor = MaterialTheme.colorScheme.surfaceVariant
+            )
+        ) {
+            Column(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(16.dp),
+                verticalArrangement = Arrangement.spacedBy(8.dp)
+            ) {
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.SpaceBetween,
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    Text(
+                        text = "전체 캐시 크기",
+                        style = MaterialTheme.typography.bodyMedium,
+                        fontWeight = FontWeight.Medium
+                    )
+                    Text(
+                        text = cacheSize.formatTotal(),
+                        style = MaterialTheme.typography.bodyLarge,
+                        fontWeight = FontWeight.Bold,
+                        color = MaterialTheme.colorScheme.primary
+                    )
+                }
+
+                HorizontalDivider()
+
+                // Breakdown
+                CacheInfoRow(
+                    label = "이미지 캐시",
+                    value = cacheSize.formatCoil()
+                )
+                CacheInfoRow(
+                    label = "번역 캐시",
+                    value = "${cacheSize.translationEntries}개 항목"
+                )
+                CacheInfoRow(
+                    label = "앱 캐시",
+                    value = cacheSize.formatAppCache()
+                )
+            }
+        }
+
+        // Actions
+        Row(
+            modifier = Modifier.fillMaxWidth(),
+            horizontalArrangement = Arrangement.spacedBy(8.dp)
+        ) {
+            OutlinedButton(
+                onClick = onRefresh,
+                modifier = Modifier.weight(1f),
+                enabled = cleanupState !is com.nihongo.conversation.presentation.settings.CacheCleanupState.Cleaning
+            ) {
+                Icon(Icons.Default.Refresh, contentDescription = null)
+                Spacer(modifier = Modifier.width(8.dp))
+                Text("새로고침")
+            }
+
+            Button(
+                onClick = onClearAll,
+                modifier = Modifier.weight(1f),
+                enabled = cleanupState !is com.nihongo.conversation.presentation.settings.CacheCleanupState.Cleaning
+            ) {
+                if (cleanupState is com.nihongo.conversation.presentation.settings.CacheCleanupState.Cleaning) {
+                    CircularProgressIndicator(
+                        modifier = Modifier.size(16.dp),
+                        strokeWidth = 2.dp,
+                        color = MaterialTheme.colorScheme.onPrimary
+                    )
+                    Spacer(modifier = Modifier.width(8.dp))
+                    Text("정리 중...")
+                } else {
+                    Icon(Icons.Default.Delete, contentDescription = null)
+                    Spacer(modifier = Modifier.width(8.dp))
+                    Text("전체 삭제")
+                }
+            }
+        }
+
+        // Success/Error message
+        when (cleanupState) {
+            is com.nihongo.conversation.presentation.settings.CacheCleanupState.Success -> {
+                Card(
+                    modifier = Modifier.fillMaxWidth(),
+                    colors = CardDefaults.cardColors(
+                        containerColor = MaterialTheme.colorScheme.primaryContainer
+                    )
+                ) {
+                    Row(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .padding(12.dp),
+                        verticalAlignment = Alignment.CenterVertically,
+                        horizontalArrangement = Arrangement.spacedBy(8.dp)
+                    ) {
+                        Icon(
+                            Icons.Default.CheckCircle,
+                            contentDescription = null,
+                            tint = MaterialTheme.colorScheme.primary
+                        )
+                        Text(
+                            text = "캐시가 성공적으로 정리되었습니다",
+                            style = MaterialTheme.typography.bodyMedium,
+                            color = MaterialTheme.colorScheme.onPrimaryContainer
+                        )
+                    }
+                }
+
+                // Auto-dismiss after 2 seconds
+                LaunchedEffect(Unit) {
+                    kotlinx.coroutines.delay(2000)
+                    onDismissSuccess()
+                }
+            }
+            is com.nihongo.conversation.presentation.settings.CacheCleanupState.Error -> {
+                Card(
+                    modifier = Modifier.fillMaxWidth(),
+                    colors = CardDefaults.cardColors(
+                        containerColor = MaterialTheme.colorScheme.errorContainer
+                    )
+                ) {
+                    Row(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .padding(12.dp),
+                        verticalAlignment = Alignment.CenterVertically,
+                        horizontalArrangement = Arrangement.spacedBy(8.dp)
+                    ) {
+                        Icon(
+                            Icons.Default.Error,
+                            contentDescription = null,
+                            tint = MaterialTheme.colorScheme.error
+                        )
+                        Text(
+                            text = cleanupState.message,
+                            style = MaterialTheme.typography.bodyMedium,
+                            color = MaterialTheme.colorScheme.onErrorContainer
+                        )
+                    }
+                }
+            }
+            else -> { /* Idle or Cleaning - no message */ }
+        }
+
+        // Info text
+        HorizontalDivider()
+        Text(
+            text = "💡 자동 정리: 매일 자동으로 오래된 캐시를 정리합니다 (번역 캐시 30일 보관)",
+            style = MaterialTheme.typography.bodySmall,
+            color = MaterialTheme.colorScheme.onSurfaceVariant
+        )
+    }
+}
+
+@Composable
+fun CacheInfoRow(
+    label: String,
+    value: String
+) {
+    Row(
+        modifier = Modifier.fillMaxWidth(),
+        horizontalArrangement = Arrangement.SpaceBetween,
+        verticalAlignment = Alignment.CenterVertically
+    ) {
+        Text(
+            text = label,
+            style = MaterialTheme.typography.bodySmall,
+            color = MaterialTheme.colorScheme.onSurfaceVariant
+        )
+        Text(
+            text = value,
+            style = MaterialTheme.typography.bodyMedium,
+            fontWeight = FontWeight.Medium
+        )
     }
 }

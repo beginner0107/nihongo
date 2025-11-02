@@ -2,6 +2,8 @@ package com.nihongo.conversation.presentation.settings
 
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
+import com.nihongo.conversation.core.cache.CacheManager
+import com.nihongo.conversation.core.cache.CacheSize
 import com.nihongo.conversation.core.translation.DownloadProgress
 import com.nihongo.conversation.core.translation.MLKitTranslator
 import com.nihongo.conversation.data.local.SettingsDataStore
@@ -20,7 +22,8 @@ import javax.inject.Inject
 @HiltViewModel
 class SettingsViewModel @Inject constructor(
     private val settingsDataStore: SettingsDataStore,
-    private val mlKitTranslator: MLKitTranslator
+    private val mlKitTranslator: MLKitTranslator,
+    private val cacheManager: CacheManager
 ) : ViewModel() {
 
     val userSettings: StateFlow<UserSettings> = settingsDataStore.userSettings
@@ -33,8 +36,15 @@ class SettingsViewModel @Inject constructor(
     private val _translationModelState = MutableStateFlow<TranslationModelState>(TranslationModelState.Loading)
     val translationModelState: StateFlow<TranslationModelState> = _translationModelState.asStateFlow()
 
+    private val _cacheSize = MutableStateFlow<CacheSize>(CacheSize())
+    val cacheSize: StateFlow<CacheSize> = _cacheSize.asStateFlow()
+
+    private val _cacheCleanupState = MutableStateFlow<CacheCleanupState>(CacheCleanupState.Idle)
+    val cacheCleanupState: StateFlow<CacheCleanupState> = _cacheCleanupState.asStateFlow()
+
     init {
         checkModelStatus()
+        loadCacheSize()
     }
 
     private fun checkModelStatus() {
@@ -107,6 +117,48 @@ class SettingsViewModel @Inject constructor(
             settingsDataStore.updateContrastMode(contrastMode)
         }
     }
+
+    fun loadCacheSize() {
+        viewModelScope.launch {
+            try {
+                val size = cacheManager.getCacheSize()
+                _cacheSize.value = size
+            } catch (e: Exception) {
+                // Ignore errors
+            }
+        }
+    }
+
+    fun clearAllCaches() {
+        viewModelScope.launch {
+            try {
+                _cacheCleanupState.value = CacheCleanupState.Cleaning
+                val success = cacheManager.clearAllCaches()
+                _cacheCleanupState.value = if (success) {
+                    loadCacheSize()  // Refresh cache size
+                    CacheCleanupState.Success
+                } else {
+                    CacheCleanupState.Error("캐시 정리 실패")
+                }
+            } catch (e: Exception) {
+                _cacheCleanupState.value = CacheCleanupState.Error(e.message ?: "알 수 없는 오류")
+            }
+        }
+    }
+
+    fun resetCacheCleanupState() {
+        _cacheCleanupState.value = CacheCleanupState.Idle
+    }
+}
+
+/**
+ * State of cache cleanup operation
+ */
+sealed class CacheCleanupState {
+    object Idle : CacheCleanupState()
+    object Cleaning : CacheCleanupState()
+    object Success : CacheCleanupState()
+    data class Error(val message: String) : CacheCleanupState()
 }
 
 /**
