@@ -672,16 +672,14 @@ fun MessageBubble(
                     }
                 }
 
-                // SelectableText allows long-press to look up words in Jisho.org
-                SelectableText(
+                Text(
                     text = displayText,
-                    style = MaterialTheme.typography.bodyMedium.copy(
-                        color = if (message.isUser) {
-                            MaterialTheme.colorScheme.onPrimaryContainer
-                        } else {
-                            MaterialTheme.colorScheme.onSecondaryContainer
-                        }
-                    )
+                    style = MaterialTheme.typography.bodyMedium,
+                    color = if (message.isUser) {
+                        MaterialTheme.colorScheme.onPrimaryContainer
+                    } else {
+                        MaterialTheme.colorScheme.onSecondaryContainer
+                    }
                 )
 
                 // Show translation button and translation for AI messages
@@ -710,16 +708,15 @@ fun MessageBubble(
                     if (isTranslationExpanded) {
                         when {
                             translation != null -> {
-                                // Success - show translation (also selectable for word lookup)
+                                // Success - show translation
                                 HorizontalDivider(
                                     modifier = Modifier.padding(vertical = 4.dp),
                                     color = MaterialTheme.colorScheme.onSecondaryContainer.copy(alpha = 0.2f)
                                 )
-                                SelectableText(
+                                Text(
                                     text = translation,
-                                    style = MaterialTheme.typography.bodySmall.copy(
-                                        color = MaterialTheme.colorScheme.onSecondaryContainer.copy(alpha = 0.8f)
-                                    )
+                                    style = MaterialTheme.typography.bodySmall,
+                                    color = MaterialTheme.colorScheme.onSecondaryContainer.copy(alpha = 0.8f)
                                 )
                             }
                             translationError != null && onRetryTranslation != null -> {
@@ -840,6 +837,27 @@ fun MessageBubble(
                         context.getString(R.string.copy_success),
                         android.widget.Toast.LENGTH_SHORT
                     ).show()
+                    showContextMenu = false
+                }
+            )
+
+            // 사전에서 검색 (Search in Jisho.org)
+            androidx.compose.material3.DropdownMenuItem(
+                text = { androidx.compose.material3.Text("사전에서 검색") },
+                leadingIcon = {
+                    androidx.compose.material3.Icon(
+                        androidx.compose.material.icons.Icons.Default.Search,
+                        contentDescription = null
+                    )
+                },
+                onClick = {
+                    val intent = android.content.Intent(
+                        android.content.Intent.ACTION_VIEW,
+                        android.net.Uri.parse("https://jisho.org/search/${android.net.Uri.encode(message.content)}")
+                    )
+                    if (intent.resolveActivity(context.packageManager) != null) {
+                        context.startActivity(intent)
+                    }
                     showContextMenu = false
                 }
             )
