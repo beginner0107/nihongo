@@ -474,26 +474,43 @@ class GeminiApiService @Inject constructor(
 
     suspend fun generateHints(
         conversationContext: String,
-        userLevel: Int
+        userLevel: Int,
+        scenarioPrompt: String = "",
+        aiLastMessage: String = ""
     ): List<Hint> {
         return try {
             val prompt = """
-                현재 일본어 회화 상황: $conversationContext
-                사용자 레벨: $userLevel
+                【시나리오 상황】
+                $scenarioPrompt
 
-                위 상황에서 사용자가 다음에 말할 수 있는 일본어 표현 3개를 제공하세요.
-                각 표현에 대해 다음 JSON 형식으로 응답하세요:
+                【최근 대화 내역】
+                $conversationContext
+
+                【AI의 마지막 발화】
+                "$aiLastMessage"
+
+                【사용자 레벨】$userLevel (1=초급 N5-N4, 2=중급 N3-N2, 3=고급 N1)
+
+                【요청사항】
+                AI가 "$aiLastMessage"라고 말했습니다.
+                사용자가 이 질문/발화에 자연스럽게 응답할 수 있는 일본어 표현 3개를 제공하세요.
+
+                **중요 규칙**:
+                1. AI의 질문 의도에 직접 답하는 표현만 제공 (일반적인 인사말 금지)
+                2. 시나리오 상황에 맞는 표현만 제공
+                3. 사용자 레벨에 맞는 문법/어휘 사용
+                4. 짧고 실용적인 표현 우선 (1-10단어)
 
                 [
                   {
                     "japanese": "일본어 표현",
-                    "korean": "한국어 번역",
-                    "romaji": "로마자 표기",
-                    "explanation": "사용 상황 설명"
+                    "korean": "한국어 의미",
+                    "romaji": "로마자 발음",
+                    "explanation": "이 표현을 쓰는 상황 (한 줄)"
                   }
                 ]
 
-                응답은 반드시 JSON 배열만 포함하고, 다른 텍스트는 포함하지 마세요.
+                JSON만 출력하세요. 다른 설명 금지.
             """.trimIndent()
 
             val response = model?.generateContent(prompt)

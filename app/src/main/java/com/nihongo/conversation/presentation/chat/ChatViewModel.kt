@@ -402,13 +402,14 @@ class ChatViewModel @Inject constructor(
             _uiState.update { it.copy(isLoadingHints = true, showHintDialog = true) }
 
             try {
-                // Get scenario difficulty
+                // Get scenario difficulty and context
                 val scenario = _uiState.value.scenario
                 val scenarioDifficulty = scenario?.difficulty ?: 1
 
                 val hints = repository.getHints(
                     conversationHistory = _uiState.value.messages.items,
-                    userLevel = scenarioDifficulty
+                    userLevel = scenarioDifficulty,
+                    scenarioSystemPrompt = scenario?.systemPrompt ?: ""
                 )
                 _uiState.update {
                     it.copy(
@@ -417,10 +418,13 @@ class ChatViewModel @Inject constructor(
                     )
                 }
             } catch (e: Exception) {
+                // Fallback to scenario-based hints
+                val fallbackHints = generateScenarioBasedFallback(_uiState.value.scenario)
                 _uiState.update {
                     it.copy(
+                        hints = fallbackHints.toImmutableList(),
                         isLoadingHints = false,
-                        error = "힌트를 가져오는데 실패했습니다"
+                        error = "힌트 생성 실패 (기본 힌트 표시)"
                     )
                 }
             }
@@ -1169,5 +1173,66 @@ class ChatViewModel @Inject constructor(
 
         // Release voice manager resources
         voiceManager.release()
+    }
+
+    /**
+     * Generate scenario-based fallback hints when AI hint generation fails
+     */
+    private fun generateScenarioBasedFallback(scenario: Scenario?): List<Hint> {
+        return when (scenario?.category) {
+            "DAILY_LIFE" -> listOf(
+                Hint("分かりました", "알겠습니다", "wakarimashita", "동의/이해 표현"),
+                Hint("お願いします", "부탁합니다", "onegaishimasu", "요청할 때"),
+                Hint("すみません", "죄송합니다", "sumimasen", "사과/호칭")
+            )
+
+            "TRAVEL" -> listOf(
+                Hint("いくらですか", "얼마입니까", "ikura desu ka", "가격 물을 때"),
+                Hint("ここまでお願いします", "여기까지 부탁합니다", "koko made onegaishimasu", "택시/이동"),
+                Hint("写真を撮っていただけますか", "사진 찍어주시겠어요", "shashin wo totte itadakemasu ka", "사진 부탁")
+            )
+
+            "WORK", "BUSINESS" -> listOf(
+                Hint("承知しました", "알겠습니다", "shouchi shimashita", "비즈니스 동의"),
+                Hint("確認いたします", "확인하겠습니다", "kakunin itashimasu", "확인 응답"),
+                Hint("よろしくお願いいたします", "잘 부탁드립니다", "yoroshiku onegai itashimasu", "비즈니스 인사")
+            )
+
+            "JLPT_PRACTICE" -> when (scenario.difficulty) {
+                1 -> listOf(  // N5/N4
+                    Hint("はい、そうです", "네, 그렇습니다", "hai, sou desu", "긍정 답변"),
+                    Hint("いいえ、違います", "아니요, 다릅니다", "iie, chigaimasu", "부정 답변"),
+                    Hint("もう一度お願いします", "다시 한 번 부탁합니다", "mou ichido onegaishimasu", "재요청")
+                )
+                2 -> listOf(  // N3/N2
+                    Hint("そうですね", "그렇네요", "sou desu ne", "동의/공감"),
+                    Hint("どうしたらいいですか", "어떻게 하면 좋을까요", "dou shitara ii desu ka", "조언 요청"),
+                    Hint("教えていただけますか", "가르쳐주시겠어요", "oshiete itadakemasu ka", "설명 요청")
+                )
+                else -> listOf(  // N1
+                    Hint("おっしゃる通りです", "말씀하신 대로입니다", "ossharu toori desu", "정중한 동의"),
+                    Hint("恐れ入りますが", "송구합니다만", "osoreirimasu ga", "정중한 전치사"),
+                    Hint("承りました", "알겠습니다(최고 경어)", "uketamawarimashita", "최고 경어")
+                )
+            }
+
+            "ENTERTAINMENT", "ESPORTS", "CULTURE" -> listOf(
+                Hint("いいですね", "좋네요", "ii desu ne", "긍정적 반응"),
+                Hint("私も好きです", "저도 좋아합니다", "watashi mo suki desu", "공감"),
+                Hint("どう思いますか", "어떻게 생각하세요", "dou omoimasu ka", "의견 물어보기")
+            )
+
+            "TECH" -> listOf(
+                Hint("確認します", "확인합니다", "kakunin shimasu", "확인"),
+                Hint("修正します", "수정합니다", "shuusei shimasu", "수정"),
+                Hint("テストしてみます", "테스트해봅니다", "tesuto shite mimasu", "시도")
+            )
+
+            else -> listOf(  // Default fallback for all other scenarios
+                Hint("そうですね", "그렇네요", "sou desu ne", "동의"),
+                Hint("分かりました", "알겠습니다", "wakarimashita", "이해"),
+                Hint("ありがとうございます", "감사합니다", "arigatou gozaimasu", "감사")
+            )
+        }
     }
 }

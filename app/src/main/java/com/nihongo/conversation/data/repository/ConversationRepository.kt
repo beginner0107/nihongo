@@ -226,14 +226,24 @@ class ConversationRepository @Inject constructor(
 
     suspend fun getHints(
         conversationHistory: List<Message>,
-        userLevel: Int
+        userLevel: Int,
+        scenarioSystemPrompt: String = ""
     ): List<Hint> {
         val context = conversationHistory.takeLast(5).joinToString("\n") { message ->
-            if (message.isUser) "사용자: ${message.content}"
+            if (message.isUser) "User: ${message.content}"
             else "AI: ${message.content}"
         }
 
-        return geminiApi.generateHints(context, userLevel)
+        // Extract AI's last message for context
+        val aiLastMessage = conversationHistory
+            .lastOrNull { !it.isUser }?.content ?: ""
+
+        return geminiApi.generateHints(
+            conversationContext = context,
+            userLevel = userLevel,
+            scenarioPrompt = scenarioSystemPrompt,
+            aiLastMessage = aiLastMessage
+        )
     }
 
     suspend fun explainGrammar(
