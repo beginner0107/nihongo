@@ -1417,7 +1417,7 @@ IconButton(onClick = {
 | 8 | **메시지 편집/삭제** | 1일 | ⭐⭐⭐ | 낮음 | ✅ **완료** (2025-11-02) |
 | 9 | **에러 복구 강화** | 2일 | ⭐⭐⭐⭐ | 중간 | ⏳ 대기 |
 | 10 | **성능 최적화** | 2일 | ⭐⭐⭐ | 중간 | ✅ **완료** (2025-11-02) |
-| 11 | **외부 사전 연동** | 1일 | ⭐⭐⭐⭐ | 낮음 | ⏳ 대기 |
+| 11 | **외부 사전 연동** | 1일 | ⭐⭐⭐⭐ | 낮음 | ✅ **완료** (2025-11-02) |
 
 **예상 코드 라인**: ~1,200 lines
 **완료 후 완성도**: 92%
@@ -1511,9 +1511,9 @@ IconButton(onClick = {
   - [x] WorkManager cache cleanup
   - [x] CacheManager 구현
   - [x] Settings UI에 캐시 관리 섹션 추가
-- [ ] 외부 사전 연동
-  - [ ] Word selection UI
-  - [ ] Jisho.org intent
+- [x] 외부 사전 연동 ✅ **완료** (2025-11-02)
+  - [x] Word selection UI (SelectableText composable)
+  - [x] Jisho.org intent (long-press on words)
 
 ### Phase 3 (고급 기능)
 - [ ] 오프라인 모드

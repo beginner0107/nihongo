@@ -672,14 +672,16 @@ fun MessageBubble(
                     }
                 }
 
-                Text(
+                // SelectableText allows long-press to look up words in Jisho.org
+                SelectableText(
                     text = displayText,
-                    style = MaterialTheme.typography.bodyMedium,
-                    color = if (message.isUser) {
-                        MaterialTheme.colorScheme.onPrimaryContainer
-                    } else {
-                        MaterialTheme.colorScheme.onSecondaryContainer
-                    }
+                    style = MaterialTheme.typography.bodyMedium.copy(
+                        color = if (message.isUser) {
+                            MaterialTheme.colorScheme.onPrimaryContainer
+                        } else {
+                            MaterialTheme.colorScheme.onSecondaryContainer
+                        }
+                    )
                 )
 
                 // Show translation button and translation for AI messages
@@ -708,15 +710,16 @@ fun MessageBubble(
                     if (isTranslationExpanded) {
                         when {
                             translation != null -> {
-                                // Success - show translation
+                                // Success - show translation (also selectable for word lookup)
                                 HorizontalDivider(
                                     modifier = Modifier.padding(vertical = 4.dp),
                                     color = MaterialTheme.colorScheme.onSecondaryContainer.copy(alpha = 0.2f)
                                 )
-                                Text(
+                                SelectableText(
                                     text = translation,
-                                    style = MaterialTheme.typography.bodySmall,
-                                    color = MaterialTheme.colorScheme.onSecondaryContainer.copy(alpha = 0.8f)
+                                    style = MaterialTheme.typography.bodySmall.copy(
+                                        color = MaterialTheme.colorScheme.onSecondaryContainer.copy(alpha = 0.8f)
+                                    )
                                 )
                             }
                             translationError != null && onRetryTranslation != null -> {
