@@ -51,15 +51,18 @@ class ScenarioViewModel @Inject constructor(
     }
 
     private fun filterScenarios(scenarios: List<Scenario>, category: String?): List<Scenario> {
+        // Define main tab categories
+        val mainCategories = setOf(
+            "ENTERTAINMENT", "WORK", "DAILY_LIFE", "TRAVEL", "TECH", "ESPORTS", "JLPT_PRACTICE"
+        )
+
         return when (category) {
-            null -> scenarios // "전체"
-            "TRAVEL" -> scenarios.filter { it.category == "TRAVEL" }
-            "JLPT_PRACTICE" -> scenarios.filter { it.category == "JLPT_PRACTICE" }
-            "BUSINESS" -> scenarios.filter { it.category == "BUSINESS" }
+            null -> scenarios // "전체" - show all
             "OTHER" -> scenarios.filter {
-                it.category in listOf("DAILY_CONVERSATION", "EMERGENCY", "ROMANCE", "CULTURE")
+                // "기타" - all categories NOT in main tabs
+                it.category !in mainCategories
             }
-            else -> scenarios
+            else -> scenarios.filter { it.category == category } // Specific category
         }
     }
 

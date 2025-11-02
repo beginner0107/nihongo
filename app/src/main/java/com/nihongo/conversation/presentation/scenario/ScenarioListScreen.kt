@@ -19,24 +19,37 @@ import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
 import com.nihongo.conversation.domain.model.Scenario
 
-// 카테고리 정의
+// 카테고리 정의 (주요 탭만 표시)
 sealed class ScenarioCategory(val id: String?, val label: String, val icon: String) {
     object All : ScenarioCategory(null, "전체", "📚")
+    object Entertainment : ScenarioCategory("ENTERTAINMENT", "엔터", "🎵")
+    object Work : ScenarioCategory("WORK", "직장", "💼")
+    object DailyLife : ScenarioCategory("DAILY_LIFE", "일상", "🏠")
     object Travel : ScenarioCategory("TRAVEL", "여행", "✈️")
+    object Tech : ScenarioCategory("TECH", "기술", "💻")
+    object Esports : ScenarioCategory("ESPORTS", "게임", "🎮")
     object JLPT : ScenarioCategory("JLPT_PRACTICE", "JLPT", "📖")
-    object Business : ScenarioCategory("BUSINESS", "비즈니스", "💼")
     object Other : ScenarioCategory("OTHER", "기타", "🎭")
 }
 
-// 섹션 헤더용 카테고리 매핑
+// 섹션 헤더용 카테고리 매핑 (16개 전체 카테고리)
 fun getCategoryLabel(category: String): String {
     return when (category) {
-        "DAILY_CONVERSATION" -> "📚 일상 회화"
-        "TRAVEL" -> "✈️ 일본 여행"
+        "DAILY_LIFE" -> "🏠 일상 생활"
+        "WORK" -> "💼 직장/업무"
+        "TRAVEL" -> "✈️ 여행"
+        "ENTERTAINMENT" -> "🎵 엔터테인먼트"
+        "ESPORTS" -> "🎮 e스포츠"
+        "TECH" -> "💻 기술/개발"
+        "FINANCE" -> "💰 금융/재테크"
+        "CULTURE" -> "🎭 문화"
+        "HOUSING" -> "🏢 부동산/주거"
+        "HEALTH" -> "🏥 건강/의료"
+        "STUDY" -> "📚 학습/교육"
+        "DAILY_CONVERSATION" -> "💬 일상 회화"
         "JLPT_PRACTICE" -> "📖 JLPT 연습"
-        "BUSINESS" -> "💼 비즈니스"
+        "BUSINESS" -> "🤝 비즈니스"
         "ROMANCE" -> "💕 연애/관계"
-        "CULTURE" -> "🎭 문화/테마"
         "EMERGENCY" -> "🚨 긴급 상황"
         else -> "📚 기타"
     }
@@ -139,12 +152,16 @@ fun ScenarioListScreen(
                     .fillMaxSize()
                     .padding(padding)
             ) {
-                // 탭 Row
+                // 탭 Row (9개 주요 카테고리)
                 val categories = listOf(
                     ScenarioCategory.All,
+                    ScenarioCategory.Entertainment,
+                    ScenarioCategory.Work,
+                    ScenarioCategory.DailyLife,
                     ScenarioCategory.Travel,
+                    ScenarioCategory.Tech,
+                    ScenarioCategory.Esports,
                     ScenarioCategory.JLPT,
-                    ScenarioCategory.Business,
                     ScenarioCategory.Other
                 )
 
