@@ -28,6 +28,7 @@ class SettingsDataStore @Inject constructor(
         val FEEDBACK_ENABLED = booleanPreferencesKey("feedback_enabled")
         val TEXT_SIZE = stringPreferencesKey("text_size")
         val CONTRAST_MODE = stringPreferencesKey("contrast_mode")
+        val IS_FIRST_LAUNCH = booleanPreferencesKey("is_first_launch")
     }
 
     val userSettings: Flow<UserSettings> = context.dataStore.data
@@ -88,6 +89,24 @@ class SettingsDataStore @Inject constructor(
     suspend fun updateContrastMode(contrastMode: ContrastMode) {
         context.dataStore.edit { preferences ->
             preferences[PreferencesKeys.CONTRAST_MODE] = contrastMode.name
+        }
+    }
+
+    val isFirstLaunch: Flow<Boolean> = context.dataStore.data
+        .catch { exception ->
+            if (exception is IOException) {
+                emit(emptyPreferences())
+            } else {
+                throw exception
+            }
+        }
+        .map { preferences ->
+            preferences[PreferencesKeys.IS_FIRST_LAUNCH] ?: true
+        }
+
+    suspend fun setFirstLaunchComplete() {
+        context.dataStore.edit { preferences ->
+            preferences[PreferencesKeys.IS_FIRST_LAUNCH] = false
         }
     }
 }

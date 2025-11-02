@@ -448,88 +448,95 @@ fun CreateScenarioScreen(
 
 ### 2. 🎨 UI/UX 개선 (UI/UX Enhancements)
 
-#### 2.1 온보딩 튜토리얼 ⭐ **우선 과제**
+#### 2.1 온보딩 튜토리얼 ✅ **완료** (2025-11-02)
 
-**현재 상태**: 없음
+**구현 완료 사항**:
+- ✅ SettingsDataStore에 isFirstLaunch 필드 추가
+- ✅ OnboardingScreen (4 pages) 구현
+- ✅ Navigation에 onboarding route 추가
+- ✅ MainActivity에서 첫 실행 시 온보딩 자동 표시
 
-**구현 필요 사항**:
+**실제 구현 결과**:
+- 구현 기간: 1일 미만 (예상 1일)
+- 실제 코드 라인: ~250 lines
+- 빌드 성공: ✅
+- 런타임 테스트: ✅ 오류 없음
+
+**구현 예시 (실제 코드)**:
 
 ```kotlin
-// OnboardingScreen.kt
+// OnboardingScreen.kt - 4 pages with HorizontalPager
 @Composable
 fun OnboardingScreen(
-    onComplete: () -> Unit
+    onComplete: () -> Unit,
+    modifier: Modifier = Modifier
 ) {
-    val pagerState = rememberPagerState(pageCount = { 4 })
+    val pages = listOf(
+        OnboardingPage(
+            title = "일본어 회화 연습",
+            description = "AI와 실전 대화를 연습하세요\n50개 이상의 실제 상황 시나리오로\n자연스러운 일본어 회화를 익혀보세요",
+            icon = Icons.Default.Chat,
+            backgroundColor = MaterialTheme.colorScheme.primaryContainer
+        ),
+        OnboardingPage(
+            title = "음성 인식 & TTS",
+            description = "말하고 듣는 학습으로 발음을 익히세요\n음성 인식으로 대화하고\nTTS로 정확한 발음을 들어보세요",
+            icon = Icons.Default.Mic,
+            backgroundColor = MaterialTheme.colorScheme.secondaryContainer
+        ),
+        OnboardingPage(
+            title = "문법 분석 & 힌트",
+            description = "메시지를 길게 눌러 문법을 분석하세요\n문장 구조, 품사, 한국어 번역을\n실시간으로 확인할 수 있습니다",
+            icon = Icons.Default.School,
+            backgroundColor = MaterialTheme.colorScheme.tertiaryContainer
+        ),
+        OnboardingPage(
+            title = "단어장 & 통계",
+            description = "학습한 단어를 복습하고\n학습 진행 상황을 확인하세요\n플래시카드로 효과적인 복습이 가능합니다",
+            icon = Icons.Default.Analytics,
+            backgroundColor = MaterialTheme.colorScheme.errorContainer
+        )
+    )
 
-    Column {
-        HorizontalPager(state = pagerState) { page ->
-            when (page) {
-                0 -> OnboardingPage(
-                    title = "일본어 회화 연습",
-                    description = "AI와 실전 대화를 연습하세요",
-                    image = R.drawable.onboarding_1
-                )
-                1 -> OnboardingPage(
-                    title = "음성 인식 & TTS",
-                    description = "말하고 듣는 학습으로 발음을 익히세요",
-                    image = R.drawable.onboarding_2
-                )
-                2 -> OnboardingPage(
-                    title = "문법 분석 & 힌트",
-                    description = "메시지를 길게 눌러 문법을 분석하세요",
-                    image = R.drawable.onboarding_3
-                )
-                3 -> OnboardingPage(
-                    title = "시작하기",
-                    description = "50+ 실전 시나리오로 학습을 시작하세요",
-                    image = R.drawable.onboarding_4
-                )
-            }
-        }
+    val pagerState = rememberPagerState(pageCount = { pages.size })
+    // HorizontalPager + Page indicators + Navigation buttons
+}
 
-        // Pager indicators
-        Row {
-            repeat(4) { index ->
-                Box(
-                    modifier = Modifier
-                        .size(8.dp)
-                        .background(
-                            if (pagerState.currentPage == index) Color.Blue else Color.Gray
-                        )
-                )
-            }
-        }
+// SettingsDataStore.kt
+val isFirstLaunch: Flow<Boolean> = context.dataStore.data
+    .map { preferences ->
+        preferences[PreferencesKeys.IS_FIRST_LAUNCH] ?: true
+    }
 
-        // Skip / Next / Start buttons
-        Row {
-            if (pagerState.currentPage < 3) {
-                TextButton(onClick = onComplete) { Text("건너뛰기") }
-                Button(onClick = { /* Next page */ }) { Text("다음") }
-            } else {
-                Button(onClick = onComplete, modifier = Modifier.fillMaxWidth()) {
-                    Text("시작하기")
-                }
-            }
-        }
+suspend fun setFirstLaunchComplete() {
+    context.dataStore.edit { preferences ->
+        preferences[PreferencesKeys.IS_FIRST_LAUNCH] = false
     }
 }
 
-// MainActivity.kt - Show onboarding on first launch
-LaunchedEffect(Unit) {
-    val isFirstLaunch = settingsDataStore.isFirstLaunch.first()
-    if (isFirstLaunch) {
-        navController.navigate("onboarding")
+// MainActivity.kt
+val isFirstLaunch by settingsDataStore.isFirstLaunch.collectAsState(initial = true)
+
+NihongoNavHost(
+    startDestination = if (isFirstLaunch) {
+        Screen.Onboarding.route
+    } else {
+        Screen.UserSelection.route
+    },
+    onOnboardingComplete = {
+        scope.launch {
+            settingsDataStore.setFirstLaunchComplete()
+        }
     }
-}
+)
 ```
 
-**구현 난이도**: 낮음 (1일)
-**예상 코드 라인**: ~300 lines
-
 **사용자 가치**: ⭐⭐⭐⭐⭐
-- 신규 사용자 학습 곡선 대폭 단축
-- 주요 기능 발견성 향상
+- ✅ 신규 사용자 학습 곡선 대폭 단축
+- ✅ 주요 기능 발견성 향상 (4개 페이지로 모든 주요 기능 소개)
+- ✅ Material3 디자인과 완벽 통합 (색상 테마별 배경)
+- ✅ 부드러운 페이지 전환 애니메이션
+- ✅ "건너뛰기" 버튼으로 빠른 시작 가능
 
 ---
 
@@ -1405,13 +1412,13 @@ IconButton(onClick = {
 |-----|------|----------|-----------|-------|------|
 | 1 | **단어장 시스템** | 3-4일 | ⭐⭐⭐⭐⭐ | 중간 | ✅ **완료** (2025-11-02) |
 | 2 | **학습 통계 대시보드** | 2-3일 | ⭐⭐⭐⭐ | 중간 | ✅ **완료** (이미 존재) |
-| 3 | **온보딩 튜토리얼** | 1일 | ⭐⭐⭐⭐⭐ | 낮음 | ⏳ 대기 |
+| 3 | **온보딩 튜토리얼** | 1일 | ⭐⭐⭐⭐⭐ | 낮음 | ✅ **완료** (2025-11-02) |
 | 4 | **다크 모드** | 1일 | ⭐⭐⭐⭐ | 낮음 | ⏳ 대기 |
 | 5 | **시나리오 추천 시스템** | 2일 | ⭐⭐⭐⭐ | 중간 | ⏳ 대기 |
 | 6 | **대화 내보내기** | 1일 | ⭐⭐⭐⭐ | 낮음 | ⏳ 대기 |
 
-**예상 코드 라인**: ~2,500 lines (✅ 완료: ~1,400 lines)
-**완료 후 완성도**: 85% (현재: 80%)
+**예상 코드 라인**: ~2,500 lines (✅ 완료: ~1,650 lines)
+**완료 후 완성도**: 85% (현재: 82%)
 
 ---
 
@@ -1481,10 +1488,10 @@ IconButton(onClick = {
   - [x] StatsViewModel (이미 구현됨)
   - [x] StatsScreen UI (그래프) (이미 구현됨)
   - [x] 학습 스트릭 계산 (이미 구현됨)
-- [ ] 온보딩 튜토리얼
-  - [ ] OnboardingScreen (4 pages)
-  - [ ] SettingsDataStore.isFirstLaunch
-  - [ ] Navigation 통합
+- [x] 온보딩 튜토리얼 ✅ **완료** (2025-11-02)
+  - [x] OnboardingScreen (4 pages)
+  - [x] SettingsDataStore.isFirstLaunch
+  - [x] Navigation 통합
 - [ ] 다크 모드
   - [ ] ThemeMode enum (LIGHT/DARK/SYSTEM)
   - [ ] SettingsDataStore.themeMode

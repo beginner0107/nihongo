@@ -1,12 +1,14 @@
 package com.nihongo.conversation.presentation.navigation
 
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.rememberCoroutineScope
 import androidx.navigation.NavHostController
 import androidx.navigation.NavType
 import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
 import androidx.navigation.compose.rememberNavController
 import androidx.navigation.navArgument
+import kotlinx.coroutines.launch
 import com.nihongo.conversation.presentation.chat.ChatScreen
 import com.nihongo.conversation.presentation.flashcard.FlashcardReviewScreen
 import com.nihongo.conversation.presentation.flashcard.FlashcardStatsScreen
@@ -19,8 +21,10 @@ import com.nihongo.conversation.presentation.stats.StatsScreen
 import com.nihongo.conversation.presentation.user.UserSelectionScreen
 import com.nihongo.conversation.presentation.vocabulary.AddVocabularyScreen
 import com.nihongo.conversation.presentation.scenario.CreateScenarioScreen
+import com.nihongo.conversation.presentation.onboarding.OnboardingScreen
 
 sealed class Screen(val route: String) {
+    data object Onboarding : Screen("onboarding")
     data object UserSelection : Screen("user_selection")
     data object ScenarioList : Screen("scenarios")
     data object Flashcard : Screen("flashcard")
@@ -40,12 +44,26 @@ sealed class Screen(val route: String) {
 
 @Composable
 fun NihongoNavHost(
-    navController: NavHostController = rememberNavController()
+    navController: NavHostController = rememberNavController(),
+    startDestination: String = Screen.UserSelection.route,
+    onOnboardingComplete: () -> Unit = {}
 ) {
     NavHost(
         navController = navController,
-        startDestination = Screen.UserSelection.route
+        startDestination = startDestination
     ) {
+        composable(route = Screen.Onboarding.route) {
+            OnboardingScreen(
+                onComplete = {
+                    onOnboardingComplete()
+                    navController.navigate(Screen.UserSelection.route) {
+                        // Remove onboarding from back stack
+                        popUpTo(Screen.Onboarding.route) { inclusive = true }
+                    }
+                }
+            )
+        }
+
         composable(route = Screen.UserSelection.route) {
             UserSelectionScreen(
                 onUserSelected = {
