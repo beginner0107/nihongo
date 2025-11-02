@@ -86,6 +86,9 @@ android {
     packaging {
         resources {
             excludes += "/META-INF/{AL2.0,LGPL2.1}"
+            // Kuromoji META-INF conflicts
+            pickFirst("META-INF/CONTRIBUTORS.md")
+            pickFirst("META-INF/LICENSE.md")
         }
     }
 }
@@ -136,6 +139,9 @@ dependencies {
 
     // Gemini SDK
     implementation("com.google.ai.client.generativeai:generativeai:0.9.0")
+
+    // Kuromoji - Japanese morphological analyzer (Plan A: replacing Gemini for grammar)
+    implementation("com.atilika.kuromoji:kuromoji-ipadic:0.9.0")
 
     // ML Kit Translation (On-device)
     implementation("com.google.mlkit:translate:17.0.2")
