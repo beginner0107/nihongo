@@ -5,6 +5,8 @@ import androidx.datastore.core.DataStore
 import androidx.datastore.preferences.core.*
 import androidx.datastore.preferences.preferencesDataStore
 import com.nihongo.conversation.domain.model.UserSettings
+import com.nihongo.conversation.domain.model.TextSizePreference
+import com.nihongo.conversation.domain.model.ContrastMode
 import dagger.hilt.android.qualifiers.ApplicationContext
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.catch
@@ -24,6 +26,8 @@ class SettingsDataStore @Inject constructor(
         val AUTO_SPEAK = booleanPreferencesKey("auto_speak")
         val SHOW_ROMAJI = booleanPreferencesKey("show_romaji")
         val FEEDBACK_ENABLED = booleanPreferencesKey("feedback_enabled")
+        val TEXT_SIZE = stringPreferencesKey("text_size")
+        val CONTRAST_MODE = stringPreferencesKey("contrast_mode")
     }
 
     val userSettings: Flow<UserSettings> = context.dataStore.data
@@ -39,7 +43,15 @@ class SettingsDataStore @Inject constructor(
                 speechSpeed = preferences[PreferencesKeys.SPEECH_SPEED] ?: 1.0f,
                 autoSpeak = preferences[PreferencesKeys.AUTO_SPEAK] ?: true,
                 showRomaji = preferences[PreferencesKeys.SHOW_ROMAJI] ?: true,
-                feedbackEnabled = preferences[PreferencesKeys.FEEDBACK_ENABLED] ?: true
+                feedbackEnabled = preferences[PreferencesKeys.FEEDBACK_ENABLED] ?: true,
+                textSize = preferences[PreferencesKeys.TEXT_SIZE]?.let {
+                    try { TextSizePreference.valueOf(it) }
+                    catch (e: Exception) { TextSizePreference.NORMAL }
+                } ?: TextSizePreference.NORMAL,
+                contrastMode = preferences[PreferencesKeys.CONTRAST_MODE]?.let {
+                    try { ContrastMode.valueOf(it) }
+                    catch (e: Exception) { ContrastMode.NORMAL }
+                } ?: ContrastMode.NORMAL
             )
         }
 
@@ -64,6 +76,18 @@ class SettingsDataStore @Inject constructor(
     suspend fun updateFeedbackEnabled(enabled: Boolean) {
         context.dataStore.edit { preferences ->
             preferences[PreferencesKeys.FEEDBACK_ENABLED] = enabled
+        }
+    }
+
+    suspend fun updateTextSize(textSize: TextSizePreference) {
+        context.dataStore.edit { preferences ->
+            preferences[PreferencesKeys.TEXT_SIZE] = textSize.name
+        }
+    }
+
+    suspend fun updateContrastMode(contrastMode: ContrastMode) {
+        context.dataStore.edit { preferences ->
+            preferences[PreferencesKeys.CONTRAST_MODE] = contrastMode.name
         }
     }
 }

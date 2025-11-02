@@ -90,6 +90,35 @@ fun SettingsScreen(
 
             HorizontalDivider()
 
+            // Accessibility Settings
+            SettingsSection(
+                title = "접근성",
+                icon = Icons.Default.Accessibility
+            ) {
+                // Text Size
+                TextSizeSelector(
+                    currentSize = settings.textSize,
+                    onSizeChange = { viewModel.updateTextSize(it) }
+                )
+
+                Spacer(modifier = Modifier.height(16.dp))
+
+                // High Contrast Mode
+                SettingsToggle(
+                    label = "고대비 모드",
+                    description = "텍스트와 배경의 대비를 높여 가독성을 향상시킵니다",
+                    checked = settings.contrastMode.isHighContrast,
+                    onCheckedChange = {
+                        viewModel.updateContrastMode(
+                            if (it) com.nihongo.conversation.domain.model.ContrastMode.HIGH
+                            else com.nihongo.conversation.domain.model.ContrastMode.NORMAL
+                        )
+                    }
+                )
+            }
+
+            HorizontalDivider()
+
             // Translation Model Management
             val modelState by viewModel.translationModelState.collectAsState()
             TranslationModelSection(
@@ -502,6 +531,64 @@ fun TranslationModelSection(
                     color = MaterialTheme.colorScheme.onSurfaceVariant
                 )
             }
+        }
+    }
+}
+
+@Composable
+fun TextSizeSelector(
+    currentSize: com.nihongo.conversation.domain.model.TextSizePreference,
+    onSizeChange: (com.nihongo.conversation.domain.model.TextSizePreference) -> Unit
+) {
+    Column(
+        verticalArrangement = Arrangement.spacedBy(12.dp)
+    ) {
+        Text(
+            text = "텍스트 크기",
+            style = MaterialTheme.typography.bodyLarge,
+            fontWeight = FontWeight.Medium
+        )
+
+        Row(
+            modifier = Modifier.fillMaxWidth(),
+            horizontalArrangement = Arrangement.spacedBy(8.dp)
+        ) {
+            com.nihongo.conversation.domain.model.TextSizePreference.values().forEach { size ->
+                FilterChip(
+                    selected = currentSize == size,
+                    onClick = { onSizeChange(size) },
+                    label = {
+                        Text(
+                            text = when (size) {
+                                com.nihongo.conversation.domain.model.TextSizePreference.SMALL -> "작게"
+                                com.nihongo.conversation.domain.model.TextSizePreference.NORMAL -> "보통"
+                                com.nihongo.conversation.domain.model.TextSizePreference.LARGE -> "크게"
+                                com.nihongo.conversation.domain.model.TextSizePreference.XLARGE -> "아주 크게"
+                            }
+                        )
+                    },
+                    modifier = Modifier.weight(1f)
+                )
+            }
+        }
+
+        // Preview text
+        Card(
+            modifier = Modifier.fillMaxWidth(),
+            colors = CardDefaults.cardColors(
+                containerColor = MaterialTheme.colorScheme.surfaceVariant
+            )
+        ) {
+            Text(
+                text = "こんにちは",
+                style = MaterialTheme.typography.bodyLarge.copy(
+                    fontSize = MaterialTheme.typography.bodyLarge.fontSize * currentSize.scale
+                ),
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(16.dp),
+                textAlign = TextAlign.Center
+            )
         }
     }
 }
