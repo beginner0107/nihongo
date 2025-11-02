@@ -333,14 +333,22 @@ fun StatsScreen(
 
 ---
 
-#### 1.3 커스텀 시나리오 생성
+#### 1.3 커스텀 시나리오 생성 ✅ **완료** (2025-11-02)
 
-**현재 상태**:
-- Scenario 모델에 `isCustom: Boolean` 필드 존재
-- ScenarioCard에서 "커스텀" 배지 표시
-- 생성 UI 없음
+**구현 완료 사항**:
+- ✅ CreateScenarioScreen.kt (~500 lines) - 완전한 Material3 UI
+- ✅ ScenarioViewModel에 createCustomScenario(), generateSystemPrompt() 추가
+- ✅ GeminiApiService.generateSimpleText() - AI 프롬프트 생성
+- ✅ Navigation 연동 (CreateScenario route)
+- ✅ ScenarioListScreen FAB 버튼 추가
+- ✅ 17개 카테고리 지원
+- ✅ 난이도 선택 (초급/중급/고급)
+- ✅ 이모지 커스터마이징 (24개 이모지 피커)
+- ✅ AI 자동 프롬프트 생성 + 수동 편집
+- ✅ 폴백 프롬프트 (AI 실패 시)
+- ✅ 성공 다이얼로그
 
-**구현 필요 사항**:
+**구현 예시 (실제 코드)**:
 
 ```kotlin
 // CreateScenarioScreen.kt
@@ -417,12 +425,16 @@ fun CreateScenarioScreen(
 }
 ```
 
-**구현 난이도**: 중간 (2일)
-**예상 코드 라인**: ~400 lines
+**실제 구현 결과**:
+- 구현 기간: 1일 (예상 2일보다 빠름)
+- 실제 코드 라인: ~600 lines (UI 500 + ViewModel 100)
+- 빌드 성공: ✅
+- 런타임 테스트: ✅ 오류 없음
 
 **사용자 가치**: ⭐⭐⭐
-- 개인화된 학습 상황 연습
-- 사용자 창의성 발휘
+- ✅ 개인화된 학습 상황 연습 가능
+- ✅ 사용자 창의성 발휘
+- ✅ AI 지원으로 초보자도 쉽게 생성
 
 ---
 
@@ -1401,12 +1413,12 @@ IconButton(onClick = {
 
 **목표**: 장기 발전 및 커뮤니티 구축
 
-| 순위 | 기능 | 예상 기간 | 사용자 가치 | 난이도 |
-|-----|------|----------|-----------|-------|
-| 16 | **커스텀 시나리오 생성** | 2일 | ⭐⭐⭐ | 중간 |
-| 17 | **시나리오 진행 추적** | 2일 | ⭐⭐⭐ | 중간 |
-| 18 | **Anki 연동** | 1일 | ⭐⭐⭐ | 낮음 |
-| 19 | **학습 그룹/친구** | 서버 필요 | ⭐⭐⭐ | 매우 높음 |
+| 순위 | 기능 | 예상 기간 | 사용자 가치 | 난이도 | 상태 |
+|-----|------|----------|-----------|-------|------|
+| 16 | **커스텀 시나리오 생성** | 2일 | ⭐⭐⭐ | 중간 | ✅ **완료** (2025-11-02) |
+| 17 | **시나리오 진행 추적** | 2일 | ⭐⭐⭐ | 중간 | ⏳ 대기 |
+| 18 | **Anki 연동** | 1일 | ⭐⭐⭐ | 낮음 | ⏳ 대기 |
+| 19 | **학습 그룹/친구** | 서버 필요 | ⭐⭐⭐ | 매우 높음 | ⏳ 대기 |
 
 **예상 코드 라인**: ~1,000+ lines
 **완료 후 완성도**: 100%
@@ -1484,9 +1496,13 @@ IconButton(onClick = {
   - [ ] SettingsScreen 통합
 
 ### Phase 4 (선택적 개선)
-- [ ] 커스텀 시나리오 생성
-  - [ ] CreateScenarioScreen UI
-  - [ ] AI 프롬프트 생성 도우미
+- [x] **커스텀 시나리오 생성** ✅ (2025-11-02)
+  - [x] CreateScenarioScreen UI
+  - [x] AI 프롬프트 생성 도우미
+  - [x] ScenarioViewModel.createCustomScenario()
+  - [x] GeminiApiService.generateSimpleText()
+  - [x] Navigation 연동
+  - [x] ScenarioListScreen FAB 버튼
 - [ ] 시나리오 진행 추적
   - [ ] ScenarioProgress model
   - [ ] 진행률 UI
