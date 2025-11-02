@@ -10,6 +10,7 @@ import com.nihongo.conversation.data.local.SettingsDataStore
 import com.nihongo.conversation.domain.model.UserSettings
 import com.nihongo.conversation.domain.model.TextSizePreference
 import com.nihongo.conversation.domain.model.ContrastMode
+import com.nihongo.conversation.domain.model.ThemeMode
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharingStarted
@@ -115,6 +116,12 @@ class SettingsViewModel @Inject constructor(
     fun updateContrastMode(contrastMode: ContrastMode) {
         viewModelScope.launch {
             settingsDataStore.updateContrastMode(contrastMode)
+        }
+    }
+
+    fun updateThemeMode(themeMode: ThemeMode) {
+        viewModelScope.launch {
+            settingsDataStore.updateThemeMode(themeMode)
         }
     }
 

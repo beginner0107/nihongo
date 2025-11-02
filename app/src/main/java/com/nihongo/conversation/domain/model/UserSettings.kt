@@ -29,5 +29,6 @@ data class UserSettings(
     val showRomaji: Boolean = true,
     val feedbackEnabled: Boolean = true, // Real-time AI feedback
     val textSize: TextSizePreference = TextSizePreference.NORMAL,
-    val contrastMode: ContrastMode = ContrastMode.NORMAL
+    val contrastMode: ContrastMode = ContrastMode.NORMAL,
+    val themeMode: ThemeMode = ThemeMode.SYSTEM
 )

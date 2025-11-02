@@ -540,59 +540,112 @@ NihongoNavHost(
 
 ---
 
-#### 2.2 다크 모드
+#### 2.2 다크 모드 ✅ **완료** (2025-11-02)
 
-**현재 상태**: Material3 테마만 적용
+**구현 완료 사항**:
+- ✅ ThemeMode enum (LIGHT/DARK/SYSTEM)
+- ✅ SettingsDataStore에 themeMode 필드 추가
+- ✅ UserSettings에 themeMode 필드 추가
+- ✅ SettingsViewModel에 updateThemeMode() 메서드 추가
+- ✅ SettingsScreen에 테마 설정 UI 추가 (FilterChip 방식)
+- ✅ Theme.kt에 DarkColorScheme 추가
+- ✅ MainActivity에서 테마 적용
 
-**구현 필요 사항**:
+**실제 구현 결과**:
+- 구현 기간: 1일 미만 (예상 1일)
+- 실제 코드 라인: ~200 lines
+- 빌드 성공: ✅
+- 런타임 테스트: ✅ 오류 없음
+
+**구현 예시 (실제 코드)**:
 
 ```kotlin
-// SettingsScreen.kt
+// ThemeMode.kt
+enum class ThemeMode {
+    LIGHT,
+    DARK,
+    SYSTEM
+}
+
+// Theme.kt
+private val DarkColorScheme = darkColorScheme(
+    primary = Color(0xFFD0BCFF),
+    onPrimary = Color(0xFF381E72),
+    primaryContainer = Color(0xFF4F378B),
+    onPrimaryContainer = Color(0xFFEADDFF)
+)
+
 @Composable
-fun SettingsScreen(viewModel: SettingsViewModel = hiltViewModel()) {
-    val settings by viewModel.settings.collectAsState()
+fun NihongoTheme(
+    darkTheme: Boolean = false,
+    textSizePreference: TextSizePreference = TextSizePreference.NORMAL,
+    contrastMode: ContrastMode = ContrastMode.NORMAL,
+    content: @Composable () -> Unit
+) {
+    val colorScheme = when {
+        contrastMode == ContrastMode.HIGH -> HighContrastColorScheme
+        darkTheme -> DarkColorScheme
+        else -> LightColorScheme
+    }
+    // ...
+}
 
-    LazyColumn {
-        item {
-            SwitchRow(
-                text = "다크 모드",
-                checked = settings.darkMode,
-                onCheckedChange = { viewModel.updateDarkMode(it) }
-            )
-        }
-
-        item {
-            RadioButtonRow(
-                text = "테마 설정",
-                options = listOf("라이트", "다크", "시스템 따라가기"),
-                selected = settings.themeMode,
-                onSelect = { viewModel.updateThemeMode(it) }
-            )
-        }
+// SettingsScreen.kt - ThemeModeSelector
+@Composable
+fun ThemeModeSelector(
+    currentMode: ThemeMode,
+    onModeChange: (ThemeMode) -> Unit
+) {
+    Row(
+        modifier = Modifier.fillMaxWidth(),
+        horizontalArrangement = Arrangement.spacedBy(8.dp)
+    ) {
+        ThemeModeChip(
+            label = "라이트",
+            icon = Icons.Default.LightMode,
+            isSelected = currentMode == ThemeMode.LIGHT,
+            onClick = { onModeChange(ThemeMode.LIGHT) },
+            modifier = Modifier.weight(1f)
+        )
+        ThemeModeChip(
+            label = "다크",
+            icon = Icons.Default.DarkMode,
+            isSelected = currentMode == ThemeMode.DARK,
+            onClick = { onModeChange(ThemeMode.DARK) },
+            modifier = Modifier.weight(1f)
+        )
+        ThemeModeChip(
+            label = "시스템",
+            icon = Icons.Default.Brightness4,
+            isSelected = currentMode == ThemeMode.SYSTEM,
+            onClick = { onModeChange(ThemeMode.SYSTEM) },
+            modifier = Modifier.weight(1f)
+        )
     }
 }
 
-// MainActivity.kt - Apply theme
-setContent {
-    val settings by viewModel.settings.collectAsState()
-    val darkTheme = when (settings.themeMode) {
-        ThemeMode.LIGHT -> false
-        ThemeMode.DARK -> true
-        ThemeMode.SYSTEM -> isSystemInDarkTheme()
-    }
+// MainActivity.kt
+val darkTheme = when (userSettings.themeMode) {
+    ThemeMode.LIGHT -> false
+    ThemeMode.DARK -> true
+    ThemeMode.SYSTEM -> isSystemInDarkTheme()
+}
 
-    NihongoTheme(darkTheme = darkTheme) {
-        // App content
-    }
+NihongoTheme(
+    darkTheme = darkTheme,
+    textSizePreference = userSettings.textSize,
+    contrastMode = userSettings.contrastMode
+) {
+    // App content
 }
 ```
 
-**구현 난이도**: 낮음 (1일)
-**예상 코드 라인**: ~200 lines
-
 **사용자 가치**: ⭐⭐⭐⭐
-- 야간 사용 편의성
-- 배터리 절약 (OLED)
+- ✅ 야간 사용 편의성 대폭 향상
+- ✅ 배터리 절약 (OLED 디스플레이)
+- ✅ 3가지 테마 모드 선택 (라이트/다크/시스템)
+- ✅ Material3 다크 테마 색상 사용
+- ✅ 직관적인 UI (아이콘과 텍스트가 있는 FilterChip)
 
 ---
 
@@ -1413,12 +1466,12 @@ IconButton(onClick = {
 | 1 | **단어장 시스템** | 3-4일 | ⭐⭐⭐⭐⭐ | 중간 | ✅ **완료** (2025-11-02) |
 | 2 | **학습 통계 대시보드** | 2-3일 | ⭐⭐⭐⭐ | 중간 | ✅ **완료** (이미 존재) |
 | 3 | **온보딩 튜토리얼** | 1일 | ⭐⭐⭐⭐⭐ | 낮음 | ✅ **완료** (2025-11-02) |
-| 4 | **다크 모드** | 1일 | ⭐⭐⭐⭐ | 낮음 | ⏳ 대기 |
+| 4 | **다크 모드** | 1일 | ⭐⭐⭐⭐ | 낮음 | ✅ **완료** (2025-11-02) |
 | 5 | **시나리오 추천 시스템** | 2일 | ⭐⭐⭐⭐ | 중간 | ⏳ 대기 |
 | 6 | **대화 내보내기** | 1일 | ⭐⭐⭐⭐ | 낮음 | ⏳ 대기 |
 
-**예상 코드 라인**: ~2,500 lines (✅ 완료: ~1,650 lines)
-**완료 후 완성도**: 85% (현재: 82%)
+**예상 코드 라인**: ~2,500 lines (✅ 완료: ~1,850 lines)
+**완료 후 완성도**: 85% (현재: 84%)
 
 ---
 
@@ -1492,10 +1545,10 @@ IconButton(onClick = {
   - [x] OnboardingScreen (4 pages)
   - [x] SettingsDataStore.isFirstLaunch
   - [x] Navigation 통합
-- [ ] 다크 모드
-  - [ ] ThemeMode enum (LIGHT/DARK/SYSTEM)
-  - [ ] SettingsDataStore.themeMode
-  - [ ] MainActivity 테마 적용
+- [x] 다크 모드 ✅ **완료** (2025-11-02)
+  - [x] ThemeMode enum (LIGHT/DARK/SYSTEM)
+  - [x] SettingsDataStore.themeMode
+  - [x] MainActivity 테마 적용
 - [ ] 시나리오 추천 시스템
   - [ ] 추천 알고리즘 (user profile + completion history)
   - [ ] ScenarioListScreen 배너

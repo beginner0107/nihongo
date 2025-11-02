@@ -2,6 +2,7 @@ package com.nihongo.conversation.presentation.theme
 
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Typography
+import androidx.compose.material3.darkColorScheme
 import androidx.compose.material3.lightColorScheme
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.CompositionLocalProvider
@@ -22,6 +23,13 @@ private val LightColorScheme = lightColorScheme(
     onPrimaryContainer = Color(0xFF21005D)
 )
 
+private val DarkColorScheme = darkColorScheme(
+    primary = Color(0xFFD0BCFF),
+    onPrimary = Color(0xFF381E72),
+    primaryContainer = Color(0xFF4F378B),
+    onPrimaryContainer = Color(0xFFEADDFF)
+)
+
 // High contrast color scheme
 private val HighContrastColorScheme = lightColorScheme(
     primary = Color(0xFF000000),
@@ -39,13 +47,15 @@ private val HighContrastColorScheme = lightColorScheme(
 
 @Composable
 fun NihongoTheme(
+    darkTheme: Boolean = false,
     textSizePreference: TextSizePreference = TextSizePreference.NORMAL,
     contrastMode: ContrastMode = ContrastMode.NORMAL,
     content: @Composable () -> Unit
 ) {
-    val colorScheme = when (contrastMode) {
-        ContrastMode.NORMAL -> LightColorScheme
-        ContrastMode.HIGH -> HighContrastColorScheme
+    val colorScheme = when {
+        contrastMode == ContrastMode.HIGH -> HighContrastColorScheme
+        darkTheme -> DarkColorScheme
+        else -> LightColorScheme
     }
 
     val textScale = textSizePreference.scale

@@ -90,6 +90,19 @@ fun SettingsScreen(
 
             HorizontalDivider()
 
+            // Theme Mode
+            SettingsSection(
+                title = "테마",
+                icon = Icons.Default.DarkMode
+            ) {
+                ThemeModeSelector(
+                    currentMode = settings.themeMode,
+                    onModeChange = { viewModel.updateThemeMode(it) }
+                )
+            }
+
+            HorizontalDivider()
+
             // Accessibility Settings
             SettingsSection(
                 title = "접근성",
@@ -804,4 +817,114 @@ fun CacheInfoRow(
             fontWeight = FontWeight.Medium
         )
     }
+}
+
+@Composable
+fun ThemeModeSelector(
+    currentMode: com.nihongo.conversation.domain.model.ThemeMode,
+    onModeChange: (com.nihongo.conversation.domain.model.ThemeMode) -> Unit
+) {
+    Column(
+        verticalArrangement = Arrangement.spacedBy(8.dp)
+    ) {
+        Text(
+            text = "앱 테마를 선택하세요",
+            style = MaterialTheme.typography.bodyMedium,
+            color = MaterialTheme.colorScheme.onSurfaceVariant
+        )
+
+        Row(
+            modifier = Modifier.fillMaxWidth(),
+            horizontalArrangement = Arrangement.spacedBy(8.dp)
+        ) {
+            // Light Mode
+            ThemeModeChip(
+                label = "라이트",
+                icon = Icons.Default.LightMode,
+                isSelected = currentMode == com.nihongo.conversation.domain.model.ThemeMode.LIGHT,
+                onClick = { onModeChange(com.nihongo.conversation.domain.model.ThemeMode.LIGHT) },
+                modifier = Modifier.weight(1f)
+            )
+
+            // Dark Mode
+            ThemeModeChip(
+                label = "다크",
+                icon = Icons.Default.DarkMode,
+                isSelected = currentMode == com.nihongo.conversation.domain.model.ThemeMode.DARK,
+                onClick = { onModeChange(com.nihongo.conversation.domain.model.ThemeMode.DARK) },
+                modifier = Modifier.weight(1f)
+            )
+
+            // System Mode
+            ThemeModeChip(
+                label = "시스템",
+                icon = Icons.Default.Brightness4,
+                isSelected = currentMode == com.nihongo.conversation.domain.model.ThemeMode.SYSTEM,
+                onClick = { onModeChange(com.nihongo.conversation.domain.model.ThemeMode.SYSTEM) },
+                modifier = Modifier.weight(1f)
+            )
+        }
+
+        // Description
+        Surface(
+            modifier = Modifier.fillMaxWidth(),
+            shape = MaterialTheme.shapes.small,
+            color = MaterialTheme.colorScheme.secondaryContainer.copy(alpha = 0.3f)
+        ) {
+            Row(
+                modifier = Modifier.padding(12.dp),
+                horizontalArrangement = Arrangement.spacedBy(8.dp),
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                Icon(
+                    imageVector = Icons.Default.Info,
+                    contentDescription = null,
+                    tint = MaterialTheme.colorScheme.secondary,
+                    modifier = Modifier.size(20.dp)
+                )
+                Text(
+                    text = when (currentMode) {
+                        com.nihongo.conversation.domain.model.ThemeMode.LIGHT -> "밝은 테마가 항상 적용됩니다"
+                        com.nihongo.conversation.domain.model.ThemeMode.DARK -> "어두운 테마가 항상 적용됩니다"
+                        com.nihongo.conversation.domain.model.ThemeMode.SYSTEM -> "기기 설정에 따라 자동으로 변경됩니다"
+                    },
+                    style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                )
+            }
+        }
+    }
+}
+
+@Composable
+fun ThemeModeChip(
+    label: String,
+    icon: androidx.compose.ui.graphics.vector.ImageVector,
+    isSelected: Boolean,
+    onClick: () -> Unit,
+    modifier: Modifier = Modifier
+) {
+    FilterChip(
+        selected = isSelected,
+        onClick = onClick,
+        label = {
+            Column(
+                horizontalAlignment = Alignment.CenterHorizontally,
+                modifier = Modifier.fillMaxWidth()
+            ) {
+                Icon(
+                    imageVector = icon,
+                    contentDescription = null,
+                    modifier = Modifier.size(24.dp)
+                )
+                Spacer(modifier = Modifier.height(4.dp))
+                Text(
+                    text = label,
+                    style = MaterialTheme.typography.labelMedium,
+                    textAlign = TextAlign.Center
+                )
+            }
+        },
+        modifier = modifier.height(72.dp)
+    )
 }

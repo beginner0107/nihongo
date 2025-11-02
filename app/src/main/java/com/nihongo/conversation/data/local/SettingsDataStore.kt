@@ -7,6 +7,7 @@ import androidx.datastore.preferences.preferencesDataStore
 import com.nihongo.conversation.domain.model.UserSettings
 import com.nihongo.conversation.domain.model.TextSizePreference
 import com.nihongo.conversation.domain.model.ContrastMode
+import com.nihongo.conversation.domain.model.ThemeMode
 import dagger.hilt.android.qualifiers.ApplicationContext
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.catch
@@ -28,6 +29,7 @@ class SettingsDataStore @Inject constructor(
         val FEEDBACK_ENABLED = booleanPreferencesKey("feedback_enabled")
         val TEXT_SIZE = stringPreferencesKey("text_size")
         val CONTRAST_MODE = stringPreferencesKey("contrast_mode")
+        val THEME_MODE = stringPreferencesKey("theme_mode")
         val IS_FIRST_LAUNCH = booleanPreferencesKey("is_first_launch")
     }
 
@@ -52,7 +54,11 @@ class SettingsDataStore @Inject constructor(
                 contrastMode = preferences[PreferencesKeys.CONTRAST_MODE]?.let {
                     try { ContrastMode.valueOf(it) }
                     catch (e: Exception) { ContrastMode.NORMAL }
-                } ?: ContrastMode.NORMAL
+                } ?: ContrastMode.NORMAL,
+                themeMode = preferences[PreferencesKeys.THEME_MODE]?.let {
+                    try { ThemeMode.valueOf(it) }
+                    catch (e: Exception) { ThemeMode.SYSTEM }
+                } ?: ThemeMode.SYSTEM
             )
         }
 
@@ -89,6 +95,12 @@ class SettingsDataStore @Inject constructor(
     suspend fun updateContrastMode(contrastMode: ContrastMode) {
         context.dataStore.edit { preferences ->
             preferences[PreferencesKeys.CONTRAST_MODE] = contrastMode.name
+        }
+    }
+
+    suspend fun updateThemeMode(themeMode: ThemeMode) {
+        context.dataStore.edit { preferences ->
+            preferences[PreferencesKeys.THEME_MODE] = themeMode.name
         }
     }
 

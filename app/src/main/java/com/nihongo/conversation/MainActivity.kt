@@ -3,6 +3,7 @@ package com.nihongo.conversation
 import android.os.Bundle
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
+import androidx.compose.foundation.isSystemInDarkTheme
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Surface
@@ -10,6 +11,7 @@ import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.ui.Modifier
+import com.nihongo.conversation.domain.model.ThemeMode
 import kotlinx.coroutines.launch
 import androidx.hilt.navigation.compose.hiltViewModel
 import com.nihongo.conversation.data.local.SettingsDataStore
@@ -34,7 +36,14 @@ class MainActivity : ComponentActivity() {
             val isFirstLaunch by settingsDataStore.isFirstLaunch.collectAsState(initial = true)
             val scope = rememberCoroutineScope()
 
+            val darkTheme = when (userSettings.themeMode) {
+                ThemeMode.LIGHT -> false
+                ThemeMode.DARK -> true
+                ThemeMode.SYSTEM -> isSystemInDarkTheme()
+            }
+
             NihongoTheme(
+                darkTheme = darkTheme,
                 textSizePreference = userSettings.textSize,
                 contrastMode = userSettings.contrastMode
             ) {
