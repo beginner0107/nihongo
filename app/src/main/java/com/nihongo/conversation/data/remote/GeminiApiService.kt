@@ -907,6 +907,23 @@ class GeminiApiService @Inject constructor(
             }
         }
     }
+
+    /**
+     * Generate simple text response using Gemini API
+     * Used for generic text generation tasks (e.g., prompt generation)
+     */
+    suspend fun generateSimpleText(prompt: String): String {
+        val activeModel = model
+            ?: throw IllegalStateException("Gemini model not initialized")
+
+        return try {
+            val response = activeModel.generateContent(prompt)
+            response.text ?: throw Exception("Empty response from Gemini API")
+        } catch (e: Exception) {
+            android.util.Log.e("GeminiApiService", "Error generating text: ${e.message}", e)
+            throw e
+        }
+    }
 }
 
 private fun parseGrammarType(typeStr: String?): GrammarType {

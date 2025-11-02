@@ -184,4 +184,114 @@ class ScenarioViewModel @Inject constructor(
             repository.deleteScenario(scenarioId)
         }
     }
+
+    /**
+     * Create a custom scenario
+     */
+    fun createCustomScenario(
+        title: String,
+        description: String,
+        category: String,
+        difficulty: Int,
+        emoji: String,
+        systemPrompt: String
+    ) {
+        viewModelScope.launch {
+            val slug = generateSlug(title)
+            val scenario = Scenario(
+                title = title,
+                description = description,
+                difficulty = difficulty,
+                systemPrompt = systemPrompt,
+                slug = slug,
+                category = category,
+                thumbnailEmoji = emoji,
+                isCustom = true,
+                promptVersion = 1
+            )
+            repository.createScenario(scenario)
+        }
+    }
+
+    /**
+     * Generate AI-powered system prompt
+     */
+    fun generateSystemPrompt(
+        title: String,
+        description: String,
+        difficulty: Int,
+        onGenerated: (String) -> Unit
+    ) {
+        viewModelScope.launch {
+            try {
+                val difficultyText = when (difficulty) {
+                    1 -> "初級レベル（JLPT N5-N4相当）の簡単な表現"
+                    2 -> "中級レベル（JLPT N3-N2相当）の自然な表現"
+                    3 -> "上級レベル（JLPT N1相当）の丁寧で正確な表現"
+                    else -> "適切なレベルの表現"
+                }
+
+                val generationPrompt = """
+                    以下の情報を元に、日本語会話練習アプリのシステムプロンプトを生成してください。
+
+                    シナリオタイトル: $title
+                    シナリオ説明: $description
+                    難易度: $difficultyText
+
+                    システムプロンプトの要件:
+                    1. AIの役割を明確に定義する
+                    2. ユーザーとの会話スタイルを指定する
+                    3. 使用する言葉遣いのレベルを指定する
+                    4. 【重要】以下の制約を必ず含める:
+                       「【重要】マークダウン記号（**、_など）や読み仮名（例：お席（せき））を絶対に使わないでください。」
+
+                    200文字程度の簡潔なシステムプロンプトを日本語で作成してください。
+                """.trimIndent()
+
+                // Call Gemini API to generate prompt
+                val generated = repository.generateSimpleText(generationPrompt)
+                onGenerated(generated)
+            } catch (e: Exception) {
+                // Fallback to default prompt
+                val defaultPrompt = generateFallbackPrompt(title, description, difficulty)
+                onGenerated(defaultPrompt)
+            }
+        }
+    }
+
+    /**
+     * Generate slug from title (for unique scenario identification)
+     */
+    private fun generateSlug(title: String): String {
+        val timestamp = System.currentTimeMillis()
+        val sanitized = title
+            .lowercase()
+            .replace(Regex("[^a-z0-9가-힣ぁ-んァ-ヶ一-龯]"), "_")
+            .replace(Regex("_+"), "_")
+            .trim('_')
+            .take(30)
+        return "custom_${sanitized}_$timestamp"
+    }
+
+    /**
+     * Generate fallback prompt when AI generation fails
+     */
+    private fun generateFallbackPrompt(title: String, description: String, difficulty: Int): String {
+        val difficultyText = when (difficulty) {
+            1 -> "初級レベルの簡単な表現を使って"
+            2 -> "中級レベルの自然な表現を使って"
+            3 -> "上級レベルの丁寧で正確な表現を使って"
+            else -> ""
+        }
+
+        return """
+            あなたは「$title」のシナリオでユーザーと会話します。
+
+            状況: $description
+
+            ${difficultyText}、自然な日本語で応答してください。
+
+            【重要】マークダウン記号（**、_など）や読み仮名（例：お席（せき））を絶対に使わないでください。
+        """.trimIndent()
+    }
 }

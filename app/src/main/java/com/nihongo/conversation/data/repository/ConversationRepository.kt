@@ -264,4 +264,12 @@ class ConversationRepository @Inject constructor(
     suspend fun translateToKorean(japaneseText: String): String {
         return geminiApi.translateToKorean(japaneseText)
     }
+
+    /**
+     * Generate simple text response using Gemini API
+     * Used for AI-powered prompt generation
+     */
+    suspend fun generateSimpleText(prompt: String): String {
+        return geminiApi.generateSimpleText(prompt)
+    }
 }

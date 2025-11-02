@@ -18,6 +18,7 @@ import com.nihongo.conversation.presentation.settings.SettingsScreen
 import com.nihongo.conversation.presentation.stats.StatsScreen
 import com.nihongo.conversation.presentation.user.UserSelectionScreen
 import com.nihongo.conversation.presentation.vocabulary.AddVocabularyScreen
+import com.nihongo.conversation.presentation.scenario.CreateScenarioScreen
 
 sealed class Screen(val route: String) {
     data object UserSelection : Screen("user_selection")
@@ -30,6 +31,7 @@ sealed class Screen(val route: String) {
     data object Review : Screen("review")
     data object Stats : Screen("stats")
     data object Profile : Screen("profile")
+    data object CreateScenario : Screen("create_scenario")
 
     data object Chat : Screen("chat/{userId}/{scenarioId}") {
         fun createRoute(userId: Long, scenarioId: Long) = "chat/$userId/$scenarioId"
@@ -74,6 +76,9 @@ fun NihongoNavHost(
                 },
                 onProfileClick = {
                     navController.navigate(Screen.Profile.route)
+                },
+                onCreateScenarioClick = {
+                    navController.navigate(Screen.CreateScenario.route)
                 }
             )
         }
@@ -126,6 +131,13 @@ fun NihongoNavHost(
             ProfileScreen(
                 onBackClick = { navController.popBackStack() },
                 onSaveSuccess = { navController.popBackStack() }
+            )
+        }
+
+        composable(route = Screen.CreateScenario.route) {
+            CreateScenarioScreen(
+                onBackClick = { navController.popBackStack() },
+                onScenarioCreated = { navController.popBackStack() }
             )
         }
 

@@ -65,6 +65,7 @@ fun ScenarioListScreen(
     onSettingsClick: () -> Unit = {},
     onStatsClick: () -> Unit = {},
     onProfileClick: () -> Unit = {},
+    onCreateScenarioClick: () -> Unit = {},
     viewModel: ScenarioViewModel = hiltViewModel()
 ) {
     val uiState by viewModel.uiState.collectAsState()
@@ -121,6 +122,18 @@ fun ScenarioListScreen(
                     Icon(
                         imageVector = Icons.Default.Add,
                         contentDescription = "단어 추가"
+                    )
+                }
+
+                // Create custom scenario FAB
+                SmallFloatingActionButton(
+                    onClick = onCreateScenarioClick,
+                    containerColor = MaterialTheme.colorScheme.tertiaryContainer,
+                    contentColor = MaterialTheme.colorScheme.onTertiaryContainer
+                ) {
+                    Icon(
+                        imageVector = Icons.Default.Create,
+                        contentDescription = "시나리오 만들기"
                     )
                 }
 
