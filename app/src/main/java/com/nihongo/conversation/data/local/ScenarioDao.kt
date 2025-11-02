@@ -29,4 +29,29 @@ interface ScenarioDao {
 
     @Query("DELETE FROM scenarios WHERE id = :scenarioId")
     suspend fun deleteScenarioById(scenarioId: Long)
+
+    /**
+     * Upsert scenario by slug with version check
+     * - If scenario doesn't exist: insert
+     * - If exists and promptVersion increased: update
+     * - If exists and promptVersion same: skip
+     */
+    @androidx.room.Transaction
+    suspend fun upsertBySlug(scenario: Scenario) {
+        val existing = getScenarioBySlugSync(scenario.slug)
+        when {
+            existing == null -> {
+                insertScenario(scenario)
+                android.util.Log.d("ScenarioDao", "✨ Inserted new scenario: ${scenario.slug} (v${scenario.promptVersion})")
+            }
+            existing.promptVersion < scenario.promptVersion -> {
+                // Update keeping original ID and createdAt
+                updateScenario(scenario.copy(id = existing.id, createdAt = existing.createdAt))
+                android.util.Log.d("ScenarioDao", "🔄 Updated scenario: ${scenario.slug} (v${existing.promptVersion} → v${scenario.promptVersion})")
+            }
+            else -> {
+                android.util.Log.d("ScenarioDao", "⏭️  Skipped scenario: ${scenario.slug} (v${scenario.promptVersion} unchanged)")
+            }
+        }
+    }
 }

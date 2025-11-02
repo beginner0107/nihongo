@@ -393,8 +393,18 @@ class GeminiApiService @Inject constructor(
 
         // Step 0: AGGRESSIVE - Remove common reasoning keywords and their surrounding text
         val reasoningPatterns = listOf(
-            // English thinking patterns
+            // Thinking markers (INK:, THINK:, etc.)
+            Regex("(?i)^\\s*INK:\\s*.*?$", RegexOption.MULTILINE),
+            Regex("(?i)^\\s*THINK:\\s*.*?$", RegexOption.MULTILINE),
+            Regex("(?i)^\\s*THINKING:\\s*.*?$", RegexOption.MULTILINE),
+            Regex("(?i)^\\s*THOUGHT:\\s*.*?$", RegexOption.MULTILINE),
+            Regex("(?i)^\\s*REASON:\\s*.*?$", RegexOption.MULTILINE),
+            Regex("(?i)^\\s*REASONING:\\s*.*?$", RegexOption.MULTILINE),
+            Regex("(?i)^\\s*ANALYSIS:\\s*.*?$", RegexOption.MULTILINE),
+            Regex("(?i)^\\s*INTERNAL:\\s*.*?$", RegexOption.MULTILINE),
+            // Multi-line thinking blocks
             Regex("(?i)THINK[\\s\\S]*?(?=[\u3040-\u309F\u30A0-\u30FF\u4E00-\u9FAF]|$)", RegexOption.MULTILINE),
+            // English thinking patterns
             Regex("(?i)^.*?I should.*?$", RegexOption.MULTILINE),
             Regex("(?i)^.*?I could.*?$", RegexOption.MULTILINE),
             Regex("(?i)^.*?I will.*?$", RegexOption.MULTILINE),
