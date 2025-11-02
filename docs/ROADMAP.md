@@ -652,11 +652,25 @@ Surface(
 
 ---
 
-#### 2.4 메시지 편집/삭제
+#### 2.4 메시지 편집/삭제 ✅ **완료** (2025-11-02)
 
-**현재 상태**: 메시지 수정 불가
+**구현 완료 사항**:
+- ✅ MessageBubble에 onEditMessage, onDeleteMessage 파라미터 추가
+- ✅ 컨텍스트 메뉴에 "편집", "삭제" 항목 추가 (사용자 메시지만)
+- ✅ EditMessageDialog (AlertDialog with OutlinedTextField)
+- ✅ DeleteMessageDialog (확인 다이얼로그, 빨간색 강조)
+- ✅ ChatViewModel.updateMessage(messageId, newContent)
+- ✅ ChatViewModel.deleteMessage(messageId)
+- ✅ ConversationRepository.updateMessage/deleteMessage
+- ✅ MessageDao 메서드 활용 (이미 구현됨)
 
-**구현 필요 사항**:
+**실제 구현 결과**:
+- 구현 기간: 1일 (예상 1일과 동일)
+- 실제 코드 라인: ~150 lines (예상 200 lines보다 간결)
+- 빌드 성공: ✅
+- 런타임 테스트: ✅ 오류 없음
+
+**구현 예시 (실제 코드)**:
 
 ```kotlin
 // MessageBubble - Add edit/delete to context menu
@@ -705,12 +719,11 @@ if (showEditDialog) {
 }
 ```
 
-**구현 난이도**: 낮음 (1일)
-**예상 코드 라인**: ~200 lines
-
 **사용자 가치**: ⭐⭐⭐
-- 오타 수정
-- 대화 정리
+- ✅ 오타 수정 가능
+- ✅ 대화 정리 (불필요한 메시지 삭제)
+- ✅ 사용자 메시지만 편집/삭제 가능 (AI 메시지는 보호됨)
+- ✅ 삭제 확인 다이얼로그로 실수 방지
 
 ---
 
@@ -1401,7 +1414,7 @@ IconButton(onClick = {
 | 순위 | 기능 | 예상 기간 | 사용자 가치 | 난이도 | 상태 |
 |-----|------|----------|-----------|-------|------|
 | 7 | **접근성 개선** | 2일 | ⭐⭐⭐ | 중간 | ✅ **완료** (2025-11-02) |
-| 8 | **메시지 편집/삭제** | 1일 | ⭐⭐⭐ | 낮음 | ⏳ 대기 |
+| 8 | **메시지 편집/삭제** | 1일 | ⭐⭐⭐ | 낮음 | ✅ **완료** (2025-11-02) |
 | 9 | **에러 복구 강화** | 2일 | ⭐⭐⭐⭐ | 중간 | ⏳ 대기 |
 | 10 | **성능 최적화** | 2일 | ⭐⭐⭐ | 중간 | ⏳ 대기 |
 | 11 | **외부 사전 연동** | 1일 | ⭐⭐⭐⭐ | 낮음 | ⏳ 대기 |
@@ -1483,10 +1496,13 @@ IconButton(onClick = {
   - [x] SettingsScreen에 접근성 섹션 추가
   - [x] Theme.kt에 텍스트 크기 스케일링 적용
   - [x] MainActivity에서 설정 값 실시간 반영
-- [ ] 메시지 편집/삭제
-  - [ ] MessageBubble 컨텍스트 메뉴
-  - [ ] Edit dialog
-  - [ ] ChatViewModel.updateMessage/deleteMessage
+- [x] **메시지 편집/삭제** ✅ (2025-11-02)
+  - [x] MessageBubble 컨텍스트 메뉴에 편집/삭제 추가
+  - [x] EditMessageDialog (AlertDialog with OutlinedTextField)
+  - [x] DeleteMessageDialog (확인 다이얼로그)
+  - [x] ChatViewModel.updateMessage/deleteMessage
+  - [x] ConversationRepository.updateMessage/deleteMessage
+  - [x] MessageDao 메서드 활용 (이미 존재함)
 - [ ] 에러 복구 강화
   - [ ] Gemini API fallback chain
   - [ ] 자동 재시도 로직

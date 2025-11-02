@@ -272,4 +272,18 @@ class ConversationRepository @Inject constructor(
     suspend fun generateSimpleText(prompt: String): String {
         return geminiApi.generateSimpleText(prompt)
     }
+
+    /**
+     * Update an existing message
+     */
+    suspend fun updateMessage(message: Message) {
+        messageDao.updateMessage(message)
+    }
+
+    /**
+     * Delete a message
+     */
+    suspend fun deleteMessage(message: Message) {
+        messageDao.deleteMessage(message)
+    }
 }

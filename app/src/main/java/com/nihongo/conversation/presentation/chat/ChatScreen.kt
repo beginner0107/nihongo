@@ -60,6 +60,15 @@ fun ChatScreen(
     var showPermissionDeniedDialog by remember { mutableStateOf(false) }
     var isPermanentlyDenied by remember { mutableStateOf(false) }
 
+    // Edit message dialog state
+    var showEditDialog by remember { mutableStateOf(false) }
+    var editingMessageId by remember { mutableLongStateOf(0L) }
+    var editingMessageText by remember { mutableStateOf("") }
+
+    // Delete message confirmation dialog state
+    var showDeleteDialog by remember { mutableStateOf(false) }
+    var deletingMessageId by remember { mutableLongStateOf(0L) }
+
     val permissionLauncher = rememberLauncherForActivityResult(
         contract = ActivityResultContracts.RequestPermission()
     ) { isGranted ->
@@ -279,6 +288,19 @@ fun ChatScreen(
                         } else null,
                         onPracticePronunciation = if (!message.isUser) {
                             { viewModel.startPronunciationPractice(message.content) }
+                        } else null,
+                        onEditMessage = if (message.isUser) {
+                            {
+                                editingMessageId = message.id
+                                editingMessageText = message.content
+                                showEditDialog = true
+                            }
+                        } else null,
+                        onDeleteMessage = if (message.isUser) {
+                            {
+                                deletingMessageId = message.id
+                                showDeleteDialog = true
+                            }
                         } else null
                     )
                 }
@@ -477,6 +499,80 @@ fun ChatScreen(
             )
         }
 
+        // Edit Message Dialog
+        if (showEditDialog) {
+            AlertDialog(
+                onDismissRequest = { showEditDialog = false },
+                icon = {
+                    Icon(
+                        imageVector = Icons.Default.Edit,
+                        contentDescription = null
+                    )
+                },
+                title = { Text("메시지 편집") },
+                text = {
+                    OutlinedTextField(
+                        value = editingMessageText,
+                        onValueChange = { editingMessageText = it },
+                        label = { Text("메시지") },
+                        modifier = Modifier.fillMaxWidth(),
+                        maxLines = 5
+                    )
+                },
+                confirmButton = {
+                    TextButton(
+                        onClick = {
+                            if (editingMessageText.isNotBlank()) {
+                                viewModel.updateMessage(editingMessageId, editingMessageText)
+                            }
+                            showEditDialog = false
+                        }
+                    ) {
+                        Text("저장")
+                    }
+                },
+                dismissButton = {
+                    TextButton(onClick = { showEditDialog = false }) {
+                        Text("취소")
+                    }
+                }
+            )
+        }
+
+        // Delete Message Confirmation Dialog
+        if (showDeleteDialog) {
+            AlertDialog(
+                onDismissRequest = { showDeleteDialog = false },
+                icon = {
+                    Icon(
+                        imageVector = Icons.Default.Delete,
+                        contentDescription = null,
+                        tint = MaterialTheme.colorScheme.error
+                    )
+                },
+                title = { Text("메시지 삭제") },
+                text = { Text("이 메시지를 삭제하시겠습니까? 이 작업은 취소할 수 없습니다.") },
+                confirmButton = {
+                    TextButton(
+                        onClick = {
+                            viewModel.deleteMessage(deletingMessageId)
+                            showDeleteDialog = false
+                        },
+                        colors = ButtonDefaults.textButtonColors(
+                            contentColor = MaterialTheme.colorScheme.error
+                        )
+                    ) {
+                        Text("삭제")
+                    }
+                },
+                dismissButton = {
+                    TextButton(onClick = { showDeleteDialog = false }) {
+                        Text("취소")
+                    }
+                }
+            )
+        }
+
         // Pronunciation Practice Sheet
         uiState.pronunciationTargetText?.let { targetText ->
             if (uiState.showPronunciationSheet) {
@@ -525,7 +621,9 @@ fun MessageBubble(
     onToggleTranslation: (() -> Unit)? = null,
     onRequestTranslation: (() -> Unit)? = null,
     onRetryTranslation: (() -> Unit)? = null,
-    onPracticePronunciation: (() -> Unit)? = null
+    onPracticePronunciation: (() -> Unit)? = null,
+    onEditMessage: (() -> Unit)? = null,
+    onDeleteMessage: (() -> Unit)? = null
 ) {
     val timeFormatter = remember {
         java.text.SimpleDateFormat("HH:mm", java.util.Locale.getDefault())
@@ -835,6 +933,44 @@ fun MessageBubble(
                         onToggleTranslation()
                         showContextMenu = false
                     }
+                )
+            }
+
+            // 편집 (Only for user messages)
+            if (message.isUser && onEditMessage != null) {
+                androidx.compose.material3.DropdownMenuItem(
+                    text = { androidx.compose.material3.Text("편집") },
+                    leadingIcon = {
+                        androidx.compose.material3.Icon(
+                            androidx.compose.material.icons.Icons.Default.Edit,
+                            contentDescription = null
+                        )
+                    },
+                    onClick = {
+                        onEditMessage()
+                        showContextMenu = false
+                    }
+                )
+            }
+
+            // 삭제 (Only for user messages)
+            if (message.isUser && onDeleteMessage != null) {
+                androidx.compose.material3.DropdownMenuItem(
+                    text = { androidx.compose.material3.Text("삭제") },
+                    leadingIcon = {
+                        androidx.compose.material3.Icon(
+                            androidx.compose.material.icons.Icons.Default.Delete,
+                            contentDescription = null,
+                            tint = MaterialTheme.colorScheme.error
+                        )
+                    },
+                    onClick = {
+                        onDeleteMessage()
+                        showContextMenu = false
+                    },
+                    colors = androidx.compose.material3.MenuDefaults.itemColors(
+                        textColor = MaterialTheme.colorScheme.error
+                    )
                 )
             }
         }

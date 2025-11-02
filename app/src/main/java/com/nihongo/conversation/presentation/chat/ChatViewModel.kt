@@ -1454,4 +1454,25 @@ class ChatViewModel @Inject constructor(
             else -> "📚 기타"
         }
     }
+
+    /**
+     * Update an existing message content
+     */
+    fun updateMessage(messageId: Long, newContent: String) {
+        viewModelScope.launch {
+            val message = _uiState.value.messages.find { it.id == messageId } ?: return@launch
+            val updatedMessage = message.copy(content = newContent)
+            repository.updateMessage(updatedMessage)
+        }
+    }
+
+    /**
+     * Delete a message
+     */
+    fun deleteMessage(messageId: Long) {
+        viewModelScope.launch {
+            val message = _uiState.value.messages.find { it.id == messageId } ?: return@launch
+            repository.deleteMessage(message)
+        }
+    }
 }
