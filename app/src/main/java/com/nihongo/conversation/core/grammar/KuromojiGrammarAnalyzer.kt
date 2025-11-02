@@ -436,4 +436,31 @@ object KuromojiGrammarAnalyzer {
         android.util.Log.d(TAG, "Preloading Kuromoji tokenizer...")
         tokenizer // Access to trigger lazy initialization
     }
+
+    /**
+     * Convert Japanese text (including kanji) to hiragana readings
+     *
+     * Uses Kuromoji's reading information to convert kanji to hiragana.
+     * This is useful for pronunciation guides.
+     *
+     * @param japanese Japanese text (may contain kanji, hiragana, katakana)
+     * @return List of reading strings for each token
+     *
+     * Example:
+     * - Input: "注文してください"
+     * - Output: ["ちゅうもん", "して", "ください"]
+     */
+    fun getReadings(japanese: String): List<String> {
+        return try {
+            tokenizer.tokenize(japanese).map { token ->
+                // Use reading if available (converts kanji to hiragana)
+                // Otherwise use surface form (already hiragana/katakana)
+                token.reading ?: token.surface
+            }
+        } catch (e: Exception) {
+            android.util.Log.e(TAG, "Failed to get readings", e)
+            // Fallback: return original text as single token
+            listOf(japanese)
+        }
+    }
 }

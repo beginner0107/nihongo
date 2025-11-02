@@ -38,6 +38,15 @@ import kotlinx.coroutines.launch
 import javax.inject.Inject
 
 /**
+ * Result of Korean to Japanese translation
+ */
+data class KoreanToJapaneseResult(
+    val japanese: String,           // "ありがとうございました"
+    val romanization: String,       // "아리가토우 고자이마시타"
+    val korean: String              // 원본 "정말 감사합니다"
+)
+
+/**
  * Optimized UI state with ImmutableList to prevent unnecessary recompositions
  * Using immutable wrappers ensures Compose treats the state as stable
  */
@@ -77,7 +86,10 @@ data class ChatUiState(
     val voiceOnlySession: VoiceOnlySession? = null, // Voice-only mode session state
     val showTranscriptDialog: Boolean = false, // Show post-conversation transcript
     val lastAiComplexityScore: Int = 0, // Last AI message complexity score for adaptive difficulty
-    val adaptiveNudge: String = "" // Adaptive difficulty nudge (very short, 8 chars max)
+    val adaptiveNudge: String = "", // Adaptive difficulty nudge (very short, 8 chars max)
+    val showKoreanToJapaneseDialog: Boolean = false, // Show Korean→Japanese conversion dialog
+    val koreanToJapaneseResult: KoreanToJapaneseResult? = null, // Conversion result
+    val isTranslatingKorToJpn: Boolean = false // Loading state for conversion
 ) {
     /**
      * Computed property using derivedStateOf pattern
@@ -222,6 +234,29 @@ class ChatViewModel @Inject constructor(
         val message = _uiState.value.inputText.trim()
         if (message.isEmpty() || _uiState.value.isLoading) return
 
+        // Check if input is Korean
+        if (isKoreanText(message)) {
+            // Show Korean→Japanese conversion dialog
+            translateKoreanToJapanese(message)
+            return
+        }
+
+        // Send Japanese message directly
+        sendJapaneseMessage(message)
+    }
+
+    /**
+     * Check if text contains Korean characters
+     */
+    private fun isKoreanText(text: String): Boolean {
+        return text.matches(Regex(".*[ㄱ-ㅎㅏ-ㅣ가-힣]+.*"))
+    }
+
+    /**
+     * Send Japanese message (extracted from original sendMessage)
+     * Made public to be called from Korean→Japanese dialog
+     */
+    fun sendJapaneseMessage(message: String) {
         val scenario = _uiState.value.scenario ?: return
 
         viewModelScope.launch {
@@ -394,6 +429,136 @@ class ChatViewModel @Inject constructor(
     fun toggleAutoSpeak() {
         viewModelScope.launch {
             settingsDataStore.updateAutoSpeak(!_uiState.value.autoSpeak)
+        }
+    }
+
+    /**
+     * Translate Korean text to Japanese and show dialog
+     */
+    fun translateKoreanToJapanese(korean: String) {
+        viewModelScope.launch {
+            _uiState.update { it.copy(isTranslatingKorToJpn = true, error = null) }
+
+            try {
+                // Use TranslationRepository for Korean→Japanese translation
+                val result = translationRepository.translate(
+                    text = korean,
+                    sourceLang = "ko",
+                    targetLang = "ja",
+                    provider = com.nihongo.conversation.data.remote.deepl.TranslationProvider.MICROSOFT,
+                    useCache = true,
+                    fallbackChain = listOf(com.nihongo.conversation.data.remote.deepl.TranslationProvider.DEEP_L)  // ML Kit doesn't support ko→ja yet
+                )
+
+                when (result) {
+                    is com.nihongo.conversation.data.repository.TranslationResult.Success -> {
+                        // Convert Japanese to Korean pronunciation
+                        val romanization = japaneseToKoreanPronunciation(result.translatedText)
+
+                        _uiState.update {
+                            it.copy(
+                                showKoreanToJapaneseDialog = true,
+                                koreanToJapaneseResult = KoreanToJapaneseResult(
+                                    japanese = result.translatedText,
+                                    romanization = romanization,
+                                    korean = korean
+                                ),
+                                isTranslatingKorToJpn = false
+                            )
+                        }
+                    }
+                    is com.nihongo.conversation.data.repository.TranslationResult.Error -> {
+                        _uiState.update {
+                            it.copy(
+                                error = "번역 실패: ${result.message}",
+                                isTranslatingKorToJpn = false
+                            )
+                        }
+                    }
+                }
+            } catch (e: Exception) {
+                _uiState.update {
+                    it.copy(
+                        error = "번역 중 오류: ${e.message}",
+                        isTranslatingKorToJpn = false
+                    )
+                }
+            }
+        }
+    }
+
+    /**
+     * Dismiss Korean→Japanese dialog
+     */
+    fun dismissKorToJpnDialog() {
+        _uiState.update {
+            it.copy(
+                showKoreanToJapaneseDialog = false,
+                koreanToJapaneseResult = null
+            )
+        }
+    }
+
+    /**
+     * Convert Japanese (including kanji) to Korean pronunciation approximation
+     *
+     * Uses Kuromoji to convert kanji to hiragana first, then maps to Korean.
+     * This ensures accurate pronunciation even for kanji characters.
+     */
+    private fun japaneseToKoreanPronunciation(japanese: String): String {
+        // Step 1: Convert kanji to hiragana using Kuromoji
+        val readings = try {
+            com.nihongo.conversation.core.grammar.KuromojiGrammarAnalyzer.getReadings(japanese)
+        } catch (e: Exception) {
+            // Fallback to original text if Kuromoji fails
+            listOf(japanese)
+        }
+
+        // Step 2: Convert hiragana/katakana to Korean
+        val hiraganaMap = mapOf(
+            "あ" to "아", "い" to "이", "う" to "우", "え" to "에", "お" to "오",
+            "か" to "카", "き" to "키", "く" to "쿠", "け" to "케", "こ" to "코",
+            "が" to "가", "ぎ" to "기", "ぐ" to "구", "げ" to "게", "ご" to "고",
+            "さ" to "사", "し" to "시", "す" to "스", "せ" to "세", "そ" to "소",
+            "ざ" to "자", "じ" to "지", "ず" to "즈", "ぜ" to "제", "ぞ" to "조",
+            "た" to "타", "ち" to "치", "つ" to "츠", "て" to "테", "と" to "토",
+            "だ" to "다", "ぢ" to "지", "づ" to "즈", "で" to "데", "ど" to "도",
+            "な" to "나", "に" to "니", "ぬ" to "누", "ね" to "네", "の" to "노",
+            "は" to "하", "ひ" to "히", "ふ" to "후", "へ" to "헤", "ほ" to "호",
+            "ば" to "바", "び" to "비", "ぶ" to "부", "べ" to "베", "ぼ" to "보",
+            "ぱ" to "파", "ぴ" to "피", "ぷ" to "푸", "ぺ" to "페", "ぽ" to "포",
+            "ま" to "마", "み" to "미", "む" to "무", "め" to "메", "も" to "모",
+            "や" to "야", "ゆ" to "유", "よ" to "요",
+            "ら" to "라", "り" to "리", "る" to "루", "れ" to "레", "ろ" to "로",
+            "わ" to "와", "を" to "오", "ん" to "ㅇ",
+            // Katakana
+            "ア" to "아", "イ" to "이", "ウ" to "우", "エ" to "에", "オ" to "오",
+            "カ" to "카", "キ" to "키", "ク" to "쿠", "ケ" to "케", "コ" to "코",
+            "ガ" to "가", "ギ" to "기", "グ" to "구", "ゲ" to "게", "ゴ" to "고",
+            "サ" to "사", "シ" to "시", "ス" to "스", "セ" to "세", "ソ" to "소",
+            "ザ" to "자", "ジ" to "지", "ズ" to "즈", "ゼ" to "제", "ゾ" to "조",
+            "タ" to "타", "チ" to "치", "ツ" to "츠", "テ" to "테", "ト" to "토",
+            "ダ" to "다", "ヂ" to "지", "ヅ" to "즈", "デ" to "데", "ド" to "도",
+            "ナ" to "나", "ニ" to "니", "ヌ" to "누", "ネ" to "네", "ノ" to "노",
+            "ハ" to "하", "ヒ" to "히", "フ" to "후", "ヘ" to "헤", "ホ" to "호",
+            "バ" to "바", "ビ" to "비", "ブ" to "부", "ベ" to "베", "ボ" to "보",
+            "パ" to "파", "ピ" to "피", "プ" to "푸", "ペ" to "페", "ポ" to "포",
+            "マ" to "마", "ミ" to "미", "ム" to "무", "メ" to "메", "モ" to "모",
+            "ヤ" to "야", "ユ" to "유", "ヨ" to "요",
+            "ラ" to "라", "リ" to "리", "ル" to "루", "レ" to "레", "ロ" to "로",
+            "ワ" to "와", "ヲ" to "오", "ン" to "ㅇ",
+            // Special characters (장음 기호 및 특수 문자)
+            "ー" to "-",   // Long vowel mark (장음 기호)
+            "～" to "~",
+            "、" to ",",
+            "。" to "."
+        )
+
+        // Step 3: Map each reading (hiragana) to Korean
+        return readings.joinToString(" ") { reading ->
+            reading.map { char ->
+                hiraganaMap[char.toString()] ?: char.toString()
+            }.joinToString("")
         }
     }
 

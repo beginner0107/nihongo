@@ -52,16 +52,20 @@ class TranslationRepository @Inject constructor(
     private val DEEPL_MONTHLY_LIMIT = 500_000
 
     /**
-     * Translate Japanese text to Korean
+     * Translate text between Japanese and Korean
      *
-     * @param text Japanese text to translate
+     * @param text Source text to translate
+     * @param sourceLang Source language code ("ja" or "ko")
+     * @param targetLang Target language code ("ko" or "ja")
      * @param provider Preferred translation provider
      * @param useCache Enable/disable cache lookup
      * @param fallbackChain Auto-fallback providers in order
-     * @return Translated Korean text
+     * @return Translated text
      */
     suspend fun translate(
         text: String,
+        sourceLang: String = "ja",
+        targetLang: String = "ko",
         provider: TranslationProvider = TranslationProvider.MICROSOFT,
         useCache: Boolean = true,
         fallbackChain: List<TranslationProvider> = listOf(TranslationProvider.DEEP_L, TranslationProvider.ML_KIT)
@@ -73,14 +77,14 @@ class TranslationRepository @Inject constructor(
                 return@withContext TranslationResult.Error("번역할 텍스트가 비어 있습니다")
             }
 
-            Log.d(TAG, "Translating (${text.length} chars) with provider: $provider, cache: $useCache")
+            Log.d(TAG, "Translating $sourceLang→$targetLang (${text.length} chars) with provider: $provider, cache: $useCache")
 
             // 1. Check cache first
             if (useCache) {
                 val cached = translationCacheDao.getTranslation(
                     sourceText = text,
-                    sourceLang = "ja",
-                    targetLang = "ko"
+                    sourceLang = sourceLang,
+                    targetLang = targetLang
                 )
 
                 if (cached != null) {
@@ -101,9 +105,9 @@ class TranslationRepository @Inject constructor(
 
             for (currentProvider in providersToTry) {
                 result = when (currentProvider) {
-                    TranslationProvider.MICROSOFT -> translateWithMicrosoft(text)
-                    TranslationProvider.DEEP_L -> translateWithDeepL(text)
-                    TranslationProvider.ML_KIT -> translateWithMLKit(text)
+                    TranslationProvider.MICROSOFT -> translateWithMicrosoft(text, sourceLang, targetLang)
+                    TranslationProvider.DEEP_L -> translateWithDeepL(text, sourceLang, targetLang)
+                    TranslationProvider.ML_KIT -> translateWithMLKit(text, sourceLang, targetLang)
                 }
 
                 if (result is TranslationResult.Success) {
@@ -128,8 +132,8 @@ class TranslationRepository @Inject constructor(
                             translatedText = result.translatedText,
                             provider = result.provider.name.lowercase(),
                             timestamp = System.currentTimeMillis(),
-                            sourceLang = "ja",
-                            targetLang = "ko"
+                            sourceLang = sourceLang,
+                            targetLang = targetLang
                         )
                     )
                     Log.d(TAG, "Translation cached (${result.provider})")
@@ -153,7 +157,11 @@ class TranslationRepository @Inject constructor(
     /**
      * Translate using Microsoft Translator API
      */
-    private suspend fun translateWithMicrosoft(text: String): TranslationResult {
+    private suspend fun translateWithMicrosoft(
+        text: String,
+        sourceLang: String = "ja",
+        targetLang: String = "ko"
+    ): TranslationResult {
         return try {
             // Check quota
             if (microsoftMonthlyChars + text.length > MICROSOFT_MONTHLY_LIMIT) {
@@ -167,12 +175,14 @@ class TranslationRepository @Inject constructor(
                 return TranslationResult.Error("Microsoft API 키가 설정되지 않았습니다")
             }
 
-            Log.d(TAG, "Calling Microsoft Translator API...")
+            Log.d(TAG, "Calling Microsoft Translator API ($sourceLang→$targetLang)...")
             val startTime = System.currentTimeMillis()
 
             val response = microsoftTranslatorService.translate(
                 subscriptionKey = microsoftApiKey,
                 region = microsoftRegion,
+                from = sourceLang,
+                to = targetLang,
                 texts = listOf(MicrosoftTranslateRequest(text))
             )
 
@@ -204,7 +214,11 @@ class TranslationRepository @Inject constructor(
     /**
      * Translate using DeepL API
      */
-    private suspend fun translateWithDeepL(text: String): TranslationResult {
+    private suspend fun translateWithDeepL(
+        text: String,
+        sourceLang: String = "ja",
+        targetLang: String = "ko"
+    ): TranslationResult {
         return try {
             // Check quota
             if (deepLMonthlyChars + text.length > DEEPL_MONTHLY_LIMIT) {
@@ -218,15 +232,15 @@ class TranslationRepository @Inject constructor(
                 return TranslationResult.Error("DeepL API 키가 설정되지 않았습니다")
             }
 
-            Log.d(TAG, "Calling DeepL API...")
+            Log.d(TAG, "Calling DeepL API ($sourceLang→$targetLang)...")
             val startTime = System.currentTimeMillis()
 
             val response = deepLApiService.translate(
                 authorization = "DeepL-Auth-Key $deepLApiKey",
                 request = DeepLRequest(
                     text = listOf(text),
-                    sourceLang = "JA",
-                    targetLang = "KO"
+                    sourceLang = sourceLang.uppercase(),  // DeepL uses uppercase language codes
+                    targetLang = targetLang.uppercase()
                 )
             )
 
@@ -258,8 +272,18 @@ class TranslationRepository @Inject constructor(
     /**
      * Translate using ML Kit (on-device)
      */
-    private suspend fun translateWithMLKit(text: String): TranslationResult {
+    private suspend fun translateWithMLKit(
+        text: String,
+        sourceLang: String = "ja",
+        targetLang: String = "ko"
+    ): TranslationResult {
         return try {
+            // ML Kit currently only supports ja→ko (hardcoded in MLKitTranslator)
+            if (sourceLang != "ja" || targetLang != "ko") {
+                Log.w(TAG, "ML Kit only supports ja→ko translation, requested: $sourceLang→$targetLang")
+                return TranslationResult.Error("ML Kit는 일본어→한국어만 지원합니다")
+            }
+
             Log.d(TAG, "Using ML Kit translator...")
             val startTime = System.currentTimeMillis()
 

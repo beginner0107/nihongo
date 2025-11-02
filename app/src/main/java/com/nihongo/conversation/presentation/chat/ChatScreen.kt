@@ -192,12 +192,11 @@ fun ChatScreen(
                     // LazyColumn handles item animations internally via animateItemPlacement
                     MessageBubble(
                         message = message,
-                        onSpeakMessage = if (!message.isUser) {
-                            { viewModel.speakMessage(message.content) }
-                        } else null,
+                        // Enable TTS for both user and AI messages
+                        onSpeakMessage = { viewModel.speakMessage(message.content) },
                         onSpeakSlowly = if (!message.isUser) {
                             { viewModel.speakMessageSlowly(message.content) }
-                        } else null,
+                        } else null,  // Slow speech only for AI messages
                         onLongPress = { viewModel.requestGrammarExplanation(message.content) },
                         isTranslationExpanded = message.id in uiState.expandedTranslations,
                         translation = uiState.translations[message.id],
@@ -423,6 +422,23 @@ fun ChatScreen(
                     onRetry = viewModel::retryPronunciation,
                     onSpeak = viewModel::speakMessage,
                     onDismiss = viewModel::dismissPronunciationSheet
+                )
+            }
+        }
+
+        // Korean→Japanese Translation Dialog
+        uiState.koreanToJapaneseResult?.let { result ->
+            if (uiState.showKoreanToJapaneseDialog) {
+                KoreanToJapaneseDialog(
+                    result = result,
+                    onDismiss = viewModel::dismissKorToJpnDialog,
+                    onUseJapanese = {
+                        viewModel.sendJapaneseMessage(result.japanese)
+                        viewModel.dismissKorToJpnDialog()
+                    },
+                    onSpeak = {
+                        viewModel.speakMessage(result.japanese)
+                    }
                 )
             }
         }
@@ -781,7 +797,7 @@ fun MessageInput(
                 value = text,
                 onValueChange = onTextChange,
                 modifier = Modifier.weight(1f),
-                placeholder = { Text("메시지를 입력하세요...") },
+                placeholder = { Text("일본어 또는 한국어로 입력하세요 💬") },
                 enabled = enabled,
                 maxLines = 4,
                 keyboardOptions = KeyboardOptions(imeAction = ImeAction.Send),
@@ -818,4 +834,91 @@ fun MessageInput(
             Text("힌트 요청 (Korean-Japanese)")
         }
     }
+}
+
+/**
+ * Korean→Japanese Translation Dialog
+ * Shows translation result with pronunciation guide and TTS playback
+ */
+@Composable
+fun KoreanToJapaneseDialog(
+    result: KoreanToJapaneseResult,
+    onDismiss: () -> Unit,
+    onUseJapanese: () -> Unit,
+    onSpeak: () -> Unit
+) {
+    AlertDialog(
+        onDismissRequest = onDismiss,
+        title = { Text("한국어 → 일본어 변환") },
+        text = {
+            Column(
+                verticalArrangement = Arrangement.spacedBy(12.dp)
+            ) {
+                // Original Korean text
+                Text(
+                    text = "한국어: ${result.korean}",
+                    style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                )
+
+                HorizontalDivider()
+
+                // Japanese + Pronunciation (clickable for TTS)
+                Surface(
+                    shape = RoundedCornerShape(8.dp),
+                    color = MaterialTheme.colorScheme.primaryContainer,
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .clickable { onSpeak() }
+                ) {
+                    Column(
+                        modifier = Modifier.padding(16.dp),
+                        verticalArrangement = Arrangement.spacedBy(4.dp)
+                    ) {
+                        // Japanese text
+                        Text(
+                            text = result.japanese,
+                            style = MaterialTheme.typography.headlineSmall,
+                            color = MaterialTheme.colorScheme.onPrimaryContainer
+                        )
+
+                        // Pronunciation guide
+                        Text(
+                            text = result.romanization,
+                            style = MaterialTheme.typography.bodyMedium,
+                            color = MaterialTheme.colorScheme.onPrimaryContainer.copy(alpha = 0.7f)
+                        )
+                    }
+                }
+
+                // TTS hint
+                Row(
+                    horizontalArrangement = Arrangement.spacedBy(4.dp),
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    Icon(
+                        imageVector = Icons.Default.VolumeUp,
+                        contentDescription = "음성 듣기",
+                        tint = MaterialTheme.colorScheme.primary,
+                        modifier = Modifier.size(16.dp)
+                    )
+                    Text(
+                        text = "클릭하면 소리가 재생됩니다",
+                        style = MaterialTheme.typography.labelSmall,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant
+                    )
+                }
+            }
+        },
+        confirmButton = {
+            Button(onClick = onUseJapanese) {
+                Text("이 문장 보내기")
+            }
+        },
+        dismissButton = {
+            TextButton(onClick = onDismiss) {
+                Text("취소")
+            }
+        }
+    )
 }

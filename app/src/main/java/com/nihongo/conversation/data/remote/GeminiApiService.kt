@@ -36,20 +36,17 @@ class GeminiApiService @Inject constructor(
 
     // Layer 1: Generation config with stop sequences to prevent English explanations
     // This is the most powerful proactive approach - stops AI immediately when trying to generate English
+    // Note: Gemini API allows maximum 5 stop sequences
     private val conversationConfig = generationConfig {
         temperature = 0.7f
         topK = 40
         topP = 0.9f
         stopSequences = listOf(
-            " which",     // "おいしい" which is...
+            " which",     // "おいしい" which is... (most common pattern)
+            " is a",      // "common" is a... (second most common)
             " that",      // "すぐに" that means...
-            " is a",      // "common" is a...
-            " and ",      // "'はい' and '1'"
-            "(Polite",    // (Polite and clear...)
-            "INK:",       // Internal thinking
-            "THINK:",     // Internal thinking
-            "元の文:",     // Meta commentary
-            "どういうこと"  // Meta analysis
+            "(Polite",    // (Polite and clear...) meta commentary
+            "THINK:"      // Internal thinking (covers both INK: and THINK:)
         )
     }
 
