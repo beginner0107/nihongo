@@ -72,6 +72,14 @@ object KuromojiGrammarAnalyzer {
                     startIndex = startIndex,
                     endIndex = endIndex
                 )
+            }.filter { component ->
+                // Filter out punctuation symbols, keep only meaningful symbols
+                if (component.type == GrammarType.SYMBOL) {
+                    // Keep meaningful symbols (？！〜・), filter out punctuation (。、（）「」等)
+                    component.text in listOf("？", "！", "〜", "・", "?", "!")
+                } else {
+                    true  // Keep all non-symbol components
+                }
             }
 
             // Generate overall and detailed explanations
@@ -137,6 +145,9 @@ object KuromojiGrammarAnalyzer {
 
         return when (mainPos) {
             "動詞" -> {
+                val baseForm = token.baseForm
+                val meaning = JMdictHelper.lookup(baseForm)
+
                 val detail = when (conjugation) {
                     "連用形" -> "연용형 (て형, た형 앞)"
                     "終止形" -> "종지형 (문장 끝)"
@@ -146,7 +157,12 @@ object KuromojiGrammarAnalyzer {
                     "基本形" -> "기본형"
                     else -> "동사"
                 }
-                if (userLevel == 1) "동사: $detail" else detail
+
+                if (meaning != null) {
+                    if (userLevel == 1) "동사: $meaning ($detail)" else "$meaning ($detail)"
+                } else {
+                    if (userLevel == 1) "동사: $detail" else detail
+                }
             }
             "助詞" -> {
                 val particleType = when (subPos) {
@@ -160,9 +176,10 @@ object KuromojiGrammarAnalyzer {
             }
             "助動詞" -> {
                 when (token.surface) {
-                    "です", "だ" -> "정중체/단정"
+                    "です" -> "정중체/단정"
+                    "だ" -> "단정/평서"
                     "ます" -> "정중체 동사"
-                    "た", "だ" -> "과거/완료"
+                    "た" -> "과거/완료"
                     "ない" -> "부정"
                     "ようだ", "そうだ" -> "추측/양태"
                     "たい" -> "희망"
@@ -172,21 +189,60 @@ object KuromojiGrammarAnalyzer {
                 }
             }
             "名詞" -> {
-                when (subPos) {
-                    "代名詞" -> "대명사"
-                    "数" -> "숫자"
-                    "非自立" -> "의존명사"
-                    else -> "명사"
+                // Try to lookup meaning in dictionary
+                val baseForm = token.baseForm  // Get dictionary form
+                val meaning = JMdictHelper.lookup(baseForm)
+                    ?: JMdictHelper.lookup(token.surface)  // Fallback to surface form
+
+                if (meaning != null) {
+                    when (subPos) {
+                        "代名詞" -> "대명사: $meaning"
+                        "数" -> "숫자: $meaning"
+                        "非自立" -> "의존명사: $meaning"
+                        else -> "명사: $meaning"
+                    }
+                } else {
+                    // No dictionary entry found, show base form
+                    val info = if (baseForm != token.surface) {
+                        " (${baseForm})"
+                    } else {
+                        ""
+                    }
+                    when (subPos) {
+                        "代名詞" -> "대명사$info"
+                        "数" -> "숫자$info"
+                        "非自立" -> "의존명사$info"
+                        else -> "명사$info"
+                    }
                 }
             }
             "形容詞" -> {
-                if (conjugation != "*") "형용사 ($conjugation)"
-                else "형용사"
+                val baseForm = token.baseForm
+                val meaning = JMdictHelper.lookup(baseForm)
+                    ?: JMdictHelper.lookup(token.surface)
+
+                if (meaning != null) {
+                    if (conjugation != "*") "형용사: $meaning ($conjugation)"
+                    else "형용사: $meaning"
+                } else {
+                    if (conjugation != "*") "형용사 ($conjugation)"
+                    else "형용사"
+                }
             }
-            "副詞" -> "부사"
+            "副詞" -> {
+                val meaning = JMdictHelper.lookup(token.surface)
+                    ?: JMdictHelper.lookup(token.baseForm)
+
+                if (meaning != null) "부사: $meaning"
+                else "부사"
+            }
             "連体詞" -> "연체사"
             "接続詞" -> "접속사"
-            "感動詞" -> "감탄사"
+            "感動詞" -> {
+                val meaning = JMdictHelper.lookup(token.surface)
+                if (meaning != null) "감탄사: $meaning"
+                else "감탄사"
+            }
             "接頭詞" -> "접두사"
             "記号" -> when (subPos) {
                 "句点" -> "마침표"
