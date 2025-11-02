@@ -301,6 +301,9 @@ fun ChatScreen(
                                 deletingMessageId = message.id
                                 showDeleteDialog = true
                             }
+                        } else null,
+                        onAddToVocabulary = if (!message.isUser) {
+                            { viewModel.addToVocabulary(message.id) }
                         } else null
                     )
                 }
@@ -623,7 +626,8 @@ fun MessageBubble(
     onRetryTranslation: (() -> Unit)? = null,
     onPracticePronunciation: (() -> Unit)? = null,
     onEditMessage: (() -> Unit)? = null,
-    onDeleteMessage: (() -> Unit)? = null
+    onDeleteMessage: (() -> Unit)? = null,
+    onAddToVocabulary: (() -> Unit)? = null
 ) {
     val timeFormatter = remember {
         java.text.SimpleDateFormat("HH:mm", java.util.Locale.getDefault())
@@ -912,25 +916,22 @@ fun MessageBubble(
                     }
                 )
 
-                // 단어장에 추가 (Add to vocabulary - NEW)
-                androidx.compose.material3.DropdownMenuItem(
-                    text = { androidx.compose.material3.Text(stringResource(R.string.add_to_vocabulary)) },
-                    leadingIcon = {
-                        androidx.compose.material3.Icon(
-                            androidx.compose.material.icons.Icons.Default.BookmarkAdd,
-                            contentDescription = null
-                        )
-                    },
-                    onClick = {
-                        // TODO: Implement add to vocabulary
-                        android.widget.Toast.makeText(
-                            context,
-                            context.getString(R.string.added_to_vocabulary),
-                            android.widget.Toast.LENGTH_SHORT
-                        ).show()
-                        showContextMenu = false
-                    }
-                )
+                // 単語帳に追加 (Add to vocabulary)
+                if (onAddToVocabulary != null) {
+                    androidx.compose.material3.DropdownMenuItem(
+                        text = { androidx.compose.material3.Text(stringResource(R.string.add_to_vocabulary)) },
+                        leadingIcon = {
+                            androidx.compose.material3.Icon(
+                                androidx.compose.material.icons.Icons.Default.BookmarkAdd,
+                                contentDescription = null
+                            )
+                        },
+                        onClick = {
+                            onAddToVocabulary()
+                            showContextMenu = false
+                        }
+                    )
+                }
             }
 
             // 번역 토글 (If AI message and translation available)

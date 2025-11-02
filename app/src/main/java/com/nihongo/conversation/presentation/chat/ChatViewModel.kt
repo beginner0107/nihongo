@@ -122,7 +122,8 @@ class ChatViewModel @Inject constructor(
     private val userSessionManager: UserSessionManager,
     private val grammarFeedbackRepository: GrammarFeedbackRepository,
     private val mlKitTranslator: com.nihongo.conversation.core.translation.MLKitTranslator,
-    private val translationRepository: com.nihongo.conversation.data.repository.TranslationRepository
+    private val translationRepository: com.nihongo.conversation.data.repository.TranslationRepository,
+    private val vocabularyRepository: com.nihongo.conversation.data.repository.VocabularyRepository
 ) : ViewModel() {
 
     private val _uiState = MutableStateFlow(ChatUiState())
@@ -1473,6 +1474,40 @@ class ChatViewModel @Inject constructor(
         viewModelScope.launch {
             val message = _uiState.value.messages.find { it.id == messageId } ?: return@launch
             repository.deleteMessage(message)
+        }
+    }
+
+    /**
+     * Add message content to vocabulary
+     */
+    fun addToVocabulary(messageId: Long) {
+        viewModelScope.launch {
+            try {
+                val message = _uiState.value.messages.find { it.id == messageId } ?: return@launch
+                if (message.isUser) return@launch // Only AI messages can be added
+
+                // Extract Japanese text without furigana
+                val japaneseText = message.content.replace(Regex("（[^）]*）|\\([^)]*\\)"), "").trim()
+
+                // Get Korean translation
+                val translation = _uiState.value.translations[messageId]
+                    ?: ""
+
+                // Add to vocabulary
+                vocabularyRepository.addCustomVocabulary(
+                    userId = currentUserId,
+                    word = japaneseText,
+                    reading = null,
+                    meaning = translation,
+                    exampleSentence = japaneseText,
+                    difficulty = 1,
+                    addToReviewQueue = true
+                )
+            } catch (e: IllegalArgumentException) {
+                // Word already exists - silently ignore
+            } catch (e: Exception) {
+                // Failed to add - silently ignore
+            }
         }
     }
 }

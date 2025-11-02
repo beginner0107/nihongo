@@ -1459,14 +1459,14 @@ IconButton(onClick = {
 ## 📋 구현 체크리스트
 
 ### Phase 1 (필수 핵심 기능)
-- [ ] 단어장 시스템
-  - [ ] VocabularyEntry Entity & Dao
-  - [ ] Room Migration 12→13
-  - [ ] VocabularyRepository
-  - [ ] VocabularyViewModel
-  - [ ] VocabularyListScreen UI
-  - [ ] FlashcardScreen UI
-  - [ ] ChatScreen 연동 (단어 추가)
+- [x] 단어장 시스템 ✅ **완료** (2025-11-02)
+  - [x] VocabularyEntry Entity & Dao (이미 구현됨)
+  - [x] Room Migration (이미 완료)
+  - [x] VocabularyRepository (이미 구현됨)
+  - [x] VocabularyViewModel
+  - [x] VocabularyListScreen UI
+  - [x] FlashcardScreen UI
+  - [x] ChatScreen 연동 (단어 추가)
 - [ ] 학습 통계 대시보드
   - [ ] 집계 쿼리 작성
   - [ ] Vico Chart library 추가
