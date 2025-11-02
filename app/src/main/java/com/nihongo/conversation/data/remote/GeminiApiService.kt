@@ -2,6 +2,7 @@ package com.nihongo.conversation.data.remote
 
 import com.google.ai.client.generativeai.GenerativeModel
 import com.google.ai.client.generativeai.type.content
+import com.google.ai.client.generativeai.type.generationConfig
 import com.nihongo.conversation.BuildConfig
 import com.nihongo.conversation.core.network.NetworkMonitor
 import com.nihongo.conversation.core.network.OfflineManager
@@ -33,6 +34,25 @@ class GeminiApiService @Inject constructor(
 
     private val apiKey = BuildConfig.GEMINI_API_KEY
 
+    // Layer 1: Generation config with stop sequences to prevent English explanations
+    // This is the most powerful proactive approach - stops AI immediately when trying to generate English
+    private val conversationConfig = generationConfig {
+        temperature = 0.7f
+        topK = 40
+        topP = 0.9f
+        stopSequences = listOf(
+            " which",     // "おいしい" which is...
+            " that",      // "すぐに" that means...
+            " is a",      // "common" is a...
+            " and ",      // "'はい' and '1'"
+            "(Polite",    // (Polite and clear...)
+            "INK:",       // Internal thinking
+            "THINK:",     // Internal thinking
+            "元の文:",     // Meta commentary
+            "どういうこと"  // Meta analysis
+        )
+    }
+
     private val model: GenerativeModel? by lazy {
         if (apiKey.isBlank()) {
             null
@@ -40,7 +60,8 @@ class GeminiApiService @Inject constructor(
             GenerativeModel(
                 modelName = "gemini-2.5-flash",
                 apiKey = apiKey,
-                requestOptions = requestOptions
+                requestOptions = requestOptions,
+                generationConfig = conversationConfig
             )
         }
     }
@@ -53,7 +74,8 @@ class GeminiApiService @Inject constructor(
             GenerativeModel(
                 modelName = "gemini-2.5-flash",
                 apiKey = apiKey,
-                requestOptions = RequestOptions(timeout = 15.seconds)
+                requestOptions = RequestOptions(timeout = 15.seconds),
+                generationConfig = conversationConfig  // Apply same config to prevent explanations
             )
         }
     }

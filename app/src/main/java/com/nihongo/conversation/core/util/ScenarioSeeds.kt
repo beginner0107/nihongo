@@ -22,15 +22,21 @@ class ScenarioSeeds @Inject constructor() {
 
         /**
          * Maximum prompt length for Gemini API performance
+         * Increased to 700 to accommodate enhanced FORMAT_RULES
          */
-        private const val MAX_PROMPT_LENGTH = 500
+        private const val MAX_PROMPT_LENGTH = 700
 
         /**
-         * Formatting rules applied to all scenarios
+         * Layer 2: Formatting rules applied to all scenarios
+         * Explicitly forbids English explanations, markdown, and furigana
          */
         private const val FORMAT_RULES = """
-【重要】マークダウン記号（**、_など）や読み仮名（例：お席（せき））を絶対に使わないでください。
-日本語の会話文のみを出力してください。"""
+【絶対厳守】
+1. 日本語の会話文のみ出力
+2. 英語解説・マークダウン・読み仮名禁止
+3. "which is", "is a", "Polite"等のメタコメント禁止
+例: "すぐにお持ちします。" ✅
+例: "'おいしい' is a common N5 adjective" ❌"""
 
         /**
          * Build scenario prompt with formatting rules and validation
