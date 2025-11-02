@@ -555,10 +555,10 @@ fun ImportantPhraseChip(
 @Composable
 fun DifficultyBadge(difficulty: Int) {
     val (text, color) = when (difficulty) {
-        1 -> "初級" to MaterialTheme.colorScheme.tertiary
-        2 -> "中級" to MaterialTheme.colorScheme.secondary
-        3 -> "上級" to MaterialTheme.colorScheme.error
-        else -> "初級" to MaterialTheme.colorScheme.tertiary
+        1 -> "초급" to MaterialTheme.colorScheme.tertiary
+        2 -> "중급" to MaterialTheme.colorScheme.secondary
+        3 -> "상급" to MaterialTheme.colorScheme.error
+        else -> "초급" to MaterialTheme.colorScheme.tertiary
     }
 
     Surface(
