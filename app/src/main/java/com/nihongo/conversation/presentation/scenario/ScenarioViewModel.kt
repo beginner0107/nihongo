@@ -3,6 +3,7 @@ package com.nihongo.conversation.presentation.scenario
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.nihongo.conversation.data.repository.ConversationRepository
+import com.nihongo.conversation.data.repository.ProfileRepository
 import com.nihongo.conversation.domain.model.Scenario
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -15,12 +16,14 @@ data class ScenarioUiState(
     val allScenarios: List<Scenario> = emptyList(),
     val scenarios: List<Scenario> = emptyList(),
     val selectedCategory: String? = null, // null = "전체"
-    val isLoading: Boolean = true
+    val isLoading: Boolean = true,
+    val favoriteScenarioIds: List<Long> = emptyList() // Track favorite scenario IDs
 )
 
 @HiltViewModel
 class ScenarioViewModel @Inject constructor(
-    private val repository: ConversationRepository
+    private val repository: ConversationRepository,
+    private val profileRepository: ProfileRepository
 ) : ViewModel() {
 
     private val _uiState = MutableStateFlow(ScenarioUiState())
@@ -28,6 +31,7 @@ class ScenarioViewModel @Inject constructor(
 
     init {
         loadScenarios()
+        loadFavorites()
     }
 
     private fun loadScenarios() {
@@ -39,6 +43,13 @@ class ScenarioViewModel @Inject constructor(
                     isLoading = false
                 )
             }
+        }
+    }
+
+    private fun loadFavorites() {
+        viewModelScope.launch {
+            val favoriteIds = profileRepository.getFavoriteScenarioIds()
+            _uiState.value = _uiState.value.copy(favoriteScenarioIds = favoriteIds)
         }
     }
 
@@ -58,11 +69,30 @@ class ScenarioViewModel @Inject constructor(
 
         return when (category) {
             null -> scenarios // "전체" - show all
+            "FAVORITE" -> scenarios.filter { it.id in _uiState.value.favoriteScenarioIds } // Favorites only
             "OTHER" -> scenarios.filter {
                 // "기타" - all categories NOT in main tabs
                 it.category !in mainCategories
             }
             else -> scenarios.filter { it.category == category } // Specific category
+        }
+    }
+
+    /**
+     * Toggle favorite status for a scenario
+     */
+    fun toggleFavorite(scenarioId: Long) {
+        viewModelScope.launch {
+            val isFavorite = profileRepository.toggleFavoriteScenario(scenarioId)
+
+            // Reload favorites list
+            loadFavorites()
+
+            // If currently showing favorites, refresh the filtered list
+            if (_uiState.value.selectedCategory == "FAVORITE") {
+                val filtered = filterScenarios(_uiState.value.allScenarios, "FAVORITE")
+                _uiState.value = _uiState.value.copy(scenarios = filtered)
+            }
         }
     }
 

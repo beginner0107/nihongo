@@ -22,6 +22,7 @@ import com.nihongo.conversation.domain.model.Scenario
 // 카테고리 정의 (주요 탭만 표시)
 sealed class ScenarioCategory(val id: String?, val label: String, val icon: String) {
     object All : ScenarioCategory(null, "전체", "📚")
+    object Favorite : ScenarioCategory("FAVORITE", "즐겨찾기", "⭐")
     object Entertainment : ScenarioCategory("ENTERTAINMENT", "엔터", "🎵")
     object Work : ScenarioCategory("WORK", "직장", "💼")
     object DailyLife : ScenarioCategory("DAILY_LIFE", "일상", "🏠")
@@ -155,6 +156,7 @@ fun ScenarioListScreen(
                 // 탭 Row (9개 주요 카테고리)
                 val categories = listOf(
                     ScenarioCategory.All,
+                    ScenarioCategory.Favorite,
                     ScenarioCategory.Entertainment,
                     ScenarioCategory.Work,
                     ScenarioCategory.DailyLife,
@@ -223,7 +225,9 @@ fun ScenarioListScreen(
                         items(scenarios) { scenario ->
                             ScenarioCard(
                                 scenario = scenario,
+                                isFavorite = uiState.favoriteScenarioIds.contains(scenario.id),
                                 onClick = { onScenarioSelected(scenario.id) },
+                                onFavoriteClick = { viewModel.toggleFavorite(scenario.id) },
                                 onDelete = if (scenario.isCustom) {
                                     { viewModel.deleteCustomScenario(scenario.id) }
                                 } else null
@@ -239,7 +243,9 @@ fun ScenarioListScreen(
 @Composable
 fun ScenarioCard(
     scenario: Scenario,
+    isFavorite: Boolean = false,
     onClick: () -> Unit,
+    onFavoriteClick: () -> Unit = {},
     onDelete: (() -> Unit)? = null
 ) {
     Card(
@@ -338,6 +344,17 @@ fun ScenarioCard(
                     text = scenario.description,
                     style = MaterialTheme.typography.bodyMedium,
                     color = MaterialTheme.colorScheme.onSurfaceVariant
+                )
+            }
+
+            // Favorite button (always visible)
+            IconButton(
+                onClick = { onFavoriteClick() }
+            ) {
+                Icon(
+                    imageVector = if (isFavorite) Icons.Filled.Star else Icons.Default.StarBorder,
+                    contentDescription = if (isFavorite) "즐겨찾기 해제" else "즐겨찾기",
+                    tint = if (isFavorite) androidx.compose.ui.graphics.Color(0xFFFFD700) else MaterialTheme.colorScheme.onSurfaceVariant
                 )
             }
 

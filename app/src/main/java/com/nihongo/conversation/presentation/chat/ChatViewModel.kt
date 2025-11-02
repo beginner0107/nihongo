@@ -56,6 +56,9 @@ data class ChatUiState(
     val isLoading: Boolean = false,
     val error: String? = null,
     val scenario: Scenario? = null,
+    val scenarioCategory: String? = null, // e.g., "🏠 일상 생활"
+    val scenarioDifficulty: String? = null, // e.g., "초급"
+    val isFavoriteScenario: Boolean = false, // Is current scenario favorited
     val user: User? = null,
     val autoSpeak: Boolean = true,
     val speechSpeed: Float = 1.0f,
@@ -194,9 +197,35 @@ class ChatViewModel @Inject constructor(
             currentUserId = userId
             currentScenarioId = scenarioId
 
-            // Load scenario
-            repository.getScenario(scenarioId).first()?.let { scenario ->
-                _uiState.update { it.copy(scenario = scenario) }
+            // Load scenario and user for favorite check
+            val scenario = repository.getScenario(scenarioId).first()
+            val user = repository.getUser(userId).first()
+
+            scenario?.let {
+                // Check if scenario is favorited
+                val favoriteIds = user?.favoriteScenarios?.split(",")?.mapNotNull { it.toLongOrNull() } ?: emptyList()
+                val isFavorite = favoriteIds.contains(scenario.id)
+
+                // Get category label
+                val categoryLabel = getCategoryLabel(scenario.category)
+
+                // Get difficulty label
+                val difficultyLabel = when (scenario.difficulty) {
+                    1 -> "초급"
+                    2 -> "중급"
+                    3 -> "고급"
+                    else -> "초급"
+                }
+
+                _uiState.update {
+                    it.copy(
+                        scenario = scenario,
+                        scenarioCategory = categoryLabel,
+                        scenarioDifficulty = difficultyLabel,
+                        isFavoriteScenario = isFavorite,
+                        user = user
+                    )
+                }
 
                 // Try to get existing conversation (don't create yet - wait for first message)
                 val existingConversationId = repository.getExistingConversation(userId, scenarioId)
@@ -1398,6 +1427,31 @@ class ChatViewModel @Inject constructor(
                 Hint("分かりました", "알겠습니다", "wakarimashita", "이해"),
                 Hint("ありがとうございます", "감사합니다", "arigatou gozaimasu", "감사")
             )
+        }
+    }
+
+    /**
+     * Get category label with emoji for display
+     */
+    private fun getCategoryLabel(category: String): String {
+        return when (category) {
+            "DAILY_LIFE" -> "🏠 일상 생활"
+            "WORK" -> "💼 직장/업무"
+            "TRAVEL" -> "✈️ 여행"
+            "ENTERTAINMENT" -> "🎵 엔터테인먼트"
+            "ESPORTS" -> "🎮 e스포츠"
+            "TECH" -> "💻 기술/개발"
+            "FINANCE" -> "💰 금융/재테크"
+            "CULTURE" -> "🎭 문화"
+            "HOUSING" -> "🏢 부동산/주거"
+            "HEALTH" -> "🏥 건강/의료"
+            "STUDY" -> "📚 학습/교육"
+            "DAILY_CONVERSATION" -> "💬 일상 회화"
+            "JLPT_PRACTICE" -> "📖 JLPT 연습"
+            "BUSINESS" -> "🤝 비즈니스"
+            "ROMANCE" -> "💕 연애/관계"
+            "EMERGENCY" -> "🚨 긴급 상황"
+            else -> "📚 기타"
         }
     }
 }

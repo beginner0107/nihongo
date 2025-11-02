@@ -120,7 +120,74 @@ fun ChatScreen(
     Scaffold(
         topBar = {
             TopAppBar(
-                title = { Text(uiState.scenario?.title ?: stringResource(R.string.chat)) },
+                title = {
+                    Column {
+                        // First line: Emoji + Title + Favorite star
+                        Row(
+                            verticalAlignment = Alignment.CenterVertically,
+                            horizontalArrangement = Arrangement.spacedBy(4.dp)
+                        ) {
+                            Text(
+                                text = "${uiState.scenario?.thumbnailEmoji ?: "💬"} ${uiState.scenario?.title ?: stringResource(R.string.chat)}",
+                                style = MaterialTheme.typography.titleMedium
+                            )
+                            if (uiState.isFavoriteScenario) {
+                                Icon(
+                                    imageVector = Icons.Filled.Star,
+                                    contentDescription = "즐겨찾기",
+                                    modifier = Modifier.size(16.dp),
+                                    tint = Color(0xFFFFD700) // Gold color
+                                )
+                            }
+                        }
+
+                        // Second line: Category · Difficulty
+                        Row(
+                            horizontalArrangement = Arrangement.spacedBy(6.dp),
+                            verticalAlignment = Alignment.CenterVertically
+                        ) {
+                            uiState.scenarioCategory?.let { category ->
+                                Text(
+                                    text = category,
+                                    style = MaterialTheme.typography.labelSmall,
+                                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                                )
+                            }
+
+                            if (uiState.scenarioCategory != null && uiState.scenarioDifficulty != null) {
+                                Text(
+                                    text = "·",
+                                    style = MaterialTheme.typography.labelSmall,
+                                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                                )
+                            }
+
+                            uiState.scenarioDifficulty?.let { difficulty ->
+                                Surface(
+                                    color = when (difficulty) {
+                                        "초급" -> MaterialTheme.colorScheme.primaryContainer
+                                        "중급" -> MaterialTheme.colorScheme.tertiaryContainer
+                                        "고급" -> MaterialTheme.colorScheme.errorContainer
+                                        else -> MaterialTheme.colorScheme.surfaceVariant
+                                    },
+                                    shape = RoundedCornerShape(4.dp)
+                                ) {
+                                    Text(
+                                        text = difficulty,
+                                        style = MaterialTheme.typography.labelSmall,
+                                        modifier = Modifier.padding(horizontal = 6.dp, vertical = 2.dp),
+                                        color = when (difficulty) {
+                                            "초급" -> MaterialTheme.colorScheme.onPrimaryContainer
+                                            "중급" -> MaterialTheme.colorScheme.onTertiaryContainer
+                                            "고급" -> MaterialTheme.colorScheme.onErrorContainer
+                                            else -> MaterialTheme.colorScheme.onSurfaceVariant
+                                        }
+                                    )
+                                }
+                            }
+                        }
+                    }
+                },
                 navigationIcon = {
                     IconButton(onClick = onBackClick) {
                         Icon(

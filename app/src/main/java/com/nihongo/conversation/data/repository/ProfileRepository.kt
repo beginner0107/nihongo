@@ -87,6 +87,38 @@ class ProfileRepository @Inject constructor(
     }
 
     /**
+     * Toggle favorite status for a scenario
+     * @return true if now favorited, false if unfavorited
+     */
+    suspend fun toggleFavoriteScenario(scenarioId: Long): Boolean {
+        val user = getCurrentUserImmediate() ?: return false
+
+        val currentFavorites = user.favoriteScenarios
+            .split(",")
+            .filter { it.isNotBlank() }
+            .mapNotNull { it.toLongOrNull() }
+            .toMutableList()
+
+        val isFavorite = if (currentFavorites.contains(scenarioId)) {
+            // Remove from favorites
+            currentFavorites.remove(scenarioId)
+            false
+        } else {
+            // Add to favorites
+            currentFavorites.add(scenarioId)
+            true
+        }
+
+        // Update user
+        val updatedUser = user.copy(
+            favoriteScenarios = currentFavorites.joinToString(",")
+        )
+        userDao.updateUser(updatedUser)
+
+        return isFavorite
+    }
+
+    /**
      * Check if profile is complete
      */
     suspend fun isProfileComplete(): Boolean {
