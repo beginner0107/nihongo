@@ -13,16 +13,28 @@ data class GrammarComponent(
 
 /**
  * Types of grammar patterns
+ *
+ * Kuromoji Integration (2025-11-02): Expanded from 8 to 12 types for accurate morphological analysis
+ * Color codes optimized for accessibility (darker tones, colorblind-friendly)
  */
 enum class GrammarType(val colorCode: String, val label: String) {
-    PARTICLE("0xFF2196F3", "조사"),           // Blue
-    VERB("0xFF4CAF50", "동사"),              // Green
-    ADJECTIVE("0xFFFF9800", "형용사"),       // Orange
-    NOUN("0xFF9C27B0", "명사"),              // Purple
-    AUXILIARY("0xFFE91E63", "보조동사"),      // Pink
-    CONJUNCTION("0xFF00BCD4", "접속사"),     // Cyan
-    ADVERB("0xFFFFEB3B", "부사"),            // Yellow
-    EXPRESSION("0xFF795548", "표현")         // Brown
+    // Core types (improved colors for accessibility)
+    PARTICLE("0xFF1976D2", "조사"),           // Darker Blue (was #2196F3)
+    VERB("0xFF388E3C", "동사"),              // Darker Green (was #4CAF50)
+    ADJECTIVE("0xFFF57C00", "형용사"),       // Darker Orange (was #FF9800)
+    NOUN("0xFF7B1FA2", "명사"),              // Darker Purple (was #9C27B0)
+    AUXILIARY("0xFFC2185B", "조동사"),        // Darker Pink (was #E91E63)
+    ADVERB("0xFFF9A825", "부사"),            // Darker Yellow (was #FFEB3B) - improved readability
+
+    // New types for Kuromoji detailed POS tagging
+    PREFIX("0xFF3F51B5", "접두사"),          // Indigo
+    INTERJECTION("0xFFFF5722", "감탄사"),    // Deep Orange
+    SYMBOL("0xFF616161", "기호"),            // Dark Grey (was #9E9E9E)
+    RENTAISHI("0xFF00897B", "연체사"),       // Teal (pre-noun adjectival)
+    CONJUNCTION("0xFF0097A7", "접속사"),     // Darker Cyan (was #00BCD4)
+
+    // Fallback
+    EXPRESSION("0xFF6D4C41", "표현")         // Darker Brown (was #795548)
 }
 
 /**

@@ -107,6 +107,8 @@ object KuromojiGrammarAnalyzer {
      * - partOfSpeechLevel2: Sub-category
      * - partOfSpeechLevel3: Detailed classification
      * - conjugationForm: 活用形 (連用形, 終止形, etc.)
+     *
+     * Updated 2025-11-02: Accurate mapping to 12 GrammarTypes
      */
     private fun mapPosToGrammarType(token: Token): GrammarType {
         return when (token.partOfSpeechLevel1) {
@@ -116,11 +118,11 @@ object KuromojiGrammarAnalyzer {
             "名詞" -> GrammarType.NOUN
             "形容詞" -> GrammarType.ADJECTIVE
             "副詞" -> GrammarType.ADVERB
-            "連体詞" -> GrammarType.ADJECTIVE // Pre-noun adjectival
-            "接続詞" -> GrammarType.EXPRESSION // Conjunction
-            "感動詞" -> GrammarType.EXPRESSION // Interjection
-            "接頭詞" -> GrammarType.EXPRESSION // Prefix
-            "記号" -> GrammarType.EXPRESSION // Symbol
+            "連体詞" -> GrammarType.RENTAISHI         // ← Fixed: was ADJECTIVE
+            "接続詞" -> GrammarType.CONJUNCTION       // ← Fixed: was EXPRESSION
+            "感動詞" -> GrammarType.INTERJECTION      // ← Fixed: was EXPRESSION
+            "接頭詞" -> GrammarType.PREFIX            // ← Fixed: was EXPRESSION
+            "記号" -> GrammarType.SYMBOL              // ← Fixed: was EXPRESSION
             else -> GrammarType.EXPRESSION
         }
     }

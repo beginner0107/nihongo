@@ -5,6 +5,7 @@ import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
+import androidx.compose.foundation.lazy.LazyRow
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
@@ -22,6 +23,7 @@ import androidx.compose.ui.text.AnnotatedString
 import androidx.compose.ui.text.SpanStyle
 import androidx.compose.ui.text.buildAnnotatedString
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.style.TextDecoration
 import androidx.compose.ui.text.withStyle
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
@@ -309,6 +311,11 @@ private fun GrammarContent(
             }
         }
 
+        // Color legend for grammar types
+        item {
+            GrammarColorLegend()
+        }
+
         // Original sentence with highlighted components
         item {
             Surface(
@@ -580,12 +587,13 @@ private fun buildHighlightedText(
                 append(originalText.substring(currentIndex, component.startIndex))
             }
 
-            // Add highlighted component
+            // Add highlighted component (with underline for better visibility)
             withStyle(
                 style = SpanStyle(
                     color = getGrammarTypeColor(component.type),
                     fontWeight = FontWeight.Bold,
-                    background = getGrammarTypeColor(component.type).copy(alpha = 0.15f)
+                    background = getGrammarTypeColor(component.type).copy(alpha = 0.15f),
+                    textDecoration = TextDecoration.Underline
                 )
             ) {
                 append(component.text)
@@ -606,4 +614,61 @@ private fun buildHighlightedText(
  */
 private fun getGrammarTypeColor(type: GrammarType): Color {
     return Color(android.graphics.Color.parseColor("#${type.colorCode.substring(4)}"))
+}
+
+/**
+ * Color legend showing all grammar types
+ *
+ * Helps users understand the color coding system
+ */
+@Composable
+private fun GrammarColorLegend() {
+    Column(
+        modifier = Modifier.fillMaxWidth(),
+        verticalArrangement = Arrangement.spacedBy(8.dp)
+    ) {
+        Text(
+            text = "품사별 색상",
+            style = MaterialTheme.typography.labelMedium,
+            color = MaterialTheme.colorScheme.onSurfaceVariant
+        )
+
+        LazyRow(
+            horizontalArrangement = Arrangement.spacedBy(8.dp),
+            contentPadding = PaddingValues(vertical = 4.dp)
+        ) {
+            items(GrammarType.values().toList()) { type ->
+                Surface(
+                    shape = RoundedCornerShape(12.dp),
+                    color = MaterialTheme.colorScheme.surfaceVariant,
+                    tonalElevation = 1.dp
+                ) {
+                    Row(
+                        modifier = Modifier.padding(horizontal = 10.dp, vertical = 6.dp),
+                        horizontalArrangement = Arrangement.spacedBy(6.dp),
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        Box(
+                            modifier = Modifier
+                                .size(14.dp)
+                                .background(
+                                    color = getGrammarTypeColor(type),
+                                    shape = RoundedCornerShape(3.dp)
+                                )
+                                .border(
+                                    width = 0.5.dp,
+                                    color = getGrammarTypeColor(type).copy(alpha = 0.5f),
+                                    shape = RoundedCornerShape(3.dp)
+                                )
+                        )
+                        Text(
+                            text = type.label,
+                            style = MaterialTheme.typography.labelSmall,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant
+                        )
+                    }
+                }
+            }
+        }
+    }
 }
