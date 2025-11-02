@@ -1,6 +1,7 @@
 package com.nihongo.conversation.data.repository
 
 import com.nihongo.conversation.core.difficulty.DifficultyManager
+import com.nihongo.conversation.core.grammar.KuromojiGrammarAnalyzer
 import com.nihongo.conversation.core.util.Result
 import com.nihongo.conversation.data.local.*
 import com.nihongo.conversation.data.remote.GeminiApiService
@@ -183,7 +184,7 @@ class ConversationRepository @Inject constructor(
             ).collect { chunk ->
                 fullResponse.append(chunk)
 
-                // Create partial message with current content
+                // Create partial message with current content (without furigana for TTS/analysis)
                 val partialMsg = Message(
                     id = messageId,
                     conversationId = conversationId,

@@ -496,8 +496,19 @@ fun MessageBubble(
                 modifier = Modifier.padding(12.dp),
                 verticalArrangement = Arrangement.spacedBy(4.dp)
             ) {
+                // Display content with furigana for AI messages only
+                val displayText = remember(message.content, message.isUser) {
+                    if (!message.isUser) {
+                        // Add furigana to AI messages: "注文(ちゅうもん)"
+                        com.nihongo.conversation.core.grammar.KuromojiGrammarAnalyzer.addFuriganaToKanji(message.content)
+                    } else {
+                        // User messages shown as-is
+                        message.content
+                    }
+                }
+
                 Text(
-                    text = message.content,
+                    text = displayText,
                     style = MaterialTheme.typography.bodyMedium,
                     color = if (message.isUser) {
                         MaterialTheme.colorScheme.onPrimaryContainer

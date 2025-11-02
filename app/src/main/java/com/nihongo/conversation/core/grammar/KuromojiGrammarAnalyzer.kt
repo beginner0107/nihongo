@@ -463,4 +463,45 @@ object KuromojiGrammarAnalyzer {
             listOf(japanese)
         }
     }
+
+    /**
+     * Adds furigana (reading guide) to kanji characters in Japanese text
+     *
+     * Example:
+     * - Input: "注文してください"
+     * - Output: "注文(ちゅうもん)してください"
+     *
+     * @param text Japanese text that may contain kanji
+     * @return Text with furigana in parentheses after kanji words
+     */
+    fun addFuriganaToKanji(text: String): String {
+        return try {
+            val tokens = tokenizer.tokenize(text)
+            val result = StringBuilder()
+
+            tokens.forEach { token ->
+                val surface = token.surface
+                val reading = token.reading
+
+                // Check if this token contains kanji
+                val hasKanji = surface.any { char ->
+                    char in '\u4E00'..'\u9FFF' // CJK Unified Ideographs range
+                }
+
+                if (hasKanji && reading != null && reading != surface) {
+                    // Add furigana: "注文(ちゅうもん)"
+                    result.append(surface).append("(").append(reading).append(")")
+                } else {
+                    // No kanji or no reading available, use as-is
+                    result.append(surface)
+                }
+            }
+
+            result.toString()
+        } catch (e: Exception) {
+            android.util.Log.e(TAG, "Failed to add furigana", e)
+            // Fallback: return original text
+            text
+        }
+    }
 }
