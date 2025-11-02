@@ -70,6 +70,9 @@ interface ConversationDao {
     @Delete
     suspend fun deleteConversation(conversation: Conversation)
 
+    @Query("DELETE FROM conversations WHERE id = :conversationId")
+    suspend fun deleteConversationById(conversationId: Long)
+
     // ========== Conversation Statistics View ==========
 
     /**

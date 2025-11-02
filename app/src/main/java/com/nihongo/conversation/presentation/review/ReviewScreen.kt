@@ -42,11 +42,11 @@ fun ReviewScreen(
                 title = {
                     Column {
                         Text(
-                            text = "復習モード",
+                            text = "복습 모드",
                             style = MaterialTheme.typography.titleLarge
                         )
                         Text(
-                            text = "過去の会話を復習しましょう",
+                            text = "과거 대화를 복습하세요",
                             style = MaterialTheme.typography.bodySmall,
                             color = MaterialTheme.colorScheme.onSurfaceVariant
                         )
@@ -150,6 +150,7 @@ fun ReviewScreen(
                             conversationDetails = conversationDetails,
                             onExpandToggle = { viewModel.toggleConversationExpanded(conversationDetails.conversation.id) },
                             onPlayMessage = viewModel::playMessage,
+                            onDelete = { viewModel.showDeleteConfirmation(conversationDetails) },
                             importantPhrases = viewModel.extractImportantPhrases(conversationDetails.messages)
                         )
                     }
@@ -157,6 +158,70 @@ fun ReviewScreen(
             }
         }
     }
+
+    // Delete confirmation dialog
+    uiState.conversationToDelete?.let { conversationDetails ->
+        DeleteConfirmationDialog(
+            conversationTitle = conversationDetails.scenario?.title ?: "会話",
+            onConfirm = { viewModel.deleteConversation() },
+            onDismiss = { viewModel.dismissDeleteConfirmation() }
+        )
+    }
+
+    // Success message Snackbar
+    uiState.deleteSuccess?.let { message ->
+        androidx.compose.material3.Snackbar(
+            modifier = Modifier.padding(16.dp)
+        ) {
+            Text(message)
+        }
+    }
+}
+
+@Composable
+fun DeleteConfirmationDialog(
+    conversationTitle: String,
+    onConfirm: () -> Unit,
+    onDismiss: () -> Unit
+) {
+    AlertDialog(
+        onDismissRequest = onDismiss,
+        icon = { Icon(Icons.Default.Warning, contentDescription = null, tint = MaterialTheme.colorScheme.error) },
+        title = { Text("대화 삭제") },
+        text = {
+            Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                Text("다음 대화를 삭제하시겠습니까?")
+                Text(
+                    text = "\"$conversationTitle\"",
+                    style = MaterialTheme.typography.titleSmall,
+                    fontWeight = FontWeight.Bold,
+                    color = MaterialTheme.colorScheme.primary
+                )
+                Text(
+                    text = "이 작업은 되돌릴 수 없습니다.",
+                    style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.error
+                )
+            }
+        },
+        confirmButton = {
+            Button(
+                onClick = onConfirm,
+                colors = ButtonDefaults.buttonColors(
+                    containerColor = MaterialTheme.colorScheme.error
+                )
+            ) {
+                Icon(Icons.Default.Delete, contentDescription = null)
+                Spacer(modifier = Modifier.width(8.dp))
+                Text("삭제")
+            }
+        },
+        dismissButton = {
+            TextButton(onClick = onDismiss) {
+                Text("취소")
+            }
+        }
+    )
 }
 
 @Composable
@@ -184,6 +249,7 @@ fun ConversationCard(
     conversationDetails: ConversationWithDetails,
     onExpandToggle: () -> Unit,
     onPlayMessage: (String) -> Unit,
+    onDelete: () -> Unit,
     importantPhrases: List<String>
 ) {
     val timeFormatter = remember {
@@ -202,7 +268,7 @@ fun ConversationCard(
                 .padding(16.dp),
             verticalArrangement = Arrangement.spacedBy(12.dp)
         ) {
-            // Header: Scenario + Time + Expand Icon
+            // Header: Scenario + Time + Delete + Expand Icon
             Row(
                 modifier = Modifier.fillMaxWidth(),
                 horizontalArrangement = Arrangement.SpaceBetween,
@@ -221,7 +287,7 @@ fun ConversationCard(
                     )
                     Column {
                         Text(
-                            text = conversationDetails.scenario?.title ?: "会話",
+                            text = conversationDetails.scenario?.title ?: "회화",
                             style = MaterialTheme.typography.titleMedium,
                             fontWeight = FontWeight.Bold
                         )
@@ -235,6 +301,18 @@ fun ConversationCard(
 
                 conversationDetails.scenario?.let { scenario ->
                     DifficultyBadge(difficulty = scenario.difficulty)
+                }
+
+                IconButton(
+                    onClick = onDelete,
+                    modifier = Modifier.size(36.dp)
+                ) {
+                    Icon(
+                        imageVector = Icons.Default.Delete,
+                        contentDescription = "삭제",
+                        tint = MaterialTheme.colorScheme.error,
+                        modifier = Modifier.size(20.dp)
+                    )
                 }
 
                 Icon(

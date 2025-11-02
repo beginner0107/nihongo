@@ -40,7 +40,9 @@ data class ReviewUiState(
     val conversationGroups: List<ConversationGroup> = emptyList(),
     val isLoading: Boolean = false,
     val error: String? = null,
-    val expandedConversationIds: Set<Long> = emptySet()
+    val expandedConversationIds: Set<Long> = emptySet(),
+    val conversationToDelete: ConversationWithDetails? = null,
+    val deleteSuccess: String? = null
 )
 
 @HiltViewModel
@@ -200,6 +202,40 @@ class ReviewViewModel @Inject constructor(
             }
             .distinct()
             .take(5) // Top 5 phrases per conversation
+    }
+
+    fun showDeleteConfirmation(conversationDetails: ConversationWithDetails) {
+        _uiState.update { it.copy(conversationToDelete = conversationDetails) }
+    }
+
+    fun dismissDeleteConfirmation() {
+        _uiState.update { it.copy(conversationToDelete = null) }
+    }
+
+    fun deleteConversation() {
+        val toDelete = _uiState.value.conversationToDelete ?: return
+
+        viewModelScope.launch {
+            try {
+                repository.deleteConversation(toDelete.conversation.id)
+                _uiState.update {
+                    it.copy(
+                        conversationToDelete = null,
+                        deleteSuccess = "会話が削除されました"
+                    )
+                }
+                // Clear success message after 2 seconds
+                kotlinx.coroutines.delay(2000)
+                _uiState.update { it.copy(deleteSuccess = null) }
+            } catch (e: Exception) {
+                _uiState.update {
+                    it.copy(
+                        conversationToDelete = null,
+                        error = "削除に失敗しました: ${e.message}"
+                    )
+                }
+            }
+        }
     }
 
     override fun onCleared() {

@@ -94,6 +94,16 @@ class ConversationRepository @Inject constructor(
     }
 
     /**
+     * Delete a conversation and all its messages.
+     */
+    suspend fun deleteConversation(conversationId: Long) {
+        // Delete all messages first
+        messageDao.deleteMessagesByConversation(conversationId)
+        // Delete the conversation
+        conversationDao.deleteConversationById(conversationId)
+    }
+
+    /**
      * Get completed conversations for a user and scenario (chat history).
      */
     fun getCompletedConversations(userId: Long, scenarioId: Long): Flow<List<Conversation>> =
