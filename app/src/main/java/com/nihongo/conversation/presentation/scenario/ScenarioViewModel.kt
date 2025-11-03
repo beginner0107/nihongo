@@ -2,6 +2,9 @@ package com.nihongo.conversation.presentation.scenario
 
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
+import com.nihongo.conversation.core.recommendation.RecommendationEngine
+import com.nihongo.conversation.core.recommendation.ScoredScenario
+import com.nihongo.conversation.core.session.UserSessionManager
 import com.nihongo.conversation.data.repository.ConversationRepository
 import com.nihongo.conversation.data.repository.ProfileRepository
 import com.nihongo.conversation.domain.model.Scenario
@@ -9,12 +12,14 @@ import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
+import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.launch
 import javax.inject.Inject
 
 data class ScenarioUiState(
     val allScenarios: List<Scenario> = emptyList(),
     val scenarios: List<Scenario> = emptyList(),
+    val recommendedScenarios: List<ScoredScenario> = emptyList(),  // Top 3 recommendations
     val selectedCategory: String? = null, // null = "전체"
     val searchQuery: String = "",  // Search query
     val selectedDifficulties: Set<Int> = emptySet(),  // Selected difficulty filters (1, 2, 3)
@@ -25,7 +30,9 @@ data class ScenarioUiState(
 @HiltViewModel
 class ScenarioViewModel @Inject constructor(
     private val repository: ConversationRepository,
-    private val profileRepository: ProfileRepository
+    private val profileRepository: ProfileRepository,
+    private val recommendationEngine: RecommendationEngine,
+    private val userSessionManager: UserSessionManager
 ) : ViewModel() {
 
     private val _uiState = MutableStateFlow(ScenarioUiState())
@@ -34,6 +41,7 @@ class ScenarioViewModel @Inject constructor(
     init {
         loadScenarios()
         loadFavorites()
+        loadRecommendations()
     }
 
     private fun loadScenarios() {
@@ -53,6 +61,46 @@ class ScenarioViewModel @Inject constructor(
             val favoriteIds = profileRepository.getFavoriteScenarioIds()
             _uiState.value = _uiState.value.copy(favoriteScenarioIds = favoriteIds)
         }
+    }
+
+    /**
+     * Load personalized recommendations based on user history
+     */
+    private fun loadRecommendations() {
+        viewModelScope.launch {
+            try {
+                val userId = userSessionManager.getCurrentUserIdSync() ?: 1L
+
+                // Get user's current level from session
+                val currentLevel = userSessionManager.currentUserLevel.first()
+
+                // Get completed conversations
+                val completedConversations = repository.getCompletedConversations(userId).first()
+
+                // Get all scenarios
+                val scenarios = repository.getAllScenarios().first()
+
+                // Generate recommendations
+                val recommendations = recommendationEngine.getTopRecommendations(
+                    scenarios = scenarios,
+                    completedConversations = completedConversations,
+                    currentLevel = currentLevel,
+                    limit = 3
+                )
+
+                _uiState.value = _uiState.value.copy(recommendedScenarios = recommendations)
+            } catch (e: Exception) {
+                // If recommendation fails, just don't show the banner
+                _uiState.value = _uiState.value.copy(recommendedScenarios = emptyList())
+            }
+        }
+    }
+
+    /**
+     * Refresh recommendations (call after completing a conversation)
+     */
+    fun refreshRecommendations() {
+        loadRecommendations()
     }
 
     fun selectCategory(category: String?) {

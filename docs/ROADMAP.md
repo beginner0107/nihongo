@@ -13,14 +13,14 @@
 | **음성 인식/TTS** | 85% | ✅ 양호 | 속도 조절 완료, 발음 평가 개선 필요 |
 | **문법 분석** | 80% | ✅ 양호 | 로컬 폴백 완료, 설명 품질 개선 필요 |
 | **번역 시스템** | 95% | ✅ 우수 | 3-provider 하이브리드 완성 |
-| **시나리오 관리** | 70% | ⚠️ 보통 | 추천 시스템, 진행 추적 없음 |
-| **단어장** | 0% | ❌ 누락 | **완전 미구현** |
-| **통계/분석** | 0% | ❌ 누락 | **완전 미구현** |
+| **시나리오 관리** | 85% | ✅ 양호 | 추천 시스템 완료, 진행 추적 필요 |
+| **단어장** | 100% | ✅ 완료 | **완전 구현됨** (2025-11-02) |
+| **통계/분석** | 100% | ✅ 완료 | **완전 구현됨** (이미 존재) |
 | **게이미피케이션** | 5% | ❌ 초기 | 업적 시스템만 일부 |
-| **UI/UX** | 75% | ✅ 양호 | 온보딩, 다크모드 없음 |
+| **UI/UX** | 95% | ✅ 우수 | 온보딩/다크모드/접근성 완료 |
 | **오프라인 지원** | 30% | ⚠️ 부족 | ML Kit만 지원, AI 프리셋 없음 |
 
-**전체 완성도**: **68%** (일본어 대화 연습 앱으로서 핵심 기능은 완성, 학습 도구로서 보완 필요)
+**전체 완성도**: **87%** (일본어 대화 연습 앱으로서 거의 완성, 학습 도구로서 핵심 기능 모두 구현됨)
 
 ---
 
@@ -797,51 +797,90 @@ if (showEditDialog) {
 
 ### 3. 📚 콘텐츠 및 시나리오 (Content & Scenarios)
 
-#### 3.1 시나리오 추천 시스템 ⭐ **우선 과제**
+#### 3.1 시나리오 추천 시스템 ✅ **완료** (2025-11-02)
 
-**현재 상태**: 수동 선택만 가능
+**구현 완료 사항**:
+- ✅ RecommendationEngine.kt (~250 lines) - 멀티팩터 스코어링 알고리즘
+- ✅ ScenarioViewModel 통합 (loadRecommendations, refreshRecommendations)
+- ✅ ScenarioListScreen에 RecommendationBanner 추가
+- ✅ ScoredScenario 데이터 모델 (scenario + score + reason)
+- ✅ UserSessionManager 연동 (currentUserLevel)
 
-**구현 필요 사항**:
+**실제 구현 결과**:
+- 구현 기간: 1일 (예상 2일보다 빠름)
+- 실제 코드 라인: ~400 lines (Engine 250 + ViewModel 50 + Screen 100)
+- 빌드 성공: ✅
+- 런타임 테스트: ✅ 오류 없음
+
+**구현 예시 (실제 코드)**:
 
 ```kotlin
-// ScenarioViewModel.kt - Recommendation logic
-fun getRecommendedScenarios(): List<Scenario> {
-    val user = _uiState.value.user ?: return emptyList()
-    val allScenarios = _uiState.value.allScenarios.items
+// RecommendationEngine.kt - Multi-factor scoring algorithm
+@Singleton
+class RecommendationEngine @Inject constructor() {
+    fun getRecommendations(
+        scenarios: List<Scenario>,
+        completedConversations: List<Conversation>,
+        currentLevel: Int
+    ): List<ScoredScenario> {
+        // 5-factor scoring system:
+        // 1. Difficulty matching (0.35) - Perfect match gets highest score
+        // 2. Freshness (0.25) - Unplayed or rarely played scenarios
+        // 3. Diversity (0.20) - Encourage exploration of new categories
+        // 4. Popularity (0.10) - Boost practical daily scenarios
+        // 5. Recency (0.10) - Time-based relevance (spaced repetition)
 
-    // 1. Filter by user level (native language, learning goal)
-    val levelFiltered = allScenarios.filter { scenario ->
-        when (user.learningGoal) {
-            "JLPT_N5" -> scenario.difficulty == 1
-            "JLPT_N3" -> scenario.difficulty in 1..2
-            "JLPT_N1" -> scenario.difficulty in 2..3
-            "BUSINESS" -> scenario.category in listOf("WORK", "BUSINESS")
-            "TRAVEL" -> scenario.category == "TRAVEL"
-            else -> true
+        val scoredScenarios = scenarios.map { scenario ->
+            val score = calculateScore(scenario, completionCount, lastCompletionTime, currentLevel)
+            ScoredScenario(
+                scenario = scenario,
+                score = score,
+                reason = generateReason(scenario, completionCount, currentLevel)
+            )
         }
+
+        return scoredScenarios.sortedByDescending { it.score }
     }
 
-    // 2. Get completion history
-    val completionCounts = conversationRepository.getScenarioCompletionCounts()
-
-    // 3. Recommend least practiced scenarios
-    return levelFiltered
-        .sortedBy { completionCounts[it.id] ?: 0 }
-        .take(5)
+    private fun calculateDifficultyScore(scenarioDifficulty: Int, currentLevel: Int): Double {
+        return when (scenarioDifficulty - currentLevel) {
+            0 -> 0.35    // Perfect match
+            1 -> 0.25    // Slightly harder (level up)
+            -1 -> 0.20   // Slightly easier (review)
+            2 -> 0.10    // Much harder
+            -2 -> 0.05   // Much easier
+            else -> 0.0
+        }
+    }
 }
 
-// ScenarioListScreen.kt - Show recommendation banner
+// ScenarioListScreen.kt - Recommendation banner
 item {
-    Card(
-        colors = CardDefaults.cardColors(
-            containerColor = MaterialTheme.colorScheme.primaryContainer
-        )
-    ) {
+    RecommendationBanner(
+        recommendations = uiState.recommendedScenarios,
+        onScenarioClick = onScenarioSelected
+    )
+}
+
+@Composable
+fun RecommendationBanner(
+    recommendations: List<ScoredScenario>,
+    onScenarioClick: (Long) -> Unit
+) {
+    Card(containerColor = MaterialTheme.colorScheme.primaryContainer) {
         Column {
-            Text("오늘의 추천 시나리오", style = MaterialTheme.typography.titleMedium)
-            LazyRow {
-                items(recommendedScenarios) { scenario ->
-                    SmallScenarioCard(scenario = scenario)
+            Row {
+                Icon(Icons.Default.AutoAwesome, null)
+                Text("맞춤 추천")
+            }
+            Text("학습 기록을 기반으로 당신에게 딱 맞는 시나리오를 추천합니다")
+
+            Row {
+                recommendations.take(3).forEach { scored ->
+                    RecommendationCard(
+                        scoredScenario = scored,
+                        onClick = { onScenarioClick(scored.scenario.id) }
+                    )
                 }
             }
         }
@@ -849,12 +888,12 @@ item {
 }
 ```
 
-**구현 난이도**: 중간 (2일)
-**예상 코드 라인**: ~300 lines
-
 **사용자 가치**: ⭐⭐⭐⭐
-- 학습 방향 제시
-- 초보자 가이드
+- ✅ 학습 방향 제시 (레벨 매칭 + 신선도 기반)
+- ✅ 초보자 가이드 (난이도 적합성 표시)
+- ✅ 다양성 장려 (카테고리 균형 유지)
+- ✅ 추천 이유 명시 ("레벨에 딱 맞아요 • 새로운 시나리오")
+- ✅ 실시간 업데이트 가능 (refreshRecommendations)
 
 ---
 
@@ -1467,11 +1506,11 @@ IconButton(onClick = {
 | 2 | **학습 통계 대시보드** | 2-3일 | ⭐⭐⭐⭐ | 중간 | ✅ **완료** (이미 존재) |
 | 3 | **온보딩 튜토리얼** | 1일 | ⭐⭐⭐⭐⭐ | 낮음 | ✅ **완료** (2025-11-02) |
 | 4 | **다크 모드** | 1일 | ⭐⭐⭐⭐ | 낮음 | ✅ **완료** (2025-11-02) |
-| 5 | **시나리오 추천 시스템** | 2일 | ⭐⭐⭐⭐ | 중간 | ⏳ 대기 |
+| 5 | **시나리오 추천 시스템** | 2일 | ⭐⭐⭐⭐ | 중간 | ✅ **완료** (2025-11-02) |
 | 6 | **대화 내보내기** | 1일 | ⭐⭐⭐⭐ | 낮음 | ⏳ 대기 |
 
-**예상 코드 라인**: ~2,500 lines (✅ 완료: ~1,850 lines)
-**완료 후 완성도**: 85% (현재: 84%)
+**예상 코드 라인**: ~2,500 lines (✅ 완료: ~2,250 lines)
+**완료 후 완성도**: 88% (현재: 87%)
 
 ---
 
@@ -1549,9 +1588,12 @@ IconButton(onClick = {
   - [x] ThemeMode enum (LIGHT/DARK/SYSTEM)
   - [x] SettingsDataStore.themeMode
   - [x] MainActivity 테마 적용
-- [ ] 시나리오 추천 시스템
-  - [ ] 추천 알고리즘 (user profile + completion history)
-  - [ ] ScenarioListScreen 배너
+- [x] 시나리오 추천 시스템 ✅ **완료** (2025-11-02)
+  - [x] RecommendationEngine (멀티팩터 스코어링)
+  - [x] ScenarioViewModel 통합 (loadRecommendations)
+  - [x] RecommendationBanner 컴포넌트
+  - [x] ScoredScenario 데이터 모델
+  - [x] UserSessionManager.currentUserLevel 연동
 - [ ] 대화 내보내기
   - [ ] ExportManager (TXT, PDF)
   - [ ] Share intent 연동

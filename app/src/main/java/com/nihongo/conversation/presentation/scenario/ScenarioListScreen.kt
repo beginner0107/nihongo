@@ -316,6 +316,16 @@ fun ScenarioListScreen(
                     contentPadding = PaddingValues(16.dp),
                     verticalArrangement = Arrangement.spacedBy(12.dp)
                 ) {
+                    // Recommendation banner (only show on "전체" tab)
+                    if (uiState.selectedCategory == null && uiState.recommendedScenarios.isNotEmpty()) {
+                        item {
+                            RecommendationBanner(
+                                recommendations = uiState.recommendedScenarios,
+                                onScenarioClick = onScenarioSelected
+                            )
+                        }
+                    }
+
                     groupedScenarios.forEach { (category, scenarios) ->
                         // 섹션 헤더 (전체 탭에서만 표시)
                         if (uiState.selectedCategory == null && category.isNotEmpty()) {
@@ -496,6 +506,139 @@ fun ScenarioCard(
                         Text("삭제")
                     }
                 }
+            }
+        }
+    }
+}
+
+
+
+@Composable
+fun RecommendationBanner(
+    recommendations: List<com.nihongo.conversation.core.recommendation.ScoredScenario>,
+    onScenarioClick: (Long) -> Unit,
+    modifier: Modifier = Modifier
+) {
+    Card(
+        modifier = modifier.fillMaxWidth(),
+        colors = CardDefaults.cardColors(
+            containerColor = MaterialTheme.colorScheme.primaryContainer
+        )
+    ) {
+        Column(
+            modifier = Modifier.padding(16.dp),
+            verticalArrangement = Arrangement.spacedBy(12.dp)
+        ) {
+            // Header
+            Row(
+                verticalAlignment = Alignment.CenterVertically,
+                horizontalArrangement = Arrangement.spacedBy(8.dp)
+            ) {
+                Icon(
+                    imageVector = Icons.Default.AutoAwesome,
+                    contentDescription = null,
+                    tint = MaterialTheme.colorScheme.primary
+                )
+                Text(
+                    text = "맞춤 추천",
+                    style = MaterialTheme.typography.titleMedium,
+                    fontWeight = FontWeight.Bold,
+                    color = MaterialTheme.colorScheme.onPrimaryContainer
+                )
+            }
+
+            Text(
+                text = "학습 기록을 기반으로 당신에게 딱 맞는 시나리오를 추천합니다",
+                style = MaterialTheme.typography.bodySmall,
+                color = MaterialTheme.colorScheme.onPrimaryContainer.copy(alpha = 0.8f)
+            )
+
+            // Recommendation cards (horizontal scrollable)
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.spacedBy(8.dp)
+            ) {
+                recommendations.take(3).forEach { scored ->
+                    RecommendationCard(
+                        scoredScenario = scored,
+                        onClick = { onScenarioClick(scored.scenario.id) },
+                        modifier = Modifier.weight(1f)
+                    )
+                }
+            }
+        }
+    }
+}
+
+@Composable
+fun RecommendationCard(
+    scoredScenario: com.nihongo.conversation.core.recommendation.ScoredScenario,
+    onClick: () -> Unit,
+    modifier: Modifier = Modifier
+) {
+    Card(
+        modifier = modifier,
+        onClick = onClick,
+        colors = CardDefaults.cardColors(
+            containerColor = MaterialTheme.colorScheme.surface
+        )
+    ) {
+        Column(
+            modifier = Modifier.padding(12.dp),
+            verticalArrangement = Arrangement.spacedBy(8.dp)
+        ) {
+            // Emoji
+            Text(
+                text = scoredScenario.scenario.thumbnailEmoji,
+                style = MaterialTheme.typography.headlineMedium
+            )
+
+            // Title
+            Text(
+                text = scoredScenario.scenario.title,
+                style = MaterialTheme.typography.titleSmall,
+                fontWeight = FontWeight.Bold,
+                maxLines = 2,
+                minLines = 2
+            )
+
+            // Reason
+            if (scoredScenario.reason.isNotBlank()) {
+                Text(
+                    text = scoredScenario.reason,
+                    style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.primary,
+                    fontWeight = FontWeight.Medium
+                )
+            }
+
+            // Difficulty badge
+            Surface(
+                shape = MaterialTheme.shapes.small,
+                color = when (scoredScenario.scenario.difficulty) {
+                    1 -> MaterialTheme.colorScheme.primaryContainer
+                    2 -> MaterialTheme.colorScheme.tertiaryContainer
+                    3 -> MaterialTheme.colorScheme.errorContainer
+                    else -> MaterialTheme.colorScheme.surfaceVariant
+                }
+            ) {
+                Text(
+                    text = when (scoredScenario.scenario.difficulty) {
+                        1 -> "초급"
+                        2 -> "중급"
+                        3 -> "상급"
+                        else -> "초급"
+                    },
+                    modifier = Modifier.padding(horizontal = 8.dp, vertical = 4.dp),
+                    style = MaterialTheme.typography.labelSmall,
+                    fontWeight = FontWeight.Bold,
+                    color = when (scoredScenario.scenario.difficulty) {
+                        1 -> MaterialTheme.colorScheme.onPrimaryContainer
+                        2 -> MaterialTheme.colorScheme.onTertiaryContainer
+                        3 -> MaterialTheme.colorScheme.onErrorContainer
+                        else -> MaterialTheme.colorScheme.onSurfaceVariant
+                    }
+                )
             }
         }
     }
