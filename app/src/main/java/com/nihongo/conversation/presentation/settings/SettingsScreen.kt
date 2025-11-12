@@ -334,60 +334,88 @@ fun SpeechSpeedSlider(
     onValueChange: (Float) -> Unit
 ) {
     Column(
-        verticalArrangement = Arrangement.spacedBy(8.dp)
+        verticalArrangement = Arrangement.spacedBy(12.dp)
     ) {
-        Row(
-            modifier = Modifier.fillMaxWidth(),
-            horizontalArrangement = Arrangement.SpaceBetween,
-            verticalAlignment = Alignment.CenterVertically
-        ) {
-            Text(
-                text = "속도",
-                style = MaterialTheme.typography.bodyLarge,
-                fontWeight = FontWeight.Medium
-            )
-            Surface(
-                shape = MaterialTheme.shapes.small,
-                color = MaterialTheme.colorScheme.primaryContainer
-            ) {
-                Text(
-                    text = "${String.format("%.1f", value)}x",
-                    modifier = Modifier.padding(horizontal = 12.dp, vertical = 6.dp),
-                    style = MaterialTheme.typography.labelMedium,
-                    color = MaterialTheme.colorScheme.onPrimaryContainer,
-                    fontWeight = FontWeight.Bold
-                )
-            }
-        }
-
-        Slider(
-            value = value,
-            onValueChange = onValueChange,
-            valueRange = 0.5f..2.0f,
-            steps = 14  // 0.5, 0.6, 0.7, ..., 2.0
+        Text(
+            text = "속도",
+            style = MaterialTheme.typography.bodyLarge,
+            fontWeight = FontWeight.Medium
         )
 
+        // Speed selection buttons
         Row(
             modifier = Modifier.fillMaxWidth(),
-            horizontalArrangement = Arrangement.SpaceBetween
+            horizontalArrangement = Arrangement.spacedBy(8.dp)
         ) {
-            Text(
-                text = "느림 (0.5x)",
-                style = MaterialTheme.typography.bodySmall,
-                color = MaterialTheme.colorScheme.onSurfaceVariant
+            SpeedButton(
+                label = "0.5x",
+                description = "느림",
+                isSelected = value == 0.5f,
+                onClick = { onValueChange(0.5f) },
+                modifier = Modifier.weight(1f)
             )
-            Text(
-                text = "보통 (1.0x)",
-                style = MaterialTheme.typography.bodySmall,
-                color = MaterialTheme.colorScheme.onSurfaceVariant
+            SpeedButton(
+                label = "1.0x",
+                description = "보통",
+                isSelected = value == 1.0f,
+                onClick = { onValueChange(1.0f) },
+                modifier = Modifier.weight(1f)
             )
-            Text(
-                text = "빠름 (2.0x)",
-                style = MaterialTheme.typography.bodySmall,
-                color = MaterialTheme.colorScheme.onSurfaceVariant
+            SpeedButton(
+                label = "1.5x",
+                description = "빠름",
+                isSelected = value == 1.5f,
+                onClick = { onValueChange(1.5f) },
+                modifier = Modifier.weight(1f)
+            )
+            SpeedButton(
+                label = "2.0x",
+                description = "매우 빠름",
+                isSelected = value == 2.0f,
+                onClick = { onValueChange(2.0f) },
+                modifier = Modifier.weight(1f)
             )
         }
     }
+}
+
+@Composable
+fun SpeedButton(
+    label: String,
+    description: String,
+    isSelected: Boolean,
+    onClick: () -> Unit,
+    modifier: Modifier = Modifier
+) {
+    FilterChip(
+        selected = isSelected,
+        onClick = onClick,
+        label = {
+            Column(
+                horizontalAlignment = Alignment.CenterHorizontally,
+                modifier = Modifier.fillMaxWidth()
+            ) {
+                Text(
+                    text = label,
+                    style = MaterialTheme.typography.titleMedium,
+                    fontWeight = if (isSelected) FontWeight.Bold else FontWeight.Normal
+                )
+                Text(
+                    text = description,
+                    style = MaterialTheme.typography.bodySmall,
+                    color = if (isSelected)
+                        MaterialTheme.colorScheme.onSecondaryContainer
+                    else
+                        MaterialTheme.colorScheme.onSurfaceVariant
+                )
+            }
+        },
+        modifier = modifier.height(64.dp),
+        colors = FilterChipDefaults.filterChipColors(
+            selectedContainerColor = MaterialTheme.colorScheme.primaryContainer,
+            selectedLabelColor = MaterialTheme.colorScheme.onPrimaryContainer
+        )
+    )
 }
 
 @Composable
