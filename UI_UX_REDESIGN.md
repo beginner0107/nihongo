@@ -2,6 +2,29 @@
 
 > **목표**: 게임화, 데이터 시각화, 소셜 기능을 통한 학습 동기 부여 및 사용자 경험 혁신
 
+## 🎉 진행 상황 (2025-11-12 업데이트)
+
+### 완료된 Phase
+- ✅ **Phase 2: 퀘스트/미션 시스템** (100% 완료)
+  - Part 1: Backend 구현 (Database, Repository, Domain Models)
+  - Part 2: UI 구현 (QuestCard, QuestSection, HomeScreen 통합)
+  - Part 3: 자동 진행률 추적 (ChatViewModel 통합, 자동 완료 감지)
+
+### 진행 중인 Phase
+- 🚧 **Phase 1: 홈 대시보드 혁신** (부분 완료)
+  - ✅ TodayLearningCard (진행률 바, 동기부여 메시지)
+  - ✅ RecommendedScenariosSection (카드 크기 확대)
+  - ✅ RecentScenariosSection (최근 학습 시나리오)
+  - ⏳ LearningProgressCard (대기 중)
+  - ⏳ StreakCard (대기 중)
+
+### 다음 예정 Phase
+- 📅 Phase 6: 하단 네비게이션 바 (HomeScreen 완성 후)
+- 📅 Phase 3: 리더보드 & Achievement
+- 📅 Phase 4: 학습 통계 고도화
+
+---
+
 ## 📊 참고 디자인 분석
 
 ### 벤치마크 앱 특징
@@ -1363,15 +1386,98 @@ fun ChatScreen(
 ```
 
 #### 완료 조건
-- [ ] DailyQuestEntity, UserPointsEntity 테이블 생성
-- [ ] QuestRepository, QuestViewModel 구현
-- [ ] QuestCard, QuestSection UI 작동
-- [ ] ScenarioListScreen에 퀘스트 섹션 통합
-- [ ] ChatViewModel에서 자동 진행률 업데이트
-- [ ] 포인트 획득 애니메이션 작동
-- [ ] 퀘스트 완료 시 포인트 자동 지급
-- [ ] 레벨업 시스템 작동
-- [ ] 만료된 퀘스트 자동 삭제
+- [x] DailyQuestEntity, UserPointsEntity 테이블 생성 ✅ (2025-11-12)
+- [x] QuestRepository, QuestViewModel 구현 ✅ (2025-11-12)
+- [x] QuestCard, QuestSection UI 작동 ✅ (2025-11-12)
+- [x] HomeScreen에 퀘스트 섹션 통합 ✅ (2025-11-12)
+- [x] ChatViewModel에서 자동 진행률 업데이트 ✅ (2025-11-12)
+- [x] 퀘스트 완료 시 포인트 자동 지급 ✅ (2025-11-12)
+- [x] 레벨업 시스템 작동 ✅ (2025-11-12)
+- [x] 만료된 퀘스트 자동 삭제 ✅ (2025-11-12)
+- [x] 퀘스트 완료 자동 감지 및 다이얼로그 표시 ✅ (2025-11-12)
+- [ ] 포인트 획득 애니메이션 작동 (Phase 7에서 구현 예정)
+
+#### 구현 상세 (2025-11-12 완료)
+
+##### Phase 2 Part 1: Backend 구현 ✅
+**커밋**: `3581c6d` - "feat: Implement Quest/Mission System UI (Phase 2 Part 2)"
+
+- **Database Schema (Migration 15→16)**:
+  - `daily_quests` 테이블 (12개 컬럼, 3개 인덱스)
+  - `user_points` 테이블 (7개 컬럼)
+  - QuestType enum: MESSAGE_COUNT, SCENARIO_COMPLETE, VOICE_ONLY_SESSION, VOCABULARY_REVIEW, PRONUNCIATION_PRACTICE, GRAMMAR_ANALYSIS, NEW_SCENARIO
+
+- **Repository Layer**:
+  - `QuestRepository`: 퀘스트 CRUD, 진행률 업데이트, 포인트 관리
+  - `incrementQuestProgressByType()`: 타입별 자동 업데이트 헬퍼 메서드
+  - 자동 완료 로직: `currentValue >= targetValue` 시 자동 완료
+  - 레벨업 로직: 100포인트 = 1레벨
+
+- **Domain Models**:
+  - `Quest`: 진행률 계산 (`progress = currentValue / targetValue`)
+  - `UserPoints`: 다음 레벨까지 포인트 계산
+
+##### Phase 2 Part 2: UI 구현 ✅
+**커밋**: `3581c6d` - "feat: Implement Quest/Mission System UI (Phase 2 Part 2)"
+
+- **QuestCard.kt**:
+  - 타입별 아이콘 (Message, CheckCircle, Mic 등)
+  - 진행률 바 (LinearProgressIndicator 6dp height)
+  - 보상 배지 (완료: 초록색, 미완료: 골드)
+  - `currentValue / targetValue` 진행 상태 표시
+
+- **QuestSection.kt**:
+  - 헤더: "오늘의 퀘스트" + 레벨/포인트 표시
+  - 상위 3개 퀘스트만 표시
+  - 전체 보기 버튼 (향후 확장)
+
+- **QuestViewModel.kt**:
+  - `StateFlow<List<Quest>>`: 실시간 퀘스트 목록
+  - `StateFlow<UserPoints?>`: 실시간 포인트/레벨
+  - 자동 퀘스트 생성 (일일 3개, 매일 자정 갱신)
+  - 퀘스트 완료 다이얼로그 상태 관리
+
+- **HomeScreen.kt 통합**:
+  - QuestSection 추가 (Today's Learning과 Recommended Scenarios 사이)
+  - QuestCompletedDialog 표시
+  - QuestViewModel 주입
+
+##### Phase 2 Part 3: 자동 진행률 추적 ✅
+**커밋**: `710cd9c` - "feat: Add automatic quest progress tracking (Phase 2 Part 3)"
+
+- **ChatViewModel.kt**:
+  - `QuestRepository` 주입
+  - **MESSAGE_COUNT 추적**: `sendJapaneseMessage()` 완료 시 자동 +1
+  - **VOICE_ONLY_SESSION 추적**: `endVoiceOnlyMode()` 완료 시 자동 +1
+  - 백그라운드 코루틴으로 비동기 업데이트 (UI 블로킹 없음)
+
+- **QuestViewModel.kt 자동 완료 감지**:
+  - `previousQuestCompletionState` 맵으로 이전 상태 추적
+  - `isCompleted` 전환 감지 (false → true)
+  - 자동으로 `showQuestCompletedDialog = true` 설정
+  - 재시작 시 중복 표시 방지
+
+- **퀘스트 흐름**:
+  1. 사용자 액션 (메시지 전송/음성 세션 종료)
+  2. `questRepository.incrementQuestProgressByType()` 호출
+  3. Repository에서 자동 완료 체크 및 포인트 지급
+  4. ViewModel에서 완료 감지 → 다이얼로그 표시
+  5. 사용자가 축하 메시지 확인
+
+#### 향후 확장 가능성
+
+**추가 퀘스트 타입 구현 예정**:
+- [ ] PRONUNCIATION_PRACTICE: `checkPronunciation()` 추적
+- [ ] GRAMMAR_ANALYSIS: `requestGrammarExplanation()` 추적
+- [ ] VOCABULARY_REVIEW: 플래시카드 복습 추적
+- [ ] SCENARIO_COMPLETE: `completeConversation()` 추적
+- [ ] NEW_SCENARIO: `initConversation()` 추적
+
+**UI/UX 개선 예정**:
+- [ ] 포인트 획득 애니메이션 (Phase 7)
+- [ ] 레벨업 축하 애니메이션
+- [ ] 퀘스트 히스토리 화면
+- [ ] 주간 퀘스트 챌린지
 
 ---
 
