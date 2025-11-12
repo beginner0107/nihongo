@@ -13,9 +13,10 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.sp
 
 /**
- * Today's Learning Card - Combines progress + streak in one compact card
+ * Today's Learning Card - Enhanced with progress bar and motivational message
  */
 @Composable
 fun TodayLearningCard(
@@ -26,6 +27,10 @@ fun TodayLearningCard(
     remainingMinutes: Int,
     modifier: Modifier = Modifier
 ) {
+    val progress = if (dailyGoal > 0) todayMessageCount.toFloat() / dailyGoal.toFloat() else 0f
+    val remaining = (dailyGoal - todayMessageCount).coerceAtLeast(0)
+    val isGoalAchieved = todayMessageCount >= dailyGoal
+
     Card(
         modifier = modifier
             .fillMaxWidth()
@@ -36,86 +41,157 @@ fun TodayLearningCard(
             modifier = Modifier.padding(20.dp),
             verticalArrangement = Arrangement.spacedBy(16.dp)
         ) {
-            // Header
-            Text(
-                text = "오늘의 학습",
-                style = MaterialTheme.typography.titleMedium,
-                fontWeight = FontWeight.Bold
-            )
-
-            // Metrics Row
+            // Header with time remaining
             Row(
                 modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.SpaceEvenly
+                horizontalArrangement = Arrangement.SpaceBetween,
+                verticalAlignment = Alignment.CenterVertically
             ) {
-                // Messages
-                MetricItem(
-                    icon = Icons.Default.Message,
-                    value = "$todayMessageCount / $dailyGoal",
-                    label = "메시지",
-                    color = MaterialTheme.colorScheme.primary
+                Text(
+                    text = "오늘의 학습",
+                    style = MaterialTheme.typography.titleLarge,
+                    fontWeight = FontWeight.Bold
                 )
 
-                Divider(
+                Row(
+                    horizontalArrangement = Arrangement.spacedBy(4.dp),
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    Icon(
+                        imageVector = Icons.Default.Timer,
+                        contentDescription = null,
+                        tint = MaterialTheme.colorScheme.tertiary,
+                        modifier = Modifier.size(18.dp)
+                    )
+                    Text(
+                        text = "${remainingHours}h ${remainingMinutes}m",
+                        style = MaterialTheme.typography.bodyMedium,
+                        color = MaterialTheme.colorScheme.tertiary,
+                        fontWeight = FontWeight.Medium
+                    )
+                }
+            }
+
+            // Progress section
+            Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                // Progress bar
+                LinearProgressIndicator(
+                    progress = progress.coerceAtMost(1f),
                     modifier = Modifier
-                        .height(50.dp)
-                        .width(1.dp)
+                        .fillMaxWidth()
+                        .height(10.dp),
+                    color = if (isGoalAchieved) Color(0xFF4CAF50) else MaterialTheme.colorScheme.primary,
+                    trackColor = MaterialTheme.colorScheme.surfaceVariant
                 )
 
-                // Streak
-                MetricItem(
-                    icon = Icons.Default.LocalFireDepartment,
-                    value = "${currentStreak}일",
-                    label = "연속 학습",
-                    color = Color(0xFFFF6B35)
+                // Message count
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.SpaceBetween,
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    Row(
+                        horizontalArrangement = Arrangement.spacedBy(8.dp),
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        Icon(
+                            imageVector = Icons.Default.Message,
+                            contentDescription = null,
+                            tint = MaterialTheme.colorScheme.primary,
+                            modifier = Modifier.size(20.dp)
+                        )
+                        Text(
+                            text = "메시지",
+                            style = MaterialTheme.typography.bodyMedium,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant
+                        )
+                    }
+
+                    Text(
+                        text = "$todayMessageCount / $dailyGoal",
+                        style = MaterialTheme.typography.titleMedium,
+                        fontWeight = FontWeight.Bold,
+                        color = if (isGoalAchieved) Color(0xFF4CAF50) else MaterialTheme.colorScheme.onSurface
+                    )
+                }
+            }
+
+            Divider()
+
+            // Streak section
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.spacedBy(12.dp),
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                Icon(
+                    imageVector = Icons.Default.LocalFireDepartment,
+                    contentDescription = null,
+                    tint = Color(0xFFFF6B35),
+                    modifier = Modifier.size(32.dp)
                 )
 
-                Divider(
-                    modifier = Modifier
-                        .height(50.dp)
-                        .width(1.dp)
-                )
+                Column(verticalArrangement = Arrangement.spacedBy(2.dp)) {
+                    Text(
+                        text = if (currentStreak > 0) "${currentStreak}일 연속 학습중!" else "오늘부터 시작하세요!",
+                        style = MaterialTheme.typography.titleMedium,
+                        fontWeight = FontWeight.Bold
+                    )
+                    if (currentStreak > 0) {
+                        Text(
+                            text = "계속해서 학습 습관을 유지해보세요",
+                            style = MaterialTheme.typography.bodySmall,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant
+                        )
+                    }
+                }
+            }
 
-                // Time Remaining
-                MetricItem(
-                    icon = Icons.Default.Timer,
-                    value = "${remainingHours}h ${remainingMinutes}m",
-                    label = "남은 시간",
-                    color = MaterialTheme.colorScheme.tertiary
-                )
+            // Motivational message
+            if (!isGoalAchieved && remaining > 0) {
+                Surface(
+                    color = MaterialTheme.colorScheme.primaryContainer,
+                    shape = MaterialTheme.shapes.small
+                ) {
+                    Row(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .padding(12.dp),
+                        horizontalArrangement = Arrangement.spacedBy(8.dp),
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        Text(text = "🎯", fontSize = 20.sp)
+                        Text(
+                            text = "${remaining}개 더 보내면 목표 달성!",
+                            style = MaterialTheme.typography.bodyMedium,
+                            fontWeight = FontWeight.Medium,
+                            color = MaterialTheme.colorScheme.onPrimaryContainer
+                        )
+                    }
+                }
+            } else if (isGoalAchieved) {
+                Surface(
+                    color = Color(0xFF4CAF50).copy(alpha = 0.15f),
+                    shape = MaterialTheme.shapes.small
+                ) {
+                    Row(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .padding(12.dp),
+                        horizontalArrangement = Arrangement.spacedBy(8.dp),
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        Text(text = "🎉", fontSize = 20.sp)
+                        Text(
+                            text = "오늘의 목표를 달성했습니다!",
+                            style = MaterialTheme.typography.bodyMedium,
+                            fontWeight = FontWeight.Medium,
+                            color = Color(0xFF2E7D32)
+                        )
+                    }
+                }
             }
         }
     }
 }
 
-@Composable
-private fun MetricItem(
-    icon: ImageVector,
-    value: String,
-    label: String,
-    color: Color
-) {
-    Column(
-        horizontalAlignment = Alignment.CenterHorizontally,
-        verticalArrangement = Arrangement.spacedBy(4.dp)
-    ) {
-        Icon(
-            imageVector = icon,
-            contentDescription = label,
-            tint = color,
-            modifier = Modifier.size(28.dp)
-        )
-
-        Text(
-            text = value,
-            style = MaterialTheme.typography.titleMedium,
-            fontWeight = FontWeight.Bold
-        )
-
-        Text(
-            text = label,
-            style = MaterialTheme.typography.bodySmall,
-            color = MaterialTheme.colorScheme.onSurfaceVariant
-        )
-    }
-}

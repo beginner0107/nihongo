@@ -13,6 +13,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
 import com.nihongo.conversation.presentation.dashboard.DailyChallengeCard
+import com.nihongo.conversation.presentation.dashboard.RecentScenariosSection
 import com.nihongo.conversation.presentation.dashboard.RecommendedScenariosSection
 import com.nihongo.conversation.presentation.dashboard.TodayLearningCard
 import com.nihongo.conversation.presentation.scenario.ScenarioViewModel
@@ -131,6 +132,20 @@ fun HomeScreen(
                         onVocabularyClick = { /* TODO: Navigate to vocabulary */ },
                         onPronunciationClick = { /* TODO: Navigate to pronunciation */ }
                     )
+                }
+
+                // Recent Scenarios
+                item {
+                    val recentScenarios = uiState.scenarios
+                        .filter { !uiState.recommendedScenarios.map { it.scenario.id }.contains(it.id) }
+                        .take(3)
+
+                    if (recentScenarios.isNotEmpty()) {
+                        RecentScenariosSection(
+                            scenarios = recentScenarios,
+                            onScenarioClick = onScenarioSelected
+                        )
+                    }
                 }
             }
         }

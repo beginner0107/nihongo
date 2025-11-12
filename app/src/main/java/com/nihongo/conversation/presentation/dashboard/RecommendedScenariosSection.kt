@@ -63,8 +63,8 @@ private fun CompactScenarioCard(
 ) {
     Card(
         modifier = modifier
-            .width(160.dp)
-            .height(140.dp)
+            .width(180.dp)
+            .height(160.dp)
             .clickable { onClick() },
         elevation = CardDefaults.cardElevation(3.dp),
         shape = RoundedCornerShape(16.dp)
@@ -72,13 +72,13 @@ private fun CompactScenarioCard(
         Column(
             modifier = Modifier
                 .fillMaxSize()
-                .padding(16.dp),
+                .padding(18.dp),
             verticalArrangement = Arrangement.SpaceBetween
         ) {
             // Emoji Icon
             Text(
                 text = scenario.thumbnailEmoji,
-                fontSize = 40.sp
+                fontSize = 44.sp
             )
 
             // Title
@@ -86,8 +86,9 @@ private fun CompactScenarioCard(
                 text = scenario.title,
                 style = MaterialTheme.typography.titleMedium,
                 fontWeight = FontWeight.Bold,
-                maxLines = 2,
-                overflow = TextOverflow.Ellipsis
+                maxLines = 3,
+                overflow = TextOverflow.Ellipsis,
+                lineHeight = 20.sp
             )
 
             // Metadata
