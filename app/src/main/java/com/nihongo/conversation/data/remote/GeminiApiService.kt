@@ -71,7 +71,7 @@ class GeminiApiService @Inject constructor(
             GenerativeModel(
                 modelName = "gemini-2.5-flash",
                 apiKey = apiKey,
-                requestOptions = RequestOptions(timeout = 15.seconds),
+                requestOptions = RequestOptions(timeout = 8.seconds),  // Reduced from 15s to 8s for faster response
                 generationConfig = conversationConfig  // Apply same config to prevent explanations
             )
         }
@@ -808,29 +808,24 @@ class GeminiApiService @Inject constructor(
         android.util.Log.d("GrammarAnalysis", "Level: $userLevel")
 
         return try {
-            // Simplified prompt - 15 lines instead of 40
+            // Optimized prompt - 12 lines for faster processing
             val prompt = """
-                日本語学習者のメッセージを簡潔に分析してください。
-
-                メッセージ: $userMessage
+                日本語分析: "$userMessage"
                 レベル: ${if (userLevel == 1) "初級" else if (userLevel == 2) "中級" else "上級"}
 
-                重要な問題のみJSON配列で返してください:
-                [{"type":"GRAMMAR_ERROR","severity":"ERROR","explanation":"틀린 이유","correctedText":"올바른 문장"}]
+                重要な問題のみJSON配列:
+                [{"type":"GRAMMAR_ERROR","severity":"ERROR","explanation":"간단한 설명","correctedText":"올바른 문장"}]
+                問題なし: []
 
-                問題なければ空配列を返す: []
+                type: GRAMMAR_ERROR/UNNATURAL/BETTER_EXPRESSION/POLITENESS_LEVEL
+                severity: ERROR/WARNING/INFO
 
-                チェック項目:
-                1. 文法エラー(助詞、動詞活用)
-                2. 不自然な表現
-                3. 敬語の間違い
-
-                JSONのみ出力、説明は韓国語で簡潔に。
+                JSONのみ、説明は15字以内、韓国語で。
             """.trimIndent()
 
             android.util.Log.d("GrammarAnalysis", "Sending request to Gemini...")
 
-            // Generate content with the prompt using grammar model (15s timeout)
+            // Generate content with the prompt using grammar model (8s timeout)
             val response = grammarModel?.generateContent(prompt)
 
             val responseText = response?.text?.trim() ?: "[]"

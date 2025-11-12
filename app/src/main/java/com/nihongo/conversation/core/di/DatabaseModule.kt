@@ -4,6 +4,7 @@ import android.content.Context
 import androidx.room.Room
 import com.nihongo.conversation.data.local.*
 import com.nihongo.conversation.data.local.dao.TranslationCacheDao
+import com.nihongo.conversation.data.local.dao.GrammarFeedbackCacheDao
 import dagger.Module
 import dagger.Provides
 import dagger.hilt.InstallIn
@@ -38,11 +39,12 @@ object DatabaseModule {
                 NihongoDatabase.MIGRATION_10_11,  // Phase 1: Unique index
                 NihongoDatabase.MIGRATION_11_12,  // DeepL translation cache
                 NihongoDatabase.MIGRATION_12_13,  // Custom scenario support
-                NihongoDatabase.MIGRATION_13_14   // Remove User.level (use scenario difficulty)
+                NihongoDatabase.MIGRATION_13_14,  // Remove User.level (use scenario difficulty)
+                NihongoDatabase.MIGRATION_14_15   // Grammar feedback cache
             )
             // Phase 3: All migrations provided - no destructive migration needed
             // This prevents user data loss in production
-            // Complete migration path: 1→2→3→4→5→6→7→8→9→10→11→12→13→14
+            // Complete migration path: 1→2→3→4→5→6→7→8→9→10→11→12→13→14→15
             .build()
     }
 
@@ -101,4 +103,8 @@ object DatabaseModule {
     @Provides
     fun provideTranslationCacheDao(database: NihongoDatabase): TranslationCacheDao =
         database.translationCacheDao()
+
+    @Provides
+    fun provideGrammarFeedbackCacheDao(database: NihongoDatabase): GrammarFeedbackCacheDao =
+        database.grammarFeedbackCacheDao()
 }

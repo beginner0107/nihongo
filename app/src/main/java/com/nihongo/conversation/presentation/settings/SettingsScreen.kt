@@ -75,17 +75,38 @@ fun SettingsScreen(
 
             HorizontalDivider()
 
-            // Romaji Toggle
+            // Display Settings
             SettingsSection(
                 title = "표시 설정",
                 icon = Icons.Default.Translate
             ) {
+                // Romaji Toggle
                 SettingsToggle(
                     label = "로마자 표시",
                     description = "힌트에 로마자를 표시합니다",
                     checked = settings.showRomaji,
                     onCheckedChange = { viewModel.updateShowRomaji(it) }
                 )
+
+                Spacer(modifier = Modifier.height(16.dp))
+
+                // Furigana Toggle
+                SettingsToggle(
+                    label = "한자 읽기 표시 (후리가나)",
+                    description = "AI 메시지의 한자에 읽기를 표시합니다",
+                    checked = settings.showFurigana,
+                    onCheckedChange = { viewModel.updateShowFurigana(it) }
+                )
+
+                // Furigana Type Selector (only shown when furigana is enabled)
+                if (settings.showFurigana) {
+                    Spacer(modifier = Modifier.height(12.dp))
+
+                    FuriganaTypeSelector(
+                        currentType = settings.furiganaType,
+                        onTypeChange = { viewModel.updateFuriganaType(it) }
+                    )
+                }
             }
 
             HorizontalDivider()
@@ -926,5 +947,85 @@ fun ThemeModeChip(
             }
         },
         modifier = modifier.height(72.dp)
+    )
+}
+
+/**
+ * Furigana Type Selector
+ * Allows user to choose between Hiragana and Katakana furigana
+ */
+@Composable
+fun FuriganaTypeSelector(
+    currentType: com.nihongo.conversation.domain.model.FuriganaType,
+    onTypeChange: (com.nihongo.conversation.domain.model.FuriganaType) -> Unit,
+    modifier: Modifier = Modifier
+) {
+    Column(modifier = modifier.fillMaxWidth()) {
+        Text(
+            text = "표시 방식",
+            style = MaterialTheme.typography.labelMedium,
+            color = MaterialTheme.colorScheme.onSurfaceVariant
+        )
+        Spacer(modifier = Modifier.height(8.dp))
+
+        Row(
+            modifier = Modifier.fillMaxWidth(),
+            horizontalArrangement = Arrangement.spacedBy(12.dp)
+        ) {
+            // Hiragana option
+            FuriganaTypeChip(
+                label = "ひらがな",
+                example = "注文(ちゅうもん)",
+                isSelected = currentType == com.nihongo.conversation.domain.model.FuriganaType.HIRAGANA,
+                onClick = { onTypeChange(com.nihongo.conversation.domain.model.FuriganaType.HIRAGANA) },
+                modifier = Modifier.weight(1f)
+            )
+
+            // Katakana option
+            FuriganaTypeChip(
+                label = "カタカナ",
+                example = "注文(チュウモン)",
+                isSelected = currentType == com.nihongo.conversation.domain.model.FuriganaType.KATAKANA,
+                onClick = { onTypeChange(com.nihongo.conversation.domain.model.FuriganaType.KATAKANA) },
+                modifier = Modifier.weight(1f)
+            )
+        }
+    }
+}
+
+/**
+ * Furigana Type Chip
+ * Individual chip for selecting furigana display type
+ */
+@Composable
+fun FuriganaTypeChip(
+    label: String,
+    example: String,
+    isSelected: Boolean,
+    onClick: () -> Unit,
+    modifier: Modifier = Modifier
+) {
+    FilterChip(
+        selected = isSelected,
+        onClick = onClick,
+        label = {
+            Column(
+                horizontalAlignment = Alignment.CenterHorizontally,
+                modifier = Modifier.padding(vertical = 8.dp)
+            ) {
+                Text(
+                    text = label,
+                    style = MaterialTheme.typography.labelLarge,
+                    fontWeight = FontWeight.Bold
+                )
+                Spacer(modifier = Modifier.height(4.dp))
+                Text(
+                    text = example,
+                    style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                )
+            }
+        },
+        modifier = modifier.height(64.dp)
     )
 }

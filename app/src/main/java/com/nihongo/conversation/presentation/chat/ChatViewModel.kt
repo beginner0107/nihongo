@@ -76,6 +76,7 @@ data class ChatUiState(
     val translationErrors: ImmutableMap<Long, String> = ImmutableMap.empty(), // messageId -> error message
     val translationRetryCount: ImmutableMap<Long, Int> = ImmutableMap.empty(), // messageId -> retry count
     val grammarCache: ImmutableMap<String, GrammarExplanation> = ImmutableMap.empty(), // text -> cached grammar
+    val messagesWithFurigana: ImmutableSet<Long> = ImmutableSet.empty(), // messageIds with furigana enabled
     val showEndChatDialog: Boolean = false, // Show confirmation dialog for ending chat
     val showNewChatToast: Boolean = false, // Show toast when new chat starts
     val showPronunciationSheet: Boolean = false, // Show pronunciation practice sheet
@@ -92,7 +93,23 @@ data class ChatUiState(
     val adaptiveNudge: String = "", // Adaptive difficulty nudge (very short, 8 chars max)
     val showKoreanToJapaneseDialog: Boolean = false, // Show Korean→Japanese conversion dialog
     val koreanToJapaneseResult: KoreanToJapaneseResult? = null, // Conversion result
-    val isTranslatingKorToJpn: Boolean = false // Loading state for conversion
+    val isTranslatingKorToJpn: Boolean = false, // Loading state for conversion
+    val showFurigana: Boolean = false, // Show furigana on AI messages
+    val furiganaType: com.nihongo.conversation.domain.model.FuriganaType = com.nihongo.conversation.domain.model.FuriganaType.HIRAGANA, // Furigana display type
+
+    // User message translation (Japanese → Korean)
+    val userTranslations: ImmutableMap<Long, String> = ImmutableMap.empty(), // messageId -> Korean translation
+    val expandedUserTranslations: ImmutableSet<Long> = ImmutableSet.empty(), // messageIds with translation expanded
+    val userTranslationErrors: ImmutableMap<Long, String> = ImmutableMap.empty(), // messageId -> error message
+
+    // User message furigana
+    val userMessagesWithFurigana: ImmutableSet<Long> = ImmutableSet.empty(), // messageIds with furigana enabled
+
+    // User message grammar feedback
+    val userGrammarFeedback: ImmutableMap<Long, ImmutableList<GrammarFeedback>> = ImmutableMap.empty(), // messageId -> feedback list
+    val expandedUserGrammarFeedback: ImmutableSet<Long> = ImmutableSet.empty(), // messageIds with feedback expanded
+    val userGrammarAnalyzing: ImmutableSet<Long> = ImmutableSet.empty(), // messageIds being analyzed
+    val userGrammarErrors: ImmutableMap<Long, String> = ImmutableMap.empty() // messageId -> error message
 ) {
     /**
      * Computed property using derivedStateOf pattern
@@ -160,7 +177,9 @@ class ChatViewModel @Inject constructor(
                 _uiState.update {
                     it.copy(
                         autoSpeak = settings.autoSpeak,
-                        speechSpeed = settings.speechSpeed
+                        speechSpeed = settings.speechSpeed,
+                        showFurigana = settings.showFurigana,
+                        furiganaType = settings.furiganaType
                     )
                 }
                 voiceManager.setSpeechSpeed(settings.speechSpeed)
@@ -459,6 +478,25 @@ class ChatViewModel @Inject constructor(
     fun toggleAutoSpeak() {
         viewModelScope.launch {
             settingsDataStore.updateAutoSpeak(!_uiState.value.autoSpeak)
+        }
+    }
+
+    /**
+     * Toggle furigana display for a specific message
+     *
+     * @param messageId The ID of the message to toggle furigana for
+     */
+    fun toggleMessageFurigana(messageId: Long) {
+        _uiState.update { currentState ->
+            val currentFuriganaMessages = currentState.messagesWithFurigana.toMutableSet()
+            if (messageId in currentFuriganaMessages) {
+                // Remove from set (turn OFF)
+                currentFuriganaMessages.remove(messageId)
+            } else {
+                // Add to set (turn ON)
+                currentFuriganaMessages.add(messageId)
+            }
+            currentState.copy(messagesWithFurigana = currentFuriganaMessages.toImmutableSet())
         }
     }
 
@@ -1509,5 +1547,211 @@ class ChatViewModel @Inject constructor(
                 // Failed to add - silently ignore
             }
         }
+    }
+
+    // ========== User Message Features ==========
+
+    /**
+     * Request translation for user message (Japanese → Korean)
+     */
+    fun requestUserTranslation(messageId: Long, japaneseText: String, retryAttempt: Int = 0) {
+        viewModelScope.launch {
+            android.util.Log.d("ChatViewModel", "=== User Translation Request ===")
+            android.util.Log.d("ChatViewModel", "MessageId: $messageId")
+            android.util.Log.d("ChatViewModel", "Text: '$japaneseText'")
+            android.util.Log.d("ChatViewModel", "Retry attempt: $retryAttempt")
+
+            try {
+                val result = translationRepository.translate(
+                    text = japaneseText,
+                    sourceLang = "ja",
+                    targetLang = "ko",
+                    provider = com.nihongo.conversation.data.remote.deepl.TranslationProvider.MICROSOFT,
+                    useCache = true,
+                    fallbackChain = listOf(
+                        com.nihongo.conversation.data.remote.deepl.TranslationProvider.DEEP_L,
+                        com.nihongo.conversation.data.remote.deepl.TranslationProvider.ML_KIT
+                    )
+                )
+
+                when (result) {
+                    is com.nihongo.conversation.data.repository.TranslationResult.Success -> {
+                        android.util.Log.d("ChatViewModel", "✓ Translation success (${result.provider}, ${result.elapsed}ms, cache: ${result.fromCache})")
+                        _uiState.update {
+                            it.copy(
+                                userTranslations = (it.userTranslations.items + (messageId to result.translatedText)).toImmutableMap(),
+                                userTranslationErrors = (it.userTranslationErrors.items - messageId).toImmutableMap()
+                            )
+                        }
+                    }
+                    is com.nihongo.conversation.data.repository.TranslationResult.Error -> {
+                        android.util.Log.e("ChatViewModel", "✗ Translation failed: ${result.message}")
+
+                        // Retry logic (max 3 attempts)
+                        if (retryAttempt < 3) {
+                            val delayMs = 1000L * (retryAttempt + 1)
+                            android.util.Log.d("ChatViewModel", "Retrying after ${delayMs}ms (attempt ${retryAttempt + 1}/3)")
+                            kotlinx.coroutines.delay(delayMs)
+                            requestUserTranslation(messageId, japaneseText, retryAttempt + 1)
+                        } else {
+                            // Max retries reached
+                            android.util.Log.e("ChatViewModel", "Max retries reached, showing error")
+                            val errorMessage = when {
+                                result.message.contains("quota", ignoreCase = true) -> "번역 한도 초과"
+                                result.message.contains("network", ignoreCase = true) -> "네트워크 오류"
+                                else -> "번역 실패"
+                            }
+
+                            _uiState.update {
+                                it.copy(
+                                    userTranslationErrors = (it.userTranslationErrors.items + (messageId to errorMessage)).toImmutableMap()
+                                )
+                            }
+                        }
+                    }
+                }
+            } catch (e: Exception) {
+                android.util.Log.e("ChatViewModel", "Exception during user translation", e)
+
+                if (retryAttempt < 3) {
+                    val delayMs = 1000L * (retryAttempt + 1)
+                    kotlinx.coroutines.delay(delayMs)
+                    requestUserTranslation(messageId, japaneseText, retryAttempt + 1)
+                } else {
+                    _uiState.update {
+                        it.copy(
+                            userTranslationErrors = (it.userTranslationErrors.items + (messageId to "번역 실패 - 다시 시도하세요")).toImmutableMap()
+                        )
+                    }
+                }
+            }
+        }
+    }
+
+    /**
+     * Toggle user message translation expansion
+     */
+    fun toggleUserTranslation(messageId: Long) {
+        _uiState.update { state ->
+            val expanded = state.expandedUserTranslations.items
+            state.copy(
+                expandedUserTranslations = if (messageId in expanded) {
+                    (expanded - messageId).toImmutableSet()
+                } else {
+                    (expanded + messageId).toImmutableSet()
+                }
+            )
+        }
+    }
+
+    /**
+     * Retry user message translation
+     */
+    fun retryUserTranslation(messageId: Long, japaneseText: String) {
+        _uiState.update {
+            it.copy(
+                userTranslationErrors = (it.userTranslationErrors.items - messageId).toImmutableMap()
+            )
+        }
+        requestUserTranslation(messageId, japaneseText, retryAttempt = 0)
+    }
+
+    /**
+     * Toggle furigana for user message
+     */
+    fun toggleUserMessageFurigana(messageId: Long) {
+        _uiState.update { state ->
+            val currentSet = state.userMessagesWithFurigana.items
+            state.copy(
+                userMessagesWithFurigana = if (messageId in currentSet) {
+                    (currentSet - messageId).toImmutableSet()
+                } else {
+                    (currentSet + messageId).toImmutableSet()
+                }
+            )
+        }
+    }
+
+    /**
+     * Request grammar feedback for user message
+     */
+    fun requestUserGrammarFeedback(messageId: Long, userText: String) {
+        viewModelScope.launch {
+            android.util.Log.d("ChatViewModel", "=== User Grammar Feedback Request ===")
+            android.util.Log.d("ChatViewModel", "MessageId: $messageId")
+            android.util.Log.d("ChatViewModel", "Text: '$userText'")
+
+            // Mark as analyzing
+            _uiState.update {
+                it.copy(
+                    userGrammarAnalyzing = (it.userGrammarAnalyzing.items + messageId).toImmutableSet(),
+                    userGrammarErrors = (it.userGrammarErrors.items - messageId).toImmutableMap()
+                )
+            }
+
+            try {
+                // Collect conversation context (last 6 messages)
+                val context = _uiState.value.messages.items
+                    .takeLast(6)
+                    .map { it.content }
+
+                val userLevel = 1 // Default beginner level (User model doesn't have level field)
+
+                // Call grammar feedback repository
+                val feedbackList = grammarFeedbackRepository.analyzeMessage(
+                    userId = _uiState.value.user?.id ?: 0,
+                    messageId = messageId,
+                    userMessage = userText,
+                    conversationContext = context,
+                    userLevel = userLevel
+                )
+
+                android.util.Log.d("ChatViewModel", "✓ Grammar analysis complete: ${feedbackList.size} feedback items")
+
+                _uiState.update {
+                    it.copy(
+                        userGrammarFeedback = (it.userGrammarFeedback.items + (messageId to feedbackList.toImmutableList())).toImmutableMap(),
+                        userGrammarAnalyzing = (it.userGrammarAnalyzing.items - messageId).toImmutableSet()
+                    )
+                }
+            } catch (e: Exception) {
+                android.util.Log.e("ChatViewModel", "✗ Grammar analysis failed", e)
+
+                _uiState.update {
+                    it.copy(
+                        userGrammarErrors = (it.userGrammarErrors.items + (messageId to "분석 실패: ${e.message}")).toImmutableMap(),
+                        userGrammarAnalyzing = (it.userGrammarAnalyzing.items - messageId).toImmutableSet()
+                    )
+                }
+            }
+        }
+    }
+
+    /**
+     * Toggle user message grammar feedback expansion
+     */
+    fun toggleUserGrammarFeedback(messageId: Long) {
+        _uiState.update { state ->
+            val expanded = state.expandedUserGrammarFeedback.items
+            state.copy(
+                expandedUserGrammarFeedback = if (messageId in expanded) {
+                    (expanded - messageId).toImmutableSet()
+                } else {
+                    (expanded + messageId).toImmutableSet()
+                }
+            )
+        }
+    }
+
+    /**
+     * Retry user message grammar analysis
+     */
+    fun retryUserGrammarAnalysis(messageId: Long, userText: String) {
+        _uiState.update {
+            it.copy(
+                userGrammarErrors = (it.userGrammarErrors.items - messageId).toImmutableMap()
+            )
+        }
+        requestUserGrammarFeedback(messageId, userText)
     }
 }

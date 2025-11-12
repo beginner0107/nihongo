@@ -8,6 +8,7 @@ import com.nihongo.conversation.domain.model.UserSettings
 import com.nihongo.conversation.domain.model.TextSizePreference
 import com.nihongo.conversation.domain.model.ContrastMode
 import com.nihongo.conversation.domain.model.ThemeMode
+import com.nihongo.conversation.domain.model.FuriganaType
 import dagger.hilt.android.qualifiers.ApplicationContext
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.catch
@@ -31,6 +32,8 @@ class SettingsDataStore @Inject constructor(
         val CONTRAST_MODE = stringPreferencesKey("contrast_mode")
         val THEME_MODE = stringPreferencesKey("theme_mode")
         val IS_FIRST_LAUNCH = booleanPreferencesKey("is_first_launch")
+        val SHOW_FURIGANA = booleanPreferencesKey("show_furigana")
+        val FURIGANA_TYPE = stringPreferencesKey("furigana_type")
     }
 
     val userSettings: Flow<UserSettings> = context.dataStore.data
@@ -58,7 +61,12 @@ class SettingsDataStore @Inject constructor(
                 themeMode = preferences[PreferencesKeys.THEME_MODE]?.let {
                     try { ThemeMode.valueOf(it) }
                     catch (e: Exception) { ThemeMode.SYSTEM }
-                } ?: ThemeMode.SYSTEM
+                } ?: ThemeMode.SYSTEM,
+                showFurigana = preferences[PreferencesKeys.SHOW_FURIGANA] ?: false,
+                furiganaType = preferences[PreferencesKeys.FURIGANA_TYPE]?.let {
+                    try { FuriganaType.valueOf(it) }
+                    catch (e: Exception) { FuriganaType.HIRAGANA }
+                } ?: FuriganaType.HIRAGANA
             )
         }
 
@@ -119,6 +127,18 @@ class SettingsDataStore @Inject constructor(
     suspend fun setFirstLaunchComplete() {
         context.dataStore.edit { preferences ->
             preferences[PreferencesKeys.IS_FIRST_LAUNCH] = false
+        }
+    }
+
+    suspend fun updateShowFurigana(enabled: Boolean) {
+        context.dataStore.edit { preferences ->
+            preferences[PreferencesKeys.SHOW_FURIGANA] = enabled
+        }
+    }
+
+    suspend fun updateFuriganaType(type: FuriganaType) {
+        context.dataStore.edit { preferences ->
+            preferences[PreferencesKeys.FURIGANA_TYPE] = type.name
         }
     }
 }

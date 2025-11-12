@@ -11,6 +11,7 @@ import com.nihongo.conversation.domain.model.UserSettings
 import com.nihongo.conversation.domain.model.TextSizePreference
 import com.nihongo.conversation.domain.model.ContrastMode
 import com.nihongo.conversation.domain.model.ThemeMode
+import com.nihongo.conversation.domain.model.FuriganaType
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharingStarted
@@ -122,6 +123,18 @@ class SettingsViewModel @Inject constructor(
     fun updateThemeMode(themeMode: ThemeMode) {
         viewModelScope.launch {
             settingsDataStore.updateThemeMode(themeMode)
+        }
+    }
+
+    fun updateShowFurigana(enabled: Boolean) {
+        viewModelScope.launch {
+            settingsDataStore.updateShowFurigana(enabled)
+        }
+    }
+
+    fun updateFuriganaType(type: FuriganaType) {
+        viewModelScope.launch {
+            settingsDataStore.updateFuriganaType(type)
         }
     }
 

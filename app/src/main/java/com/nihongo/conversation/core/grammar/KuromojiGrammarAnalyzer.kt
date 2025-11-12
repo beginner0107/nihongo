@@ -5,6 +5,7 @@ import com.atilika.kuromoji.ipadic.Tokenizer
 import com.nihongo.conversation.domain.model.GrammarComponent
 import com.nihongo.conversation.domain.model.GrammarExplanation
 import com.nihongo.conversation.domain.model.GrammarType
+import com.nihongo.conversation.domain.model.FuriganaType
 
 /**
  * Kuromoji-based Grammar Analyzer
@@ -467,14 +468,18 @@ object KuromojiGrammarAnalyzer {
     /**
      * Adds furigana (reading guide) to kanji characters in Japanese text
      *
-     * Example:
-     * - Input: "注文してください"
-     * - Output: "注文(ちゅうもん)してください"
+     * Examples:
+     * - Input: "注文してください", type: HIRAGANA
+     *   Output: "注文(ちゅうもん)してください"
+     *
+     * - Input: "注文してください", type: KATAKANA
+     *   Output: "注文(チュウモン)してください"
      *
      * @param text Japanese text that may contain kanji
+     * @param type Furigana display type (HIRAGANA or KATAKANA)
      * @return Text with furigana in parentheses after kanji words
      */
-    fun addFuriganaToKanji(text: String): String {
+    fun addFuriganaToKanji(text: String, type: FuriganaType = FuriganaType.HIRAGANA): String {
         return try {
             val tokens = tokenizer.tokenize(text)
             val result = StringBuilder()
@@ -489,8 +494,13 @@ object KuromojiGrammarAnalyzer {
                 }
 
                 if (hasKanji && reading != null && reading != surface) {
-                    // Add furigana: "注文(ちゅうもん)"
-                    result.append(surface).append("(").append(reading).append(")")
+                    // Convert reading to desired type
+                    val displayReading = when (type) {
+                        FuriganaType.HIRAGANA -> reading  // Kuromoji provides hiragana by default
+                        FuriganaType.KATAKANA -> hiraganaToKatakana(reading)
+                    }
+                    // Add furigana: "注文(ちゅうもん)" or "注文(チュウモン)"
+                    result.append(surface).append("(").append(displayReading).append(")")
                 } else {
                     // No kanji or no reading available, use as-is
                     result.append(surface)
@@ -503,5 +513,29 @@ object KuromojiGrammarAnalyzer {
             // Fallback: return original text
             text
         }
+    }
+
+    /**
+     * Convert hiragana string to katakana
+     *
+     * Examples:
+     * - "ちゅうもん" → "チュウモン"
+     * - "ください" → "クダサイ"
+     *
+     * Uses Unicode character offset:
+     * - Hiragana range: U+3040 ~ U+309F
+     * - Katakana range: U+30A0 ~ U+30FF
+     * - Offset: 0x60 (96)
+     */
+    private fun hiraganaToKatakana(hiragana: String): String {
+        return hiragana.map { char ->
+            if (char in '\u3040'..'\u309F') {
+                // Convert hiragana to katakana by adding offset
+                (char.code + 0x60).toChar()
+            } else {
+                // Not hiragana, keep as-is (katakana, punctuation, etc.)
+                char
+            }
+        }.joinToString("")
     }
 }

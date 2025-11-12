@@ -2,6 +2,8 @@ package com.nihongo.conversation.data.repository
 
 import com.nihongo.conversation.data.local.GrammarFeedbackDao
 import com.nihongo.conversation.data.local.MistakePatternRaw
+import com.nihongo.conversation.data.local.dao.GrammarFeedbackCacheDao
+import com.nihongo.conversation.data.local.entity.GrammarFeedbackCacheEntity
 import com.nihongo.conversation.data.remote.GeminiApiService
 import com.nihongo.conversation.domain.model.*
 import kotlinx.coroutines.flow.Flow
@@ -15,12 +17,17 @@ import javax.inject.Singleton
 @Singleton
 class GrammarFeedbackRepository @Inject constructor(
     private val grammarFeedbackDao: GrammarFeedbackDao,
+    private val grammarFeedbackCacheDao: GrammarFeedbackCacheDao,
     private val geminiApiService: GeminiApiService
 ) {
+    companion object {
+        private const val CACHE_EXPIRY_DAYS = 30
+    }
 
     /**
      * Analyze user message for grammar errors and suggestions
      * Returns list of feedback items
+     * Uses cache for repeated analysis (30-day expiry)
      */
     suspend fun analyzeMessage(
         userId: Long,
@@ -30,10 +37,38 @@ class GrammarFeedbackRepository @Inject constructor(
         userLevel: Int
     ): List<GrammarFeedback> {
         return try {
+            // Check cache first
+            val cachedResult = grammarFeedbackCacheDao.getCachedFeedback(userMessage, userLevel)
+            if (cachedResult != null) {
+                // Cache hit! Parse and return immediately
+                return parseFeedbackFromJson(
+                    jsonText = cachedResult.feedbackJson,
+                    userId = userId,
+                    messageId = messageId,
+                    originalText = userMessage
+                ).also { feedbackList ->
+                    // Save to GrammarFeedback table for this message
+                    if (feedbackList.isNotEmpty()) {
+                        grammarFeedbackDao.insertFeedbackList(feedbackList)
+                    }
+                }
+            }
+
+            // Cache miss - call Gemini API
             val analysisResult = geminiApiService.analyzeGrammarAndStyle(
                 userMessage = userMessage,
                 conversationContext = conversationContext,
                 userLevel = userLevel
+            )
+
+            // Cache the raw JSON response
+            grammarFeedbackCacheDao.cacheFeedback(
+                GrammarFeedbackCacheEntity(
+                    messageText = userMessage,
+                    feedbackJson = analysisResult,
+                    userLevel = userLevel,
+                    timestamp = System.currentTimeMillis()
+                )
             )
 
             // Parse and save feedback
@@ -286,6 +321,24 @@ class GrammarFeedbackRepository @Inject constructor(
                 else -> "${mistake.grammarPattern}を復習しましょう"
             }
         }
+    }
+
+    /**
+     * Clean up expired grammar feedback cache (older than 30 days)
+     * Returns number of deleted entries
+     */
+    suspend fun cleanupExpiredCache(): Int {
+        val expiryTime = System.currentTimeMillis() - (CACHE_EXPIRY_DAYS * 24 * 60 * 60 * 1000L)
+        return grammarFeedbackCacheDao.deleteExpiredCache(expiryTime)
+    }
+
+    /**
+     * Get cache statistics
+     */
+    suspend fun getCacheStats(): Pair<Int, Int> {
+        val totalCount = grammarFeedbackCacheDao.getCacheCount()
+        val expiredCount = cleanupExpiredCache()
+        return Pair(totalCount - expiredCount, expiredCount)
     }
 
     private fun getStartTime(daysBack: Int): Long {

@@ -19,6 +19,8 @@ import com.nihongo.conversation.domain.model.User
 import com.nihongo.conversation.domain.model.VocabularyEntry
 import com.nihongo.conversation.data.local.entity.TranslationCacheEntity
 import com.nihongo.conversation.data.local.dao.TranslationCacheDao
+import com.nihongo.conversation.data.local.entity.GrammarFeedbackCacheEntity
+import com.nihongo.conversation.data.local.dao.GrammarFeedbackCacheDao
 
 @Database(
     entities = [
@@ -37,12 +39,13 @@ import com.nihongo.conversation.data.local.dao.TranslationCacheDao
         com.nihongo.conversation.domain.model.ConversationPattern::class,
         com.nihongo.conversation.domain.model.CachedResponse::class,
         com.nihongo.conversation.domain.model.CacheAnalytics::class,
-        TranslationCacheEntity::class
+        TranslationCacheEntity::class,
+        GrammarFeedbackCacheEntity::class
     ],
     views = [
         ConversationStats::class
     ],
-    version = 14,  // Removed User.level field (use scenario difficulty instead)
+    version = 15,  // Added GrammarFeedbackCacheEntity for caching grammar analysis
     exportSchema = false
 )
 abstract class NihongoDatabase : RoomDatabase() {
@@ -61,6 +64,7 @@ abstract class NihongoDatabase : RoomDatabase() {
     abstract fun cachedResponseDao(): CachedResponseDao
     abstract fun cacheAnalyticsDao(): CacheAnalyticsDao
     abstract fun translationCacheDao(): TranslationCacheDao
+    abstract fun grammarFeedbackCacheDao(): GrammarFeedbackCacheDao
 
     companion object {
         val MIGRATION_1_2 = object : Migration(1, 2) {
@@ -526,6 +530,23 @@ abstract class NihongoDatabase : RoomDatabase() {
 
                 database.execSQL("DROP TABLE users")
                 database.execSQL("ALTER TABLE users_new RENAME TO users")
+            }
+        }
+
+        // Add grammar_feedback_cache table for caching grammar analysis results
+        val MIGRATION_14_15 = object : Migration(14, 15) {
+            override fun migrate(database: SupportSQLiteDatabase) {
+                database.execSQL("""
+                    CREATE TABLE grammar_feedback_cache (
+                        messageText TEXT NOT NULL PRIMARY KEY,
+                        feedbackJson TEXT NOT NULL,
+                        userLevel INTEGER NOT NULL,
+                        timestamp INTEGER NOT NULL
+                    )
+                """.trimIndent())
+
+                database.execSQL("CREATE INDEX IF NOT EXISTS index_grammar_feedback_cache_messageText ON grammar_feedback_cache(messageText)")
+                database.execSQL("CREATE INDEX IF NOT EXISTS index_grammar_feedback_cache_timestamp ON grammar_feedback_cache(timestamp)")
             }
         }
     }

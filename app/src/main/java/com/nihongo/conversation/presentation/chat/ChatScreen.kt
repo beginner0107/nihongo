@@ -35,7 +35,11 @@ import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.input.ImeAction
 import androidx.compose.ui.text.AnnotatedString
+import androidx.compose.ui.text.font.FontStyle
+import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.sp
 import androidx.hilt.navigation.compose.hiltViewModel
 import com.nihongo.conversation.domain.model.Message
 import com.nihongo.conversation.R
@@ -304,6 +308,44 @@ fun ChatScreen(
                         } else null,
                         onAddToVocabulary = if (!message.isUser) {
                             { viewModel.addToVocabulary(message.id) }
+                        } else null,
+                        onToggleFurigana = if (!message.isUser) {
+                            { viewModel.toggleMessageFurigana(message.id) }
+                        } else null,
+                        showFurigana = message.id in uiState.messagesWithFurigana,
+                        furiganaType = uiState.furiganaType,
+
+                        // User message features
+                        isUserTranslationExpanded = message.id in uiState.expandedUserTranslations,
+                        userTranslation = uiState.userTranslations[message.id],
+                        userTranslationError = uiState.userTranslationErrors[message.id],
+                        onToggleUserTranslation = if (message.isUser) {
+                            { viewModel.toggleUserTranslation(message.id) }
+                        } else null,
+                        onRequestUserTranslation = if (message.isUser) {
+                            { viewModel.requestUserTranslation(message.id, message.content) }
+                        } else null,
+                        onRetryUserTranslation = if (message.isUser) {
+                            { viewModel.retryUserTranslation(message.id, message.content) }
+                        } else null,
+
+                        showUserFurigana = message.id in uiState.userMessagesWithFurigana,
+                        onToggleUserFurigana = if (message.isUser) {
+                            { viewModel.toggleUserMessageFurigana(message.id) }
+                        } else null,
+
+                        isUserGrammarExpanded = message.id in uiState.expandedUserGrammarFeedback,
+                        userGrammarFeedback = uiState.userGrammarFeedback[message.id]?.items,
+                        isUserGrammarAnalyzing = message.id in uiState.userGrammarAnalyzing,
+                        userGrammarError = uiState.userGrammarErrors[message.id],
+                        onToggleUserGrammarFeedback = if (message.isUser) {
+                            { viewModel.toggleUserGrammarFeedback(message.id) }
+                        } else null,
+                        onRequestUserGrammarFeedback = if (message.isUser) {
+                            { viewModel.requestUserGrammarFeedback(message.id, message.content) }
+                        } else null,
+                        onRetryUserGrammarFeedback = if (message.isUser) {
+                            { viewModel.retryUserGrammarAnalysis(message.id, message.content) }
                         } else null
                     )
                 }
@@ -627,7 +669,29 @@ fun MessageBubble(
     onPracticePronunciation: (() -> Unit)? = null,
     onEditMessage: (() -> Unit)? = null,
     onDeleteMessage: (() -> Unit)? = null,
-    onAddToVocabulary: (() -> Unit)? = null
+    onAddToVocabulary: (() -> Unit)? = null,
+    onToggleFurigana: (() -> Unit)? = null,
+    showFurigana: Boolean = false,
+    furiganaType: com.nihongo.conversation.domain.model.FuriganaType = com.nihongo.conversation.domain.model.FuriganaType.HIRAGANA,
+
+    // User message features
+    isUserTranslationExpanded: Boolean = false,
+    userTranslation: String? = null,
+    userTranslationError: String? = null,
+    onToggleUserTranslation: (() -> Unit)? = null,
+    onRequestUserTranslation: (() -> Unit)? = null,
+    onRetryUserTranslation: (() -> Unit)? = null,
+
+    showUserFurigana: Boolean = false,
+    onToggleUserFurigana: (() -> Unit)? = null,
+
+    isUserGrammarExpanded: Boolean = false,
+    userGrammarFeedback: List<com.nihongo.conversation.domain.model.GrammarFeedback>? = null,
+    isUserGrammarAnalyzing: Boolean = false,
+    userGrammarError: String? = null,
+    onToggleUserGrammarFeedback: (() -> Unit)? = null,
+    onRequestUserGrammarFeedback: (() -> Unit)? = null,
+    onRetryUserGrammarFeedback: (() -> Unit)? = null
 ) {
     val timeFormatter = remember {
         java.text.SimpleDateFormat("HH:mm", java.util.Locale.getDefault())
@@ -662,23 +726,38 @@ fun MessageBubble(
                     )
             ) {
             Column(
-                modifier = Modifier.padding(12.dp),
-                verticalArrangement = Arrangement.spacedBy(4.dp)
+                modifier = Modifier.padding(horizontal = 16.dp, vertical = 14.dp),
+                verticalArrangement = Arrangement.spacedBy(6.dp)
             ) {
-                // Display content with furigana for AI messages only
-                val displayText = remember(message.content, message.isUser) {
-                    if (!message.isUser) {
-                        // Add furigana to AI messages: "注文(ちゅうもん)"
-                        com.nihongo.conversation.core.grammar.KuromojiGrammarAnalyzer.addFuriganaToKanji(message.content)
-                    } else {
-                        // User messages shown as-is
-                        message.content
+                // Display content with optional furigana for AI and user messages
+                val displayText = remember(message.content, message.isUser, showFurigana, showUserFurigana, furiganaType) {
+                    when {
+                        message.isUser && showUserFurigana -> {
+                            // User message with furigana enabled
+                            com.nihongo.conversation.core.grammar.KuromojiGrammarAnalyzer.addFuriganaToKanji(
+                                message.content,
+                                furiganaType
+                            )
+                        }
+                        !message.isUser && showFurigana -> {
+                            // AI message with furigana enabled
+                            com.nihongo.conversation.core.grammar.KuromojiGrammarAnalyzer.addFuriganaToKanji(
+                                message.content,
+                                furiganaType
+                            )
+                        }
+                        else -> {
+                            // Furigana disabled: show as-is
+                            message.content
+                        }
                     }
                 }
 
                 Text(
                     text = displayText,
-                    style = MaterialTheme.typography.bodyMedium,
+                    style = MaterialTheme.typography.bodyLarge.copy(
+                        lineHeight = 28.sp
+                    ),
                     color = if (message.isUser) {
                         MaterialTheme.colorScheme.onPrimaryContainer
                     } else {
@@ -688,24 +767,56 @@ fun MessageBubble(
 
                 // Show translation button and translation for AI messages
                 if (!message.isUser && onToggleTranslation != null && onRequestTranslation != null) {
-                    Spacer(modifier = Modifier.height(4.dp))
-
-                    // Translation toggle button
-                    TextButton(
-                        onClick = onToggleTranslation,
-                        contentPadding = PaddingValues(horizontal = 8.dp, vertical = 2.dp),
-                        modifier = Modifier.height(28.dp)
+                    // Button row: Translation + Furigana toggle
+                    Row(
+                        horizontalArrangement = Arrangement.spacedBy(8.dp),
+                        modifier = Modifier.fillMaxWidth()
                     ) {
-                        Icon(
-                            imageVector = Icons.Default.Translate,
-                            contentDescription = "번역",
-                            modifier = Modifier.size(16.dp)
-                        )
-                        Spacer(modifier = Modifier.width(4.dp))
-                        Text(
-                            text = if (isTranslationExpanded) "번역 숨기기" else "한국어 번역",
-                            style = MaterialTheme.typography.labelSmall
-                        )
+                        // Translation toggle button
+                        TextButton(
+                            onClick = onToggleTranslation,
+                            contentPadding = PaddingValues(horizontal = 8.dp, vertical = 2.dp),
+                            modifier = Modifier.height(32.dp)
+                        ) {
+                            Icon(
+                                imageVector = Icons.Default.Translate,
+                                contentDescription = "번역",
+                                modifier = Modifier.size(18.dp)
+                            )
+                            Spacer(modifier = Modifier.width(4.dp))
+                            Text(
+                                text = if (isTranslationExpanded) "번역 숨기기" else "한국어 번역",
+                                style = MaterialTheme.typography.labelSmall
+                            )
+                        }
+
+                        // Furigana toggle button
+                        TextButton(
+                            onClick = { onToggleFurigana?.invoke() },
+                            contentPadding = PaddingValues(horizontal = 8.dp, vertical = 2.dp),
+                            modifier = Modifier.height(32.dp),
+                            colors = ButtonDefaults.textButtonColors(
+                                contentColor = if (showFurigana) {
+                                    MaterialTheme.colorScheme.primary
+                                } else {
+                                    MaterialTheme.colorScheme.onSurfaceVariant
+                                }
+                            )
+                        ) {
+                            Text(
+                                text = if (showFurigana) "漢\nあ" else "漢",
+                                style = MaterialTheme.typography.labelSmall,
+                                fontSize = if (showFurigana) 9.sp else 14.sp,
+                                lineHeight = if (showFurigana) 10.sp else 14.sp,
+                                textAlign = TextAlign.Center,
+                                fontWeight = if (showFurigana) FontWeight.Bold else FontWeight.Normal
+                            )
+                            Spacer(modifier = Modifier.width(4.dp))
+                            Text(
+                                text = if (showFurigana) "후리가나 끄기" else "후리가나 켜기",
+                                style = MaterialTheme.typography.labelSmall
+                            )
+                        }
                     }
 
                     // Show translation when expanded
@@ -719,7 +830,7 @@ fun MessageBubble(
                                 )
                                 Text(
                                     text = translation,
-                                    style = MaterialTheme.typography.bodySmall,
+                                    style = MaterialTheme.typography.bodyMedium,
                                     color = MaterialTheme.colorScheme.onSecondaryContainer.copy(alpha = 0.8f)
                                 )
                             }
@@ -801,6 +912,274 @@ fun MessageBubble(
                     }
                 }
 
+                // User message features (translation, furigana, grammar feedback)
+                if (message.isUser && onToggleUserTranslation != null && onRequestUserTranslation != null) {
+                    Row(
+                        horizontalArrangement = Arrangement.spacedBy(8.dp),
+                        modifier = Modifier.fillMaxWidth()
+                    ) {
+                        // Translation button
+                        TextButton(
+                            onClick = onToggleUserTranslation,
+                            contentPadding = PaddingValues(horizontal = 8.dp, vertical = 2.dp),
+                            modifier = Modifier.height(32.dp)
+                        ) {
+                            Icon(
+                                imageVector = Icons.Default.Translate,
+                                contentDescription = "번역",
+                                modifier = Modifier.size(18.dp)
+                            )
+                            Spacer(modifier = Modifier.width(4.dp))
+                            Text(
+                                text = if (isUserTranslationExpanded) "번역 숨기기" else "한국어 번역",
+                                style = MaterialTheme.typography.labelSmall
+                            )
+                        }
+
+                        // Furigana button
+                        if (onToggleUserFurigana != null) {
+                            TextButton(
+                                onClick = onToggleUserFurigana,
+                                contentPadding = PaddingValues(horizontal = 8.dp, vertical = 2.dp),
+                                modifier = Modifier.height(32.dp),
+                                colors = ButtonDefaults.textButtonColors(
+                                    contentColor = if (showUserFurigana) {
+                                        MaterialTheme.colorScheme.primary
+                                    } else {
+                                        MaterialTheme.colorScheme.onSurfaceVariant
+                                    }
+                                )
+                            ) {
+                                Text(
+                                    text = if (showUserFurigana) "漢\nあ" else "漢",
+                                    style = MaterialTheme.typography.labelSmall,
+                                    fontSize = if (showUserFurigana) 9.sp else 14.sp,
+                                    lineHeight = if (showUserFurigana) 10.sp else 14.sp,
+                                    textAlign = TextAlign.Center,
+                                    fontWeight = if (showUserFurigana) FontWeight.Bold else FontWeight.Normal
+                                )
+                                Spacer(modifier = Modifier.width(4.dp))
+                                Text(
+                                    text = if (showUserFurigana) "후리가나 끄기" else "후리가나 켜기",
+                                    style = MaterialTheme.typography.labelSmall
+                                )
+                            }
+                        }
+
+                        // Grammar feedback button
+                        if (onToggleUserGrammarFeedback != null) {
+                            TextButton(
+                                onClick = onToggleUserGrammarFeedback,
+                                contentPadding = PaddingValues(horizontal = 8.dp, vertical = 2.dp),
+                                modifier = Modifier.height(32.dp),
+                                colors = ButtonDefaults.textButtonColors(
+                                    contentColor = if (isUserGrammarExpanded) {
+                                        MaterialTheme.colorScheme.tertiary
+                                    } else {
+                                        MaterialTheme.colorScheme.onSurfaceVariant
+                                    }
+                                )
+                            ) {
+                                Icon(
+                                    imageVector = Icons.Default.Spellcheck,
+                                    contentDescription = "문법 확인",
+                                    modifier = Modifier.size(18.dp)
+                                )
+                                Spacer(modifier = Modifier.width(4.dp))
+                                Text(
+                                    text = if (isUserGrammarExpanded) "피드백 숨기기" else "문법 확인",
+                                    style = MaterialTheme.typography.labelSmall
+                                )
+                            }
+                        }
+                    }
+
+                    // Show translation when expanded
+                    if (isUserTranslationExpanded) {
+                        when {
+                            userTranslation != null -> {
+                                // Success - show translation
+                                HorizontalDivider(
+                                    modifier = Modifier.padding(vertical = 4.dp),
+                                    color = MaterialTheme.colorScheme.onPrimaryContainer.copy(alpha = 0.2f)
+                                )
+                                Text(
+                                    text = userTranslation,
+                                    style = MaterialTheme.typography.bodyMedium,
+                                    color = MaterialTheme.colorScheme.onPrimaryContainer.copy(alpha = 0.8f)
+                                )
+                            }
+                            userTranslationError != null && onRetryUserTranslation != null -> {
+                                // Error - show error message and retry button
+                                HorizontalDivider(
+                                    modifier = Modifier.padding(vertical = 4.dp),
+                                    color = MaterialTheme.colorScheme.onPrimaryContainer.copy(alpha = 0.2f)
+                                )
+                                Column(
+                                    verticalArrangement = Arrangement.spacedBy(4.dp)
+                                ) {
+                                    Row(
+                                        horizontalArrangement = Arrangement.spacedBy(4.dp),
+                                        verticalAlignment = Alignment.CenterVertically
+                                    ) {
+                                        Icon(
+                                            imageVector = Icons.Default.ErrorOutline,
+                                            contentDescription = null,
+                                            tint = MaterialTheme.colorScheme.error,
+                                            modifier = Modifier.size(14.dp)
+                                        )
+                                        Text(
+                                            text = userTranslationError,
+                                            style = MaterialTheme.typography.bodySmall,
+                                            color = MaterialTheme.colorScheme.error
+                                        )
+                                    }
+                                    TextButton(
+                                        onClick = onRetryUserTranslation,
+                                        contentPadding = PaddingValues(horizontal = 8.dp, vertical = 2.dp),
+                                        modifier = Modifier.height(28.dp)
+                                    ) {
+                                        Icon(
+                                            imageVector = Icons.Default.Refresh,
+                                            contentDescription = "다시 시도",
+                                            modifier = Modifier.size(14.dp)
+                                        )
+                                        Spacer(modifier = Modifier.width(4.dp))
+                                        Text(
+                                            text = "다시 시도",
+                                            style = MaterialTheme.typography.labelSmall
+                                        )
+                                    }
+                                }
+                            }
+                            else -> {
+                                // Loading - request translation
+                                LaunchedEffect(message.id) {
+                                    onRequestUserTranslation?.invoke()
+                                }
+                                Text(
+                                    text = "번역 중...",
+                                    style = MaterialTheme.typography.bodySmall,
+                                    color = MaterialTheme.colorScheme.onPrimaryContainer.copy(alpha = 0.5f)
+                                )
+                            }
+                        }
+                    }
+
+                    // Show grammar feedback when expanded
+                    if (isUserGrammarExpanded) {
+                        when {
+                            userGrammarFeedback != null && userGrammarFeedback.isNotEmpty() -> {
+                                // Has feedback - show feedback cards
+                                HorizontalDivider(
+                                    modifier = Modifier.padding(vertical = 4.dp),
+                                    color = MaterialTheme.colorScheme.onPrimaryContainer.copy(alpha = 0.2f)
+                                )
+                                Column(
+                                    verticalArrangement = Arrangement.spacedBy(8.dp)
+                                ) {
+                                    userGrammarFeedback.forEach { feedback ->
+                                        GrammarFeedbackCard(feedback = feedback)
+                                    }
+                                }
+                            }
+                            userGrammarFeedback != null && userGrammarFeedback.isEmpty() -> {
+                                // No feedback - perfect!
+                                HorizontalDivider(
+                                    modifier = Modifier.padding(vertical = 4.dp),
+                                    color = MaterialTheme.colorScheme.onPrimaryContainer.copy(alpha = 0.2f)
+                                )
+                                Row(
+                                    verticalAlignment = Alignment.CenterVertically,
+                                    horizontalArrangement = Arrangement.spacedBy(4.dp)
+                                ) {
+                                    Icon(
+                                        imageVector = Icons.Default.CheckCircle,
+                                        contentDescription = null,
+                                        tint = Color(0xFF4CAF50), // Green
+                                        modifier = Modifier.size(20.dp)
+                                    )
+                                    Text(
+                                        text = "문법상 문제 없습니다!",
+                                        style = MaterialTheme.typography.bodySmall,
+                                        color = MaterialTheme.colorScheme.onPrimaryContainer.copy(alpha = 0.8f)
+                                    )
+                                }
+                            }
+                            userGrammarError != null && onRetryUserGrammarFeedback != null -> {
+                                // Error - show error and retry
+                                HorizontalDivider(
+                                    modifier = Modifier.padding(vertical = 4.dp),
+                                    color = MaterialTheme.colorScheme.onPrimaryContainer.copy(alpha = 0.2f)
+                                )
+                                Column(
+                                    verticalArrangement = Arrangement.spacedBy(4.dp)
+                                ) {
+                                    Row(
+                                        horizontalArrangement = Arrangement.spacedBy(4.dp),
+                                        verticalAlignment = Alignment.CenterVertically
+                                    ) {
+                                        Icon(
+                                            imageVector = Icons.Default.ErrorOutline,
+                                            contentDescription = null,
+                                            tint = MaterialTheme.colorScheme.error,
+                                            modifier = Modifier.size(14.dp)
+                                        )
+                                        Text(
+                                            text = userGrammarError,
+                                            style = MaterialTheme.typography.bodySmall,
+                                            color = MaterialTheme.colorScheme.error
+                                        )
+                                    }
+                                    TextButton(
+                                        onClick = onRetryUserGrammarFeedback,
+                                        contentPadding = PaddingValues(horizontal = 8.dp, vertical = 2.dp),
+                                        modifier = Modifier.height(28.dp)
+                                    ) {
+                                        Icon(
+                                            imageVector = Icons.Default.Refresh,
+                                            contentDescription = "다시 시도",
+                                            modifier = Modifier.size(14.dp)
+                                        )
+                                        Spacer(modifier = Modifier.width(4.dp))
+                                        Text(
+                                            text = "다시 시도",
+                                            style = MaterialTheme.typography.labelSmall
+                                        )
+                                    }
+                                }
+                            }
+                            isUserGrammarAnalyzing -> {
+                                // Analyzing - show loading
+                                HorizontalDivider(
+                                    modifier = Modifier.padding(vertical = 4.dp),
+                                    color = MaterialTheme.colorScheme.onPrimaryContainer.copy(alpha = 0.2f)
+                                )
+                                Row(
+                                    verticalAlignment = Alignment.CenterVertically,
+                                    horizontalArrangement = Arrangement.spacedBy(8.dp)
+                                ) {
+                                    CircularProgressIndicator(
+                                        modifier = Modifier.size(16.dp),
+                                        strokeWidth = 2.dp
+                                    )
+                                    Text(
+                                        text = "문법 분석 중...",
+                                        style = MaterialTheme.typography.bodySmall,
+                                        color = MaterialTheme.colorScheme.onPrimaryContainer.copy(alpha = 0.5f)
+                                    )
+                                }
+                            }
+                            else -> {
+                                // Not loaded yet - request analysis
+                                LaunchedEffect(message.id) {
+                                    onRequestUserGrammarFeedback?.invoke()
+                                }
+                            }
+                        }
+                    }
+                }
+
                 // Show difficulty indicator for AI messages
                 if (!message.isUser && message.complexityScore > 0) {
                     CompactDifficultyIndicator(
@@ -810,11 +1189,13 @@ fun MessageBubble(
 
                 Text(
                     text = timeFormatter.format(java.util.Date(message.timestamp)),
-                    style = MaterialTheme.typography.labelSmall,
+                    style = MaterialTheme.typography.labelSmall.copy(
+                        letterSpacing = 0.5.sp
+                    ),
                     color = if (message.isUser) {
-                        MaterialTheme.colorScheme.onPrimaryContainer.copy(alpha = 0.6f)
+                        MaterialTheme.colorScheme.onPrimaryContainer.copy(alpha = 0.7f)
                     } else {
-                        MaterialTheme.colorScheme.onSecondaryContainer.copy(alpha = 0.6f)
+                        MaterialTheme.colorScheme.onSecondaryContainer.copy(alpha = 0.7f)
                     }
                 )
             }
@@ -855,14 +1236,21 @@ fun MessageBubble(
                     )
                 },
                 onClick = {
-                    val intent = android.content.Intent(
-                        android.content.Intent.ACTION_VIEW,
-                        android.net.Uri.parse("https://jisho.org/search/${android.net.Uri.encode(message.content)}")
-                    )
-                    if (intent.resolveActivity(context.packageManager) != null) {
+                    try {
+                        val intent = android.content.Intent(
+                            android.content.Intent.ACTION_VIEW,
+                            android.net.Uri.parse("https://jisho.org/search/${android.net.Uri.encode(message.content)}")
+                        )
                         context.startActivity(intent)
+                        showContextMenu = false
+                    } catch (e: android.content.ActivityNotFoundException) {
+                        android.widget.Toast.makeText(
+                            context,
+                            "브라우저 앱을 찾을 수 없습니다",
+                            android.widget.Toast.LENGTH_SHORT
+                        ).show()
+                        showContextMenu = false
                     }
-                    showContextMenu = false
                 }
             )
 
@@ -1157,4 +1545,113 @@ fun KoreanToJapaneseDialog(
             }
         }
     )
+}
+
+/**
+ * Grammar Feedback Card - displays individual grammar feedback item
+ */
+@Composable
+fun GrammarFeedbackCard(feedback: com.nihongo.conversation.domain.model.GrammarFeedback) {
+    Surface(
+        shape = MaterialTheme.shapes.small,
+        color = when (feedback.severity) {
+            com.nihongo.conversation.domain.model.FeedbackSeverity.ERROR ->
+                MaterialTheme.colorScheme.errorContainer
+            com.nihongo.conversation.domain.model.FeedbackSeverity.WARNING ->
+                MaterialTheme.colorScheme.tertiaryContainer
+            com.nihongo.conversation.domain.model.FeedbackSeverity.INFO ->
+                MaterialTheme.colorScheme.primaryContainer
+        },
+        tonalElevation = 1.dp
+    ) {
+        Column(
+            modifier = Modifier.padding(12.dp),
+            verticalArrangement = Arrangement.spacedBy(6.dp)
+        ) {
+            // Title: Feedback type + Severity
+            Row(
+                verticalAlignment = Alignment.CenterVertically,
+                horizontalArrangement = Arrangement.spacedBy(4.dp)
+            ) {
+                Icon(
+                    imageVector = when (feedback.severity) {
+                        com.nihongo.conversation.domain.model.FeedbackSeverity.ERROR ->
+                            Icons.Default.Error
+                        com.nihongo.conversation.domain.model.FeedbackSeverity.WARNING ->
+                            Icons.Default.Warning
+                        com.nihongo.conversation.domain.model.FeedbackSeverity.INFO ->
+                            Icons.Default.Info
+                    },
+                    contentDescription = null,
+                    modifier = Modifier.size(16.dp),
+                    tint = when (feedback.severity) {
+                        com.nihongo.conversation.domain.model.FeedbackSeverity.ERROR ->
+                            MaterialTheme.colorScheme.error
+                        com.nihongo.conversation.domain.model.FeedbackSeverity.WARNING ->
+                            MaterialTheme.colorScheme.tertiary
+                        com.nihongo.conversation.domain.model.FeedbackSeverity.INFO ->
+                            MaterialTheme.colorScheme.primary
+                    }
+                )
+                Text(
+                    text = when (feedback.feedbackType) {
+                        com.nihongo.conversation.domain.model.FeedbackType.GRAMMAR_ERROR -> "문법 오류"
+                        com.nihongo.conversation.domain.model.FeedbackType.UNNATURAL -> "부자연스러움"
+                        com.nihongo.conversation.domain.model.FeedbackType.BETTER_EXPRESSION -> "더 나은 표현"
+                        com.nihongo.conversation.domain.model.FeedbackType.CONVERSATION_FLOW -> "대화 흐름"
+                        com.nihongo.conversation.domain.model.FeedbackType.POLITENESS_LEVEL -> "존댓말 레벨"
+                    },
+                    style = MaterialTheme.typography.labelMedium,
+                    fontWeight = FontWeight.Bold
+                )
+            }
+
+            // Explanation
+            Text(
+                text = feedback.explanation,
+                style = MaterialTheme.typography.bodySmall
+            )
+
+            // Corrected text suggestion
+            if (feedback.correctedText != null) {
+                HorizontalDivider(
+                    modifier = Modifier.padding(vertical = 4.dp),
+                    thickness = 0.5.dp,
+                    color = when (feedback.severity) {
+                        com.nihongo.conversation.domain.model.FeedbackSeverity.ERROR ->
+                            MaterialTheme.colorScheme.onErrorContainer.copy(alpha = 0.2f)
+                        com.nihongo.conversation.domain.model.FeedbackSeverity.WARNING ->
+                            MaterialTheme.colorScheme.onTertiaryContainer.copy(alpha = 0.2f)
+                        com.nihongo.conversation.domain.model.FeedbackSeverity.INFO ->
+                            MaterialTheme.colorScheme.onPrimaryContainer.copy(alpha = 0.2f)
+                    }
+                )
+                Row(
+                    horizontalArrangement = Arrangement.spacedBy(4.dp),
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    Text(
+                        text = "→",
+                        style = MaterialTheme.typography.bodySmall,
+                        fontWeight = FontWeight.Bold
+                    )
+                    Text(
+                        text = feedback.correctedText,
+                        style = MaterialTheme.typography.bodySmall,
+                        fontWeight = FontWeight.Bold,
+                        color = MaterialTheme.colorScheme.primary
+                    )
+                }
+            }
+
+            // Better expression
+            if (feedback.betterExpression != null) {
+                Text(
+                    text = "💡 ${feedback.betterExpression}",
+                    style = MaterialTheme.typography.bodySmall,
+                    fontStyle = FontStyle.Italic
+                )
+            }
+        }
+    }
 }

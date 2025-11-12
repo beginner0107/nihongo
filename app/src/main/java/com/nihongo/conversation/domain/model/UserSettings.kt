@@ -23,6 +23,24 @@ enum class ContrastMode {
         get() = this == HIGH
 }
 
+/**
+ * Furigana (reading guide) display type
+ *
+ * Examples:
+ * - HIRAGANA: 注文(ちゅうもん)
+ * - KATAKANA: 注文(チュウモン)
+ */
+enum class FuriganaType {
+    HIRAGANA,  // Default: use hiragana readings
+    KATAKANA;  // Use katakana readings (converts hiragana → katakana)
+
+    val displayName: String
+        get() = when (this) {
+            HIRAGANA -> "ひらがな"
+            KATAKANA -> "カタカナ"
+        }
+}
+
 data class UserSettings(
     val speechSpeed: Float = 1.0f,     // 0.5 ~ 2.0
     val autoSpeak: Boolean = true,
@@ -30,5 +48,7 @@ data class UserSettings(
     val feedbackEnabled: Boolean = true, // Real-time AI feedback
     val textSize: TextSizePreference = TextSizePreference.NORMAL,
     val contrastMode: ContrastMode = ContrastMode.NORMAL,
-    val themeMode: ThemeMode = ThemeMode.SYSTEM
+    val themeMode: ThemeMode = ThemeMode.SYSTEM,
+    val showFurigana: Boolean = false,  // Show furigana on AI messages
+    val furiganaType: FuriganaType = FuriganaType.HIRAGANA  // Hiragana or Katakana
 )
