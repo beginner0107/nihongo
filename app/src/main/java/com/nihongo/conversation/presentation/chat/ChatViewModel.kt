@@ -111,7 +111,14 @@ data class ChatUiState(
     val userGrammarFeedback: ImmutableMap<Long, ImmutableList<GrammarFeedback>> = ImmutableMap.empty(), // messageId -> feedback list
     val expandedUserGrammarFeedback: ImmutableSet<Long> = ImmutableSet.empty(), // messageIds with feedback expanded
     val userGrammarAnalyzing: ImmutableSet<Long> = ImmutableSet.empty(), // messageIds being analyzed
-    val userGrammarErrors: ImmutableMap<Long, String> = ImmutableMap.empty() // messageId -> error message
+    val userGrammarErrors: ImmutableMap<Long, String> = ImmutableMap.empty(), // messageId -> error message
+
+    // Phase 5: Message bookmarking & sharing
+    val savedMessages: ImmutableSet<Long> = ImmutableSet.empty(), // messageIds that are bookmarked
+
+    // Snackbar/feedback messages
+    val snackbarMessage: String? = null,
+    val errorMessage: String? = null
 ) {
     /**
      * Computed property using derivedStateOf pattern
@@ -144,6 +151,7 @@ class ChatViewModel @Inject constructor(
     private val translationRepository: com.nihongo.conversation.data.repository.TranslationRepository,
     private val vocabularyRepository: com.nihongo.conversation.data.repository.VocabularyRepository,
     private val questRepository: QuestRepository
+    // private val savedMessageRepository: com.nihongo.conversation.data.repository.SavedMessageRepository  // Phase 5 (temporarily disabled)
 ) : ViewModel() {
 
     private val _uiState = MutableStateFlow(ChatUiState())
@@ -171,6 +179,7 @@ class ChatViewModel @Inject constructor(
         observeVoiceEvents()
         observeSettings()
         observeUserProfile()
+        // observeSavedMessages()  // Phase 5 (temporarily disabled)
         observeMemoryPressure()  // Phase 6A
     }
 
@@ -197,6 +206,22 @@ class ChatViewModel @Inject constructor(
             }
         }
     }
+
+    // Phase 5: Observe saved messages for current conversation (temporarily disabled)
+    /*
+    private fun observeSavedMessages() {
+        viewModelScope.launch {
+            // Collect saved messages and update UI state
+            savedMessageRepository.getSavedMessages(currentUserId)
+                .collect { savedMessagesList ->
+                    val savedMessageIds = savedMessagesList.map { it.messageId }.toSet()
+                    _uiState.update {
+                        it.copy(savedMessages = savedMessageIds.toImmutableSet())
+                    }
+                }
+        }
+    }
+    */
 
     fun initConversation(userId: Long, scenarioId: Long) {
         viewModelScope.launch {
@@ -1774,5 +1799,46 @@ class ChatViewModel @Inject constructor(
             )
         }
         requestUserGrammarFeedback(messageId, userText)
+    }
+
+    // ========== Phase 5: Message Bookmarking & Sharing (temporarily disabled) ==========
+    /*
+    fun isMessageSaved(messageId: Long): Flow<Boolean> {
+        return savedMessageRepository.isMessageSaved(currentUserId, messageId)
+    }
+
+    fun saveMessage(messageId: Long, userNote: String? = null) {
+        viewModelScope.launch {
+            val result = savedMessageRepository.saveMessage(
+                userId = currentUserId,
+                messageId = messageId,
+                userNote = userNote
+            )
+            // ... implementation
+        }
+    }
+
+    fun unsaveMessage(messageId: Long) {
+        viewModelScope.launch {
+            val result = savedMessageRepository.unsaveMessage(currentUserId, messageId)
+            // ... implementation
+        }
+    }
+    */
+
+    /**
+     * Share message text via Android Share API (getShareText는 repository 없이 동작 가능)
+     */
+    fun getShareText(message: Message): String {
+        val scenario = _uiState.value.scenario
+        val prefix = if (message.isUser) "🗣️ 私: " else "🤖 AI: "
+        val scenarioInfo = scenario?.let { "\n\n📚 シナリオ: ${it.title}" } ?: ""
+
+        return """
+            $prefix${message.content}
+            $scenarioInfo
+
+            📱 日本語会話アプリで学習中
+        """.trimIndent()
     }
 }

@@ -23,6 +23,8 @@ import com.nihongo.conversation.data.local.entity.GrammarFeedbackCacheEntity
 import com.nihongo.conversation.data.local.dao.GrammarFeedbackCacheDao
 import com.nihongo.conversation.data.local.entity.DailyQuestEntity
 import com.nihongo.conversation.data.local.entity.UserPointsEntity
+import com.nihongo.conversation.data.local.entity.SavedMessageEntity
+import com.nihongo.conversation.data.local.dao.SavedMessageDao
 
 @Database(
     entities = [
@@ -44,12 +46,13 @@ import com.nihongo.conversation.data.local.entity.UserPointsEntity
         TranslationCacheEntity::class,
         GrammarFeedbackCacheEntity::class,
         DailyQuestEntity::class,
-        UserPointsEntity::class
+        UserPointsEntity::class,
+        // SavedMessageEntity::class  // Phase 5: Message bookmarking (temporarily disabled)
     ],
     views = [
         ConversationStats::class
     ],
-    version = 16,  // Added Quest system (DailyQuestEntity, UserPointsEntity)
+    version = 16,  // Reverted to 16 (Phase 5 temporarily disabled)
     exportSchema = false
 )
 abstract class NihongoDatabase : RoomDatabase() {
@@ -71,6 +74,7 @@ abstract class NihongoDatabase : RoomDatabase() {
     abstract fun grammarFeedbackCacheDao(): GrammarFeedbackCacheDao
     abstract fun dailyQuestDao(): DailyQuestDao
     abstract fun userPointsDao(): UserPointsDao
+    // abstract fun savedMessageDao(): SavedMessageDao  // Phase 5: Message bookmarking (temporarily disabled)
 
     companion object {
         val MIGRATION_1_2 = object : Migration(1, 2) {
@@ -592,6 +596,30 @@ abstract class NihongoDatabase : RoomDatabase() {
                         lastResetDate INTEGER NOT NULL
                     )
                 """.trimIndent())
+            }
+        }
+
+        val MIGRATION_16_17 = object : Migration(16, 17) {
+            override fun migrate(database: SupportSQLiteDatabase) {
+                // Phase 5: Create saved_messages table for message bookmarking
+                database.execSQL("""
+                    CREATE TABLE saved_messages (
+                        id INTEGER PRIMARY KEY AUTOINCREMENT NOT NULL,
+                        messageId INTEGER NOT NULL,
+                        userId INTEGER NOT NULL,
+                        messageContent TEXT NOT NULL,
+                        isUserMessage INTEGER NOT NULL,
+                        scenarioTitle TEXT NOT NULL,
+                        userNote TEXT,
+                        tags TEXT,
+                        savedAt INTEGER NOT NULL,
+                        FOREIGN KEY(messageId) REFERENCES messages(id) ON DELETE CASCADE
+                    )
+                """.trimIndent())
+
+                database.execSQL("CREATE INDEX IF NOT EXISTS index_saved_messages_messageId ON saved_messages(messageId)")
+                database.execSQL("CREATE INDEX IF NOT EXISTS index_saved_messages_userId ON saved_messages(userId)")
+                database.execSQL("CREATE INDEX IF NOT EXISTS index_saved_messages_savedAt ON saved_messages(savedAt)")
             }
         }
     }

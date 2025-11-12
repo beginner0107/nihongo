@@ -315,6 +315,21 @@ fun ChatScreen(
                         showFurigana = message.id in uiState.messagesWithFurigana,
                         furiganaType = uiState.furiganaType,
 
+                        // Phase 5: Message bookmarking & sharing (temporarily disabled - only share works)
+                        isMessageSaved = false,  // uiState.savedMessages.contains(message.id),
+                        onToggleBookmark = null,  // Temporarily disabled
+                        onShareMessage = {
+                            val shareText = viewModel.getShareText(message)
+                            val intent = android.content.Intent().apply {
+                                action = android.content.Intent.ACTION_SEND
+                                putExtra(android.content.Intent.EXTRA_TEXT, shareText)
+                                type = "text/plain"
+                            }
+                            context.startActivity(
+                                android.content.Intent.createChooser(intent, "共有")
+                            )
+                        },
+
                         // User message features
                         isUserTranslationExpanded = message.id in uiState.expandedUserTranslations,
                         userTranslation = uiState.userTranslations[message.id],
@@ -673,6 +688,11 @@ fun MessageBubble(
     onToggleFurigana: (() -> Unit)? = null,
     showFurigana: Boolean = false,
     furiganaType: com.nihongo.conversation.domain.model.FuriganaType = com.nihongo.conversation.domain.model.FuriganaType.HIRAGANA,
+
+    // Phase 5: Message bookmarking & sharing
+    isMessageSaved: Boolean = false,
+    onToggleBookmark: (() -> Unit)? = null,
+    onShareMessage: (() -> Unit)? = null,
 
     // User message features
     isUserTranslationExpanded: Boolean = false,
@@ -1344,6 +1364,56 @@ fun MessageBubble(
                         showContextMenu = false
                     }
                 )
+            }
+
+            // Phase 5: Bookmark and Share section
+            if (onToggleBookmark != null || onShareMessage != null) {
+                androidx.compose.material3.HorizontalDivider()
+
+                // 즐겨찾기 토글 (Bookmark toggle)
+                if (onToggleBookmark != null) {
+                    androidx.compose.material3.DropdownMenuItem(
+                        text = {
+                            androidx.compose.material3.Text(
+                                if (isMessageSaved) "保存を解除" else "保存する"
+                            )
+                        },
+                        leadingIcon = {
+                            androidx.compose.material3.Icon(
+                                imageVector = if (isMessageSaved)
+                                    androidx.compose.material.icons.Icons.Default.BookmarkRemove
+                                else
+                                    androidx.compose.material.icons.Icons.Default.BookmarkAdd,
+                                contentDescription = null,
+                                tint = if (isMessageSaved)
+                                    MaterialTheme.colorScheme.primary
+                                else
+                                    MaterialTheme.colorScheme.onSurface
+                            )
+                        },
+                        onClick = {
+                            onToggleBookmark()
+                            showContextMenu = false
+                        }
+                    )
+                }
+
+                // 공유 (Share)
+                if (onShareMessage != null) {
+                    androidx.compose.material3.DropdownMenuItem(
+                        text = { androidx.compose.material3.Text("共有") },
+                        leadingIcon = {
+                            androidx.compose.material3.Icon(
+                                androidx.compose.material.icons.Icons.Default.Share,
+                                contentDescription = null
+                            )
+                        },
+                        onClick = {
+                            onShareMessage()
+                            showContextMenu = false
+                        }
+                    )
+                }
             }
 
             // 편집 (Only for user messages)

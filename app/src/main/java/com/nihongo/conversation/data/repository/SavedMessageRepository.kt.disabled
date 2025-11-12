@@ -1,0 +1,133 @@
+package com.nihongo.conversation.data.repository
+
+import com.nihongo.conversation.data.local.MessageDao
+import com.nihongo.conversation.data.local.ScenarioDao
+import com.nihongo.conversation.data.local.dao.SavedMessageDao
+import com.nihongo.conversation.data.local.entity.SavedMessageEntity
+import com.nihongo.conversation.domain.model.Message
+import kotlinx.coroutines.flow.Flow
+import kotlinx.coroutines.flow.first
+import kotlinx.coroutines.flow.map
+import javax.inject.Inject
+
+/**
+ * Repository for managing saved messages
+ *
+ * Phase 5: ChatScreen Enhancement
+ */
+interface SavedMessageRepository {
+    fun getSavedMessages(userId: Long): Flow<List<SavedMessageData>>
+    fun isMessageSaved(userId: Long, messageId: Long): Flow<Boolean>
+    suspend fun saveMessage(userId: Long, messageId: Long, userNote: String? = null, tags: String? = null): Result<Long>
+    suspend fun unsaveMessage(userId: Long, messageId: Long): Result<Unit>
+    suspend fun updateSavedMessage(id: Long, userNote: String?, tags: String?): Result<Unit>
+    fun getSavedMessageCount(userId: Long): Flow<Int>
+}
+
+class SavedMessageRepositoryImpl @Inject constructor(
+    private val savedMessageDao: SavedMessageDao,
+    private val messageDao: MessageDao,
+    private val scenarioDao: ScenarioDao
+) : SavedMessageRepository {
+
+    override fun getSavedMessages(userId: Long): Flow<List<SavedMessageData>> {
+        return savedMessageDao.getSavedMessages(userId).map { entities ->
+            entities.map { entity ->
+                SavedMessageData(
+                    id = entity.id,
+                    messageId = entity.messageId,
+                    messageContent = entity.messageContent,
+                    isUserMessage = entity.isUserMessage,
+                    scenarioTitle = entity.scenarioTitle,
+                    userNote = entity.userNote,
+                    tags = entity.tags?.split(",")?.map { it.trim() } ?: emptyList(),
+                    savedAt = entity.savedAt
+                )
+            }
+        }
+    }
+
+    override fun isMessageSaved(userId: Long, messageId: Long): Flow<Boolean> {
+        return savedMessageDao.isMessageSaved(userId, messageId)
+    }
+
+    override suspend fun saveMessage(
+        userId: Long,
+        messageId: Long,
+        userNote: String?,
+        tags: String?
+    ): Result<Long> {
+        return try {
+            // Check if already saved
+            val existing = savedMessageDao.getSavedMessage(userId, messageId)
+            if (existing != null) {
+                return Result.success(existing.id)
+            }
+
+            // Get message details
+            val message = messageDao.getMessageById(messageId)
+                ?: return Result.failure(Exception("Message not found"))
+
+            // Get scenario title
+            val scenario = scenarioDao.getScenarioById(message.scenarioId)
+            val scenarioTitle = scenario?.title ?: "Unknown Scenario"
+
+            // Create saved message entity
+            val savedMessage = SavedMessageEntity(
+                messageId = messageId,
+                userId = userId,
+                messageContent = message.content,
+                isUserMessage = message.isUser,
+                scenarioTitle = scenarioTitle,
+                userNote = userNote,
+                tags = tags
+            )
+
+            val id = savedMessageDao.insertSavedMessage(savedMessage)
+            Result.success(id)
+        } catch (e: Exception) {
+            Result.failure(e)
+        }
+    }
+
+    override suspend fun unsaveMessage(userId: Long, messageId: Long): Result<Unit> {
+        return try {
+            savedMessageDao.deleteSavedMessageByMessageId(userId, messageId)
+            Result.success(Unit)
+        } catch (e: Exception) {
+            Result.failure(e)
+        }
+    }
+
+    override suspend fun updateSavedMessage(
+        id: Long,
+        userNote: String?,
+        tags: String?
+    ): Result<Unit> {
+        return try {
+            // This would require fetching the existing entity and updating it
+            // For simplicity, we'll implement this in a future update
+            Result.failure(Exception("Update not implemented yet"))
+        } catch (e: Exception) {
+            Result.failure(e)
+        }
+    }
+
+    override fun getSavedMessageCount(userId: Long): Flow<Int> {
+        return savedMessageDao.getSavedMessageCount(userId)
+    }
+}
+
+/**
+ * Domain model for saved message
+ */
+data class SavedMessageData(
+    val id: Long,
+    val messageId: Long,
+    val messageContent: String,
+    val isUserMessage: Boolean,
+    val scenarioTitle: String,
+    val userNote: String?,
+    val tags: List<String>,
+    val savedAt: Long
+)
