@@ -200,7 +200,7 @@ fun ScenarioListScreen(
                         FilterChip(
                             selected = 1 in uiState.selectedDifficulties,
                             onClick = { viewModel.toggleDifficulty(1) },
-                            label = { Text("초급") },
+                            label = { Text("입문") },
                             leadingIcon = {
                                 if (1 in uiState.selectedDifficulties) {
                                     Icon(
@@ -215,7 +215,7 @@ fun ScenarioListScreen(
                         FilterChip(
                             selected = 2 in uiState.selectedDifficulties,
                             onClick = { viewModel.toggleDifficulty(2) },
-                            label = { Text("중급") },
+                            label = { Text("초급") },
                             leadingIcon = {
                                 if (2 in uiState.selectedDifficulties) {
                                     Icon(
@@ -230,9 +230,39 @@ fun ScenarioListScreen(
                         FilterChip(
                             selected = 3 in uiState.selectedDifficulties,
                             onClick = { viewModel.toggleDifficulty(3) },
-                            label = { Text("고급") },
+                            label = { Text("중급") },
                             leadingIcon = {
                                 if (3 in uiState.selectedDifficulties) {
+                                    Icon(
+                                        imageVector = Icons.Default.Check,
+                                        contentDescription = null,
+                                        modifier = Modifier.size(18.dp)
+                                    )
+                                }
+                            }
+                        )
+
+                        FilterChip(
+                            selected = 4 in uiState.selectedDifficulties,
+                            onClick = { viewModel.toggleDifficulty(4) },
+                            label = { Text("고급") },
+                            leadingIcon = {
+                                if (4 in uiState.selectedDifficulties) {
+                                    Icon(
+                                        imageVector = Icons.Default.Check,
+                                        contentDescription = null,
+                                        modifier = Modifier.size(18.dp)
+                                    )
+                                }
+                            }
+                        )
+
+                        FilterChip(
+                            selected = 5 in uiState.selectedDifficulties,
+                            onClick = { viewModel.toggleDifficulty(5) },
+                            label = { Text("최상급") },
+                            leadingIcon = {
+                                if (5 in uiState.selectedDifficulties) {
                                     Icon(
                                         imageVector = Icons.Default.Check,
                                         contentDescription = null,

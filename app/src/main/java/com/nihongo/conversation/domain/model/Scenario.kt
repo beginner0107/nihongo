@@ -13,7 +13,7 @@ data class Scenario(
     val id: Long = 0,
     val title: String,
     val description: String,
-    val difficulty: Int,
+    val difficulty: Int,  // 1-5: 1=입문, 2=초급, 3=중급, 4=고급, 5=최상급 (Phase 5단계 세분화)
     val systemPrompt: String,
     val createdAt: Long = System.currentTimeMillis(),
 

@@ -12,11 +12,13 @@ import com.nihongo.conversation.core.theme.AppDesignSystem
 
 /**
  * 난이도 배지 컴포넌트
- * Phase 12: 모든 화면에서 통일된 난이도 색상 사용
+ * Phase 5단계 세분화: 1=입문, 2=초급, 3=중급, 4=고급, 5=최상급
  *
- * - 초급 (1): primaryContainer (파랑)
- * - 중급 (2): tertiaryContainer (보라)
- * - 고급 (3): errorContainer (빨강)
+ * - 입문 (1): secondaryContainer (연한 파랑)
+ * - 초급 (2): primaryContainer (파랑)
+ * - 중급 (3): tertiaryContainer (보라)
+ * - 고급 (4): errorContainer (빨강)
+ * - 최상급 (5): error (진한 빨강)
  */
 @Composable
 fun DifficultyBadge(
@@ -27,17 +29,21 @@ fun DifficultyBadge(
         modifier = modifier,
         shape = MaterialTheme.shapes.small,
         color = when (difficulty) {
-            1 -> AppDesignSystem.Colors.difficultyBeginner()
-            2 -> AppDesignSystem.Colors.difficultyIntermediate()
-            3 -> AppDesignSystem.Colors.difficultyAdvanced()
+            1 -> MaterialTheme.colorScheme.secondaryContainer      // 입문: 연한 파랑
+            2 -> AppDesignSystem.Colors.difficultyBeginner()       // 초급: 파랑
+            3 -> AppDesignSystem.Colors.difficultyIntermediate()   // 중급: 보라
+            4 -> AppDesignSystem.Colors.difficultyAdvanced()       // 고급: 빨강
+            5 -> MaterialTheme.colorScheme.error.copy(alpha = 0.2f) // 최상급: 진한 빨강
             else -> AppDesignSystem.Colors.surfaceVariant()
         }
     ) {
         Text(
             text = when (difficulty) {
-                1 -> "초급"
-                2 -> "중급"
-                3 -> "고급"
+                1 -> "입문"
+                2 -> "초급"
+                3 -> "중급"
+                4 -> "고급"
+                5 -> "최상급"
                 else -> "초급"
             },
             modifier = Modifier.padding(horizontal = 8.dp, vertical = 4.dp),

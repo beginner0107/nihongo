@@ -52,7 +52,7 @@ import com.nihongo.conversation.data.local.SavedMessageDao
     views = [
         ConversationStats::class
     ],
-    version = 17,  // Phase 5: Added SavedMessageEntity for message bookmarking
+    version = 18,  // Phase 5단계 난이도 세분화: difficulty 범위 1-3 → 1-5 확장
     exportSchema = false
 )
 abstract class NihongoDatabase : RoomDatabase() {
@@ -619,6 +619,25 @@ abstract class NihongoDatabase : RoomDatabase() {
                 database.execSQL("CREATE INDEX IF NOT EXISTS index_saved_messages_messageId ON saved_messages(messageId)")
                 database.execSQL("CREATE INDEX IF NOT EXISTS index_saved_messages_userId ON saved_messages(userId)")
                 database.execSQL("CREATE INDEX IF NOT EXISTS index_saved_messages_savedAt ON saved_messages(savedAt)")
+            }
+        }
+
+        val MIGRATION_17_18 = object : Migration(17, 18) {
+            override fun migrate(database: SupportSQLiteDatabase) {
+                // Phase 5단계 난이도 세분화: 기존 시나리오 difficulty 값 매핑
+                // 1 (초급) → 2 (초급)
+                // 2 (중급) → 3 (중급)
+                // 3 (고급) → 4 (고급)
+                // 새로운 난이도 체계: 1=입문, 2=초급, 3=중급, 4=고급, 5=최상급
+                database.execSQL("""
+                    UPDATE scenarios
+                    SET difficulty = CASE difficulty
+                        WHEN 1 THEN 2  -- 기존 초급 → 새 초급
+                        WHEN 2 THEN 3  -- 기존 중급 → 새 중급
+                        WHEN 3 THEN 4  -- 기존 고급 → 새 고급
+                        ELSE difficulty
+                    END
+                """.trimIndent())
             }
         }
     }

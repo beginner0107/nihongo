@@ -168,9 +168,11 @@ object CommonVocabulary {
         if (contentText.isEmpty()) return 0f
 
         val knownWords = when (level) {
-            DifficultyLevel.BEGINNER -> N5_COMMON
-            DifficultyLevel.INTERMEDIATE -> N5_COMMON + N4_COMMON
-            DifficultyLevel.ADVANCED -> ALL_VOCABULARY
+            DifficultyLevel.VERY_BEGINNER -> N5_COMMON.take(300).toSet()  // 300-500어
+            DifficultyLevel.BEGINNER -> N5_COMMON  // 500-1000어
+            DifficultyLevel.INTERMEDIATE -> N5_COMMON + N4_COMMON  // 1000-3000어
+            DifficultyLevel.ADVANCED -> N5_COMMON + N4_COMMON + N3_COMMON  // 3000-6000어
+            DifficultyLevel.VERY_ADVANCED -> ALL_VOCABULARY  // 6000어 이상
         }
 
         return calculateCharacterCoverage(contentText, knownWords)
@@ -247,14 +249,18 @@ object CommonVocabulary {
 
         return when (assessment) {
             CoverageAssessment.TOO_HARD -> when (level) {
+                DifficultyLevel.VERY_BEGINNER -> "もっと簡単な言葉で話してください。"
                 DifficultyLevel.BEGINNER -> "もっと簡単な言葉で、短い文で話してください。"
                 DifficultyLevel.INTERMEDIATE -> "少し簡単な表現を使ってください。"
                 DifficultyLevel.ADVANCED -> "もう少し分かりやすく説明してください。"
+                DifficultyLevel.VERY_ADVANCED -> "基本的な表現も加えてください。"
             }
             CoverageAssessment.TOO_EASY -> when (level) {
+                DifficultyLevel.VERY_BEGINNER -> null  // Easy is fine for very beginners
                 DifficultyLevel.BEGINNER -> null  // Easy is fine for beginners
                 DifficultyLevel.INTERMEDIATE -> "もう少し自然な表現を使ってもいいですよ。"
                 DifficultyLevel.ADVANCED -> "より高度な語彙や表現を使ってください。"
+                DifficultyLevel.VERY_ADVANCED -> "専門的な表現を使ってください。"
             }
             else -> null  // Optimal or close enough
         }
