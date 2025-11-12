@@ -16,6 +16,9 @@ import com.nihongo.conversation.presentation.dashboard.DailyChallengeCard
 import com.nihongo.conversation.presentation.dashboard.RecentScenariosSection
 import com.nihongo.conversation.presentation.dashboard.RecommendedScenariosSection
 import com.nihongo.conversation.presentation.dashboard.TodayLearningCard
+import com.nihongo.conversation.presentation.quest.QuestCompletedDialog
+import com.nihongo.conversation.presentation.quest.QuestSection
+import com.nihongo.conversation.presentation.quest.QuestViewModel
 import com.nihongo.conversation.presentation.scenario.ScenarioViewModel
 
 /**
@@ -30,9 +33,11 @@ import com.nihongo.conversation.presentation.scenario.ScenarioViewModel
 @Composable
 fun HomeScreen(
     onScenarioSelected: (Long) -> Unit,
-    viewModel: ScenarioViewModel = hiltViewModel()
+    viewModel: ScenarioViewModel = hiltViewModel(),
+    questViewModel: QuestViewModel = hiltViewModel()
 ) {
     val uiState by viewModel.uiState.collectAsState()
+    val questUiState by questViewModel.uiState.collectAsState()
 
     Scaffold(
         topBar = {
@@ -88,6 +93,17 @@ fun HomeScreen(
                     )
                 }
 
+                // Quest Section
+                item {
+                    if (questUiState.quests.isNotEmpty()) {
+                        QuestSection(
+                            quests = questUiState.quests,
+                            userPoints = questUiState.userPoints,
+                            onQuestClick = { /* Quest details - future implementation */ }
+                        )
+                    }
+                }
+
                 // Recommended Scenarios
                 item {
                     val recommendedScenarios = uiState.recommendedScenarios
@@ -126,6 +142,14 @@ fun HomeScreen(
                 }
             }
         }
+    }
+
+    // Quest completed dialog
+    if (questUiState.showQuestCompletedDialog) {
+        QuestCompletedDialog(
+            rewardPoints = questUiState.lastCompletedQuestReward,
+            onDismiss = { questViewModel.dismissQuestCompletedDialog() }
+        )
     }
 }
 

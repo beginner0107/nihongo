@@ -21,6 +21,8 @@ import com.nihongo.conversation.data.local.entity.TranslationCacheEntity
 import com.nihongo.conversation.data.local.dao.TranslationCacheDao
 import com.nihongo.conversation.data.local.entity.GrammarFeedbackCacheEntity
 import com.nihongo.conversation.data.local.dao.GrammarFeedbackCacheDao
+import com.nihongo.conversation.data.local.entity.DailyQuestEntity
+import com.nihongo.conversation.data.local.entity.UserPointsEntity
 
 @Database(
     entities = [
@@ -40,12 +42,14 @@ import com.nihongo.conversation.data.local.dao.GrammarFeedbackCacheDao
         com.nihongo.conversation.domain.model.CachedResponse::class,
         com.nihongo.conversation.domain.model.CacheAnalytics::class,
         TranslationCacheEntity::class,
-        GrammarFeedbackCacheEntity::class
+        GrammarFeedbackCacheEntity::class,
+        DailyQuestEntity::class,
+        UserPointsEntity::class
     ],
     views = [
         ConversationStats::class
     ],
-    version = 15,  // Added GrammarFeedbackCacheEntity for caching grammar analysis
+    version = 16,  // Added Quest system (DailyQuestEntity, UserPointsEntity)
     exportSchema = false
 )
 abstract class NihongoDatabase : RoomDatabase() {
@@ -65,6 +69,8 @@ abstract class NihongoDatabase : RoomDatabase() {
     abstract fun cacheAnalyticsDao(): CacheAnalyticsDao
     abstract fun translationCacheDao(): TranslationCacheDao
     abstract fun grammarFeedbackCacheDao(): GrammarFeedbackCacheDao
+    abstract fun dailyQuestDao(): DailyQuestDao
+    abstract fun userPointsDao(): UserPointsDao
 
     companion object {
         val MIGRATION_1_2 = object : Migration(1, 2) {
@@ -547,6 +553,45 @@ abstract class NihongoDatabase : RoomDatabase() {
 
                 database.execSQL("CREATE INDEX IF NOT EXISTS index_grammar_feedback_cache_messageText ON grammar_feedback_cache(messageText)")
                 database.execSQL("CREATE INDEX IF NOT EXISTS index_grammar_feedback_cache_timestamp ON grammar_feedback_cache(timestamp)")
+            }
+        }
+
+        val MIGRATION_15_16 = object : Migration(15, 16) {
+            override fun migrate(database: SupportSQLiteDatabase) {
+                // Create daily_quests table
+                database.execSQL("""
+                    CREATE TABLE daily_quests (
+                        id INTEGER PRIMARY KEY AUTOINCREMENT NOT NULL,
+                        userId INTEGER NOT NULL,
+                        title TEXT NOT NULL,
+                        description TEXT NOT NULL,
+                        questType TEXT NOT NULL,
+                        targetValue INTEGER NOT NULL,
+                        currentValue INTEGER NOT NULL,
+                        rewardPoints INTEGER NOT NULL,
+                        expiresAt INTEGER NOT NULL,
+                        isCompleted INTEGER NOT NULL,
+                        completedAt INTEGER,
+                        createdAt INTEGER NOT NULL
+                    )
+                """.trimIndent())
+
+                database.execSQL("CREATE INDEX IF NOT EXISTS index_daily_quests_userId ON daily_quests(userId)")
+                database.execSQL("CREATE INDEX IF NOT EXISTS index_daily_quests_expiresAt ON daily_quests(expiresAt)")
+                database.execSQL("CREATE INDEX IF NOT EXISTS index_daily_quests_isCompleted ON daily_quests(isCompleted)")
+
+                // Create user_points table
+                database.execSQL("""
+                    CREATE TABLE user_points (
+                        userId INTEGER PRIMARY KEY NOT NULL,
+                        totalPoints INTEGER NOT NULL,
+                        todayPoints INTEGER NOT NULL,
+                        weeklyPoints INTEGER NOT NULL,
+                        level INTEGER NOT NULL,
+                        weeklyRank INTEGER,
+                        lastResetDate INTEGER NOT NULL
+                    )
+                """.trimIndent())
             }
         }
     }
