@@ -30,9 +30,6 @@ import com.nihongo.conversation.presentation.scenario.ScenarioViewModel
 @Composable
 fun HomeScreen(
     onScenarioSelected: (Long) -> Unit,
-    onProfileClick: () -> Unit = {},
-    onSettingsClick: () -> Unit = {},
-    onStatsClick: () -> Unit = {},
     viewModel: ScenarioViewModel = hiltViewModel()
 ) {
     val uiState by viewModel.uiState.collectAsState()
@@ -50,26 +47,6 @@ fun HomeScreen(
                             text = "빠른 학습 시작",
                             style = MaterialTheme.typography.bodySmall,
                             color = MaterialTheme.colorScheme.onSurfaceVariant
-                        )
-                    }
-                },
-                actions = {
-                    IconButton(onClick = onProfileClick) {
-                        Icon(
-                            imageVector = Icons.Default.AccountCircle,
-                            contentDescription = "프로필"
-                        )
-                    }
-                    IconButton(onClick = onStatsClick) {
-                        Icon(
-                            imageVector = Icons.Default.BarChart,
-                            contentDescription = "통계"
-                        )
-                    }
-                    IconButton(onClick = onSettingsClick) {
-                        Icon(
-                            imageVector = Icons.Default.Settings,
-                            contentDescription = "설정"
                         )
                     }
                 }

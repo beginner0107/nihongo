@@ -92,10 +92,7 @@ fun MainScreen(
         ) {
             composable(BottomNavItem.Home.route) {
                 HomeScreen(
-                    onScenarioSelected = onScenarioSelected,
-                    onProfileClick = { navController.navigate(BottomNavItem.Profile.route) },
-                    onSettingsClick = onSettingsClick,
-                    onStatsClick = { navController.navigate(BottomNavItem.Stats.route) }
+                    onScenarioSelected = onScenarioSelected
                 )
             }
 
