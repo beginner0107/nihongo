@@ -13,8 +13,8 @@ import androidx.room.PrimaryKey
 @Entity(
     tableName = "saved_messages",
     indices = [
-        Index(value = ["messageId"]),
         Index(value = ["userId"]),
+        Index(value = ["messageId"]),
         Index(value = ["savedAt"])
     ]
 )

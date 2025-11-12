@@ -150,8 +150,8 @@ class ChatViewModel @Inject constructor(
     private val mlKitTranslator: com.nihongo.conversation.core.translation.MLKitTranslator,
     private val translationRepository: com.nihongo.conversation.data.repository.TranslationRepository,
     private val vocabularyRepository: com.nihongo.conversation.data.repository.VocabularyRepository,
-    private val questRepository: QuestRepository
-    // private val savedMessageRepository: com.nihongo.conversation.data.repository.SavedMessageRepository  // Phase 5 (temporarily disabled)
+    private val questRepository: QuestRepository,
+    private val savedMessageRepository: com.nihongo.conversation.data.repository.SavedMessageRepository  // Phase 5
 ) : ViewModel() {
 
     private val _uiState = MutableStateFlow(ChatUiState())
@@ -179,7 +179,7 @@ class ChatViewModel @Inject constructor(
         observeVoiceEvents()
         observeSettings()
         observeUserProfile()
-        // observeSavedMessages()  // Phase 5 (temporarily disabled)
+        observeSavedMessages()  // Phase 5
         observeMemoryPressure()  // Phase 6A
     }
 
@@ -207,8 +207,7 @@ class ChatViewModel @Inject constructor(
         }
     }
 
-    // Phase 5: Observe saved messages for current conversation (temporarily disabled)
-    /*
+    // Phase 5: Observe saved messages for current conversation
     private fun observeSavedMessages() {
         viewModelScope.launch {
             // Collect saved messages and update UI state
@@ -221,7 +220,6 @@ class ChatViewModel @Inject constructor(
                 }
         }
     }
-    */
 
     fun initConversation(userId: Long, scenarioId: Long) {
         viewModelScope.launch {
@@ -1801,33 +1799,84 @@ class ChatViewModel @Inject constructor(
         requestUserGrammarFeedback(messageId, userText)
     }
 
-    // ========== Phase 5: Message Bookmarking & Sharing (temporarily disabled) ==========
-    /*
+    // ========== Phase 5: Message Bookmarking & Sharing ==========
+
+    /**
+     * Check if a message is bookmarked
+     */
     fun isMessageSaved(messageId: Long): Flow<Boolean> {
         return savedMessageRepository.isMessageSaved(currentUserId, messageId)
     }
 
+    /**
+     * Bookmark a message for later review
+     */
     fun saveMessage(messageId: Long, userNote: String? = null) {
         viewModelScope.launch {
+            // Find the message in current conversation
+            val message = _uiState.value.messages.firstOrNull { it.id == messageId }
+            if (message == null) {
+                _uiState.update {
+                    it.copy(errorMessage = "メッセージが見つかりません")
+                }
+                return@launch
+            }
+
+            val scenarioTitle = _uiState.value.scenario?.title ?: "不明なシナリオ"
+
             val result = savedMessageRepository.saveMessage(
                 userId = currentUserId,
-                messageId = messageId,
+                message = message,
+                scenarioTitle = scenarioTitle,
                 userNote = userNote
             )
-            // ... implementation
+
+            result.onSuccess {
+                _uiState.update {
+                    it.copy(
+                        errorMessage = null,
+                        snackbarMessage = "メッセージを保存しました"  // "Message saved"
+                    )
+                }
+            }.onFailure { error ->
+                _uiState.update {
+                    it.copy(
+                        errorMessage = "保存に失敗しました: ${error.message}",
+                        snackbarMessage = null
+                    )
+                }
+            }
         }
     }
 
+    /**
+     * Remove bookmark from a message
+     */
     fun unsaveMessage(messageId: Long) {
         viewModelScope.launch {
             val result = savedMessageRepository.unsaveMessage(currentUserId, messageId)
-            // ... implementation
+
+            result.onSuccess {
+                _uiState.update {
+                    it.copy(
+                        errorMessage = null,
+                        snackbarMessage = "保存を解除しました"  // "Bookmark removed"
+                    )
+                }
+            }.onFailure { error ->
+                _uiState.update {
+                    it.copy(
+                        errorMessage = "解除に失敗しました: ${error.message}",
+                        snackbarMessage = null
+                    )
+                }
+            }
         }
     }
-    */
 
     /**
-     * Share message text via Android Share API (getShareText는 repository 없이 동작 가능)
+     * Share message text via Android Share API
+     * Returns the text to be shared
      */
     fun getShareText(message: Message): String {
         val scenario = _uiState.value.scenario

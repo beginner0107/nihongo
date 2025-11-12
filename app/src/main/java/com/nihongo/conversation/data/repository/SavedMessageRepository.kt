@@ -1,12 +1,9 @@
 package com.nihongo.conversation.data.repository
 
-import com.nihongo.conversation.data.local.MessageDao
-import com.nihongo.conversation.data.local.ScenarioDao
-import com.nihongo.conversation.data.local.dao.SavedMessageDao
+import com.nihongo.conversation.data.local.SavedMessageDao
 import com.nihongo.conversation.data.local.entity.SavedMessageEntity
 import com.nihongo.conversation.domain.model.Message
 import kotlinx.coroutines.flow.Flow
-import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.flow.map
 import javax.inject.Inject
 
@@ -18,16 +15,19 @@ import javax.inject.Inject
 interface SavedMessageRepository {
     fun getSavedMessages(userId: Long): Flow<List<SavedMessageData>>
     fun isMessageSaved(userId: Long, messageId: Long): Flow<Boolean>
-    suspend fun saveMessage(userId: Long, messageId: Long, userNote: String? = null, tags: String? = null): Result<Long>
+    suspend fun saveMessage(
+        userId: Long,
+        message: Message,
+        scenarioTitle: String,
+        userNote: String? = null,
+        tags: String? = null
+    ): Result<Long>
     suspend fun unsaveMessage(userId: Long, messageId: Long): Result<Unit>
-    suspend fun updateSavedMessage(id: Long, userNote: String?, tags: String?): Result<Unit>
     fun getSavedMessageCount(userId: Long): Flow<Int>
 }
 
 class SavedMessageRepositoryImpl @Inject constructor(
-    private val savedMessageDao: SavedMessageDao,
-    private val messageDao: MessageDao,
-    private val scenarioDao: ScenarioDao
+    private val savedMessageDao: SavedMessageDao
 ) : SavedMessageRepository {
 
     override fun getSavedMessages(userId: Long): Flow<List<SavedMessageData>> {
@@ -53,28 +53,21 @@ class SavedMessageRepositoryImpl @Inject constructor(
 
     override suspend fun saveMessage(
         userId: Long,
-        messageId: Long,
+        message: Message,
+        scenarioTitle: String,
         userNote: String?,
         tags: String?
     ): Result<Long> {
         return try {
             // Check if already saved
-            val existing = savedMessageDao.getSavedMessage(userId, messageId)
+            val existing = savedMessageDao.getSavedMessage(userId, message.id)
             if (existing != null) {
                 return Result.success(existing.id)
             }
 
-            // Get message details
-            val message = messageDao.getMessageById(messageId)
-                ?: return Result.failure(Exception("Message not found"))
-
-            // Get scenario title
-            val scenario = scenarioDao.getScenarioById(message.scenarioId)
-            val scenarioTitle = scenario?.title ?: "Unknown Scenario"
-
             // Create saved message entity
             val savedMessage = SavedMessageEntity(
-                messageId = messageId,
+                messageId = message.id,
                 userId = userId,
                 messageContent = message.content,
                 isUserMessage = message.isUser,
@@ -94,20 +87,6 @@ class SavedMessageRepositoryImpl @Inject constructor(
         return try {
             savedMessageDao.deleteSavedMessageByMessageId(userId, messageId)
             Result.success(Unit)
-        } catch (e: Exception) {
-            Result.failure(e)
-        }
-    }
-
-    override suspend fun updateSavedMessage(
-        id: Long,
-        userNote: String?,
-        tags: String?
-    ): Result<Unit> {
-        return try {
-            // This would require fetching the existing entity and updating it
-            // For simplicity, we'll implement this in a future update
-            Result.failure(Exception("Update not implemented yet"))
         } catch (e: Exception) {
             Result.failure(e)
         }

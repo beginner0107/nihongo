@@ -315,9 +315,15 @@ fun ChatScreen(
                         showFurigana = message.id in uiState.messagesWithFurigana,
                         furiganaType = uiState.furiganaType,
 
-                        // Phase 5: Message bookmarking & sharing (temporarily disabled - only share works)
-                        isMessageSaved = false,  // uiState.savedMessages.contains(message.id),
-                        onToggleBookmark = null,  // Temporarily disabled
+                        // Phase 5: Message bookmarking & sharing
+                        isMessageSaved = uiState.savedMessages.contains(message.id),
+                        onToggleBookmark = {
+                            if (uiState.savedMessages.contains(message.id)) {
+                                viewModel.unsaveMessage(message.id)
+                            } else {
+                                viewModel.saveMessage(message.id)
+                            }
+                        },
                         onShareMessage = {
                             val shareText = viewModel.getShareText(message)
                             val intent = android.content.Intent().apply {

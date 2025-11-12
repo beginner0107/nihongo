@@ -24,7 +24,7 @@ import com.nihongo.conversation.data.local.dao.GrammarFeedbackCacheDao
 import com.nihongo.conversation.data.local.entity.DailyQuestEntity
 import com.nihongo.conversation.data.local.entity.UserPointsEntity
 import com.nihongo.conversation.data.local.entity.SavedMessageEntity
-import com.nihongo.conversation.data.local.dao.SavedMessageDao
+import com.nihongo.conversation.data.local.SavedMessageDao
 
 @Database(
     entities = [
@@ -47,12 +47,12 @@ import com.nihongo.conversation.data.local.dao.SavedMessageDao
         GrammarFeedbackCacheEntity::class,
         DailyQuestEntity::class,
         UserPointsEntity::class,
-        // SavedMessageEntity::class  // Phase 5: Message bookmarking (temporarily disabled)
+        SavedMessageEntity::class  // Phase 5: Message bookmarking
     ],
     views = [
         ConversationStats::class
     ],
-    version = 16,  // Reverted to 16 (Phase 5 temporarily disabled)
+    version = 17,  // Phase 5: Added SavedMessageEntity for message bookmarking
     exportSchema = false
 )
 abstract class NihongoDatabase : RoomDatabase() {
@@ -74,7 +74,7 @@ abstract class NihongoDatabase : RoomDatabase() {
     abstract fun grammarFeedbackCacheDao(): GrammarFeedbackCacheDao
     abstract fun dailyQuestDao(): DailyQuestDao
     abstract fun userPointsDao(): UserPointsDao
-    // abstract fun savedMessageDao(): SavedMessageDao  // Phase 5: Message bookmarking (temporarily disabled)
+    abstract fun savedMessageDao(): SavedMessageDao  // Phase 5: Message bookmarking
 
     companion object {
         val MIGRATION_1_2 = object : Migration(1, 2) {

@@ -118,8 +118,7 @@ object DatabaseModule {
     fun provideUserPointsDao(database: NihongoDatabase): UserPointsDao =
         database.userPointsDao()
 
-    // Phase 5: Temporarily disabled
-    // @Provides
-    // fun provideSavedMessageDao(database: NihongoDatabase): SavedMessageDao =
-    //     database.savedMessageDao()
+    @Provides
+    fun provideSavedMessageDao(database: NihongoDatabase): SavedMessageDao =
+        database.savedMessageDao()
 }

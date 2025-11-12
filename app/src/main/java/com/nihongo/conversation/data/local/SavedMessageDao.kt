@@ -1,4 +1,4 @@
-package com.nihongo.conversation.data.local.dao
+package com.nihongo.conversation.data.local
 
 import androidx.room.*
 import com.nihongo.conversation.data.local.entity.SavedMessageEntity
