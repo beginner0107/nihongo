@@ -296,4 +296,45 @@ class ConversationRepository @Inject constructor(
     suspend fun deleteMessage(message: Message) {
         messageDao.deleteMessage(message)
     }
+
+    // Dashboard statistics
+    fun getCompletedScenarios(userId: Long): Flow<List<Scenario>> = flow {
+        val completedConversations = conversationDao.getCompletedConversationsByUser(userId).first()
+        val scenarioIds = completedConversations.map { it.scenarioId }.distinct()
+        val scenarios = scenarioIds.mapNotNull { scenarioId ->
+            scenarioDao.getScenarioById(scenarioId).first()
+        }
+        emit(scenarios)
+    }
+
+    fun getInProgressScenarios(userId: Long): Flow<List<Scenario>> = flow {
+        val activeConversations = conversationDao.getActiveConversationsByUser(userId).first()
+        val scenarioIds = activeConversations.map { it.scenarioId }.distinct()
+        val scenarios = scenarioIds.mapNotNull { scenarioId ->
+            scenarioDao.getScenarioById(scenarioId).first()
+        }
+        emit(scenarios)
+    }
+
+    fun getTodayMessageCount(userId: Long): Flow<Int> {
+        val startOfDay = java.time.LocalDate.now()
+            .atStartOfDay()
+            .atZone(java.time.ZoneId.systemDefault())
+            .toInstant()
+            .toEpochMilli()
+
+        return messageDao.getMessageCountSince(userId, startOfDay)
+    }
+
+    fun getStudyStreak(userId: Long): Flow<StreakData> = flow {
+        // TODO: Implement study streak calculation
+        // For now, return placeholder data
+        emit(StreakData(current = 0, best = 0, lastStudyDate = ""))
+    }
+
+    data class StreakData(
+        val current: Int,
+        val best: Int,
+        val lastStudyDate: String
+    )
 }

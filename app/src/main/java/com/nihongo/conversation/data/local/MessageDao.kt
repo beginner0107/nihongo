@@ -58,4 +58,15 @@ interface MessageDao {
 
     @Query("DELETE FROM messages WHERE conversationId = :conversationId")
     suspend fun deleteMessagesByConversation(conversationId: Long)
+
+    /**
+     * Get message count since a specific timestamp (for daily statistics)
+     */
+    @Query("""
+        SELECT COUNT(*) FROM messages
+        WHERE conversationId IN (
+            SELECT id FROM conversations WHERE userId = :userId
+        ) AND timestamp >= :startTimestamp
+    """)
+    fun getMessageCountSince(userId: Long, startTimestamp: Long): Flow<Int>
 }

@@ -39,6 +39,12 @@ interface ConversationDao {
     suspend fun getActiveConversations(userId: Long, limit: Int = 5): List<Conversation>
 
     /**
+     * Get all active conversations for dashboard statistics
+     */
+    @Query("SELECT * FROM conversations WHERE userId = :userId AND isCompleted = 0 ORDER BY updatedAt DESC")
+    fun getActiveConversationsByUser(userId: Long): Flow<List<Conversation>>
+
+    /**
      * Get latest active conversation by user and scenario
      * Uses composite index (userId, scenarioId, isCompleted) for optimal performance
      */
