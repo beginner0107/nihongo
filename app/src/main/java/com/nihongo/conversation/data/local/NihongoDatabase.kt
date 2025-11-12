@@ -612,8 +612,7 @@ abstract class NihongoDatabase : RoomDatabase() {
                         scenarioTitle TEXT NOT NULL,
                         userNote TEXT,
                         tags TEXT,
-                        savedAt INTEGER NOT NULL,
-                        FOREIGN KEY(messageId) REFERENCES messages(id) ON DELETE CASCADE
+                        savedAt INTEGER NOT NULL
                     )
                 """.trimIndent())
 
