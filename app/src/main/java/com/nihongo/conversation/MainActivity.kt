@@ -57,7 +57,7 @@ class MainActivity : ComponentActivity() {
                         startDestination = if (isFirstLaunch) {
                             Screen.Onboarding.route
                         } else {
-                            Screen.UserSelection.route
+                            Screen.Main.route
                         },
                         onOnboardingComplete = {
                             scope.launch {

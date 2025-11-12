@@ -18,9 +18,6 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
 import com.nihongo.conversation.domain.model.Scenario
-import com.nihongo.conversation.presentation.dashboard.DailyGoalCard
-import com.nihongo.conversation.presentation.dashboard.LearningProgressCard
-import com.nihongo.conversation.presentation.dashboard.StreakCard
 
 // 카테고리 정의 (주요 탭만 표시)
 sealed class ScenarioCategory(val id: String?, val label: String, val icon: ImageVector) {
@@ -323,60 +320,6 @@ fun ScenarioListScreen(
                     contentPadding = PaddingValues(16.dp),
                     verticalArrangement = Arrangement.spacedBy(12.dp)
                 ) {
-                    // Dashboard cards (only show on "전체" tab)
-                    if (uiState.selectedCategory == null) {
-                        // 1. Learning Progress Card
-                        item {
-                            LearningProgressCard(
-                                completedCount = uiState.completedCount,
-                                inProgressCount = uiState.inProgressCount,
-                                favoriteCount = uiState.favoriteCount,
-                                averageProgress = uiState.averageProgress
-                            )
-                        }
-
-                        // 2. Streak Card
-                        item {
-                            StreakCard(
-                                currentStreak = uiState.currentStreak,
-                                bestStreak = uiState.bestStreak,
-                                lastStudyDate = uiState.lastStudyDate
-                            )
-                        }
-
-                        // 3. Daily Goal Card
-                        item {
-                            DailyGoalCard(
-                                currentCount = uiState.todayMessageCount,
-                                targetCount = uiState.dailyGoal,
-                                remainingHours = uiState.remainingHours,
-                                remainingMinutes = uiState.remainingMinutes
-                            )
-                        }
-                    }
-
-                    // Recommendation banner (only show on "전체" tab)
-                    if (uiState.selectedCategory == null && uiState.recommendedScenarios.isNotEmpty()) {
-                        item {
-                            RecommendationBanner(
-                                recommendations = uiState.recommendedScenarios,
-                                onScenarioClick = onScenarioSelected
-                            )
-                        }
-                    }
-
-                    // Scenarios section header
-                    if (uiState.selectedCategory == null) {
-                        item {
-                            Text(
-                                text = "시나리오",
-                                style = MaterialTheme.typography.titleLarge,
-                                fontWeight = FontWeight.Bold,
-                                modifier = Modifier.padding(top = 8.dp, bottom = 4.dp)
-                            )
-                        }
-                    }
-
                     groupedScenarios.forEach { (category, scenarios) ->
                         // 섹션 헤더 (전체 탭에서만 표시)
                         if (uiState.selectedCategory == null && category.isNotEmpty()) {
