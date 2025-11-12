@@ -122,7 +122,9 @@ class SettingsViewModel @Inject constructor(
 
     fun updateThemeMode(themeMode: ThemeMode) {
         viewModelScope.launch {
+            android.util.Log.d("SettingsViewModel", "updateThemeMode called: $themeMode")
             settingsDataStore.updateThemeMode(themeMode)
+            android.util.Log.d("SettingsViewModel", "updateThemeMode completed: $themeMode")
         }
     }
 

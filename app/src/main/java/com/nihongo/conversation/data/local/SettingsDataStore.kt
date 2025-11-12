@@ -45,6 +45,14 @@ class SettingsDataStore @Inject constructor(
             }
         }
         .map { preferences ->
+            val themeModeStr = preferences[PreferencesKeys.THEME_MODE]
+            val themeMode = themeModeStr?.let {
+                try { ThemeMode.valueOf(it) }
+                catch (e: Exception) { ThemeMode.SYSTEM }
+            } ?: ThemeMode.SYSTEM
+
+            android.util.Log.d("SettingsDataStore", "userSettings Flow emitting: themeMode=$themeMode (raw=$themeModeStr)")
+
             UserSettings(
                 speechSpeed = preferences[PreferencesKeys.SPEECH_SPEED] ?: 1.0f,
                 autoSpeak = preferences[PreferencesKeys.AUTO_SPEAK] ?: true,
@@ -58,10 +66,7 @@ class SettingsDataStore @Inject constructor(
                     try { ContrastMode.valueOf(it) }
                     catch (e: Exception) { ContrastMode.NORMAL }
                 } ?: ContrastMode.NORMAL,
-                themeMode = preferences[PreferencesKeys.THEME_MODE]?.let {
-                    try { ThemeMode.valueOf(it) }
-                    catch (e: Exception) { ThemeMode.SYSTEM }
-                } ?: ThemeMode.SYSTEM,
+                themeMode = themeMode,
                 showFurigana = preferences[PreferencesKeys.SHOW_FURIGANA] ?: false,
                 furiganaType = preferences[PreferencesKeys.FURIGANA_TYPE]?.let {
                     try { FuriganaType.valueOf(it) }
@@ -107,9 +112,12 @@ class SettingsDataStore @Inject constructor(
     }
 
     suspend fun updateThemeMode(themeMode: ThemeMode) {
+        android.util.Log.d("SettingsDataStore", "updateThemeMode: $themeMode")
         context.dataStore.edit { preferences ->
             preferences[PreferencesKeys.THEME_MODE] = themeMode.name
+            android.util.Log.d("SettingsDataStore", "DataStore edited with: ${themeMode.name}")
         }
+        android.util.Log.d("SettingsDataStore", "updateThemeMode completed")
     }
 
     val isFirstLaunch: Flow<Boolean> = context.dataStore.data

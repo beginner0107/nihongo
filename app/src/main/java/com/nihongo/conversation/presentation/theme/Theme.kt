@@ -30,8 +30,8 @@ private val DarkColorScheme = darkColorScheme(
     onPrimaryContainer = Color(0xFFEADDFF)
 )
 
-// High contrast color scheme
-private val HighContrastColorScheme = lightColorScheme(
+// High contrast light color scheme
+private val HighContrastLightColorScheme = lightColorScheme(
     primary = Color(0xFF000000),
     onPrimary = Color(0xFFFFFFFF),
     primaryContainer = Color(0xFFE0E0E0),
@@ -45,6 +45,21 @@ private val HighContrastColorScheme = lightColorScheme(
     outline = Color(0xFF000000)
 )
 
+// High contrast dark color scheme
+private val HighContrastDarkColorScheme = darkColorScheme(
+    primary = Color(0xFFFFFFFF),
+    onPrimary = Color(0xFF000000),
+    primaryContainer = Color(0xFF3A3A3A),
+    onPrimaryContainer = Color(0xFFFFFFFF),
+    secondary = Color(0xFFFFFFFF),
+    onSecondary = Color(0xFF000000),
+    surface = Color(0xFF000000),
+    onSurface = Color(0xFFFFFFFF),
+    surfaceVariant = Color(0xFF1A1A1A),
+    onSurfaceVariant = Color(0xFFFFFFFF),
+    outline = Color(0xFFFFFFFF)
+)
+
 @Composable
 fun NihongoTheme(
     darkTheme: Boolean = false,
@@ -53,7 +68,8 @@ fun NihongoTheme(
     content: @Composable () -> Unit
 ) {
     val colorScheme = when {
-        contrastMode == ContrastMode.HIGH -> HighContrastColorScheme
+        contrastMode == ContrastMode.HIGH && darkTheme -> HighContrastDarkColorScheme
+        contrastMode == ContrastMode.HIGH && !darkTheme -> HighContrastLightColorScheme
         darkTheme -> DarkColorScheme
         else -> LightColorScheme
     }

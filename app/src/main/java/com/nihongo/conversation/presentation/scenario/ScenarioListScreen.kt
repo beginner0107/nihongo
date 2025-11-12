@@ -20,39 +20,39 @@ import androidx.hilt.navigation.compose.hiltViewModel
 import com.nihongo.conversation.domain.model.Scenario
 
 // 카테고리 정의 (주요 탭만 표시)
-sealed class ScenarioCategory(val id: String?, val label: String, val icon: String) {
-    object All : ScenarioCategory(null, "전체", "📚")
-    object Favorite : ScenarioCategory("FAVORITE", "즐겨찾기", "⭐")
-    object Entertainment : ScenarioCategory("ENTERTAINMENT", "엔터", "🎵")
-    object Work : ScenarioCategory("WORK", "직장", "💼")
-    object DailyLife : ScenarioCategory("DAILY_LIFE", "일상", "🏠")
-    object Travel : ScenarioCategory("TRAVEL", "여행", "✈️")
-    object Tech : ScenarioCategory("TECH", "기술", "💻")
-    object Esports : ScenarioCategory("ESPORTS", "게임", "🎮")
-    object JLPT : ScenarioCategory("JLPT_PRACTICE", "JLPT", "📖")
-    object Other : ScenarioCategory("OTHER", "기타", "🎭")
+sealed class ScenarioCategory(val id: String?, val label: String, val icon: ImageVector) {
+    object All : ScenarioCategory(null, "전체", Icons.Default.Apps)
+    object Favorite : ScenarioCategory("FAVORITE", "즐겨찾기", Icons.Default.Star)
+    object Entertainment : ScenarioCategory("ENTERTAINMENT", "엔터", Icons.Default.MusicNote)
+    object Work : ScenarioCategory("WORK", "직장", Icons.Default.Work)
+    object DailyLife : ScenarioCategory("DAILY_LIFE", "일상", Icons.Default.Home)
+    object Travel : ScenarioCategory("TRAVEL", "여행", Icons.Default.Flight)
+    object Tech : ScenarioCategory("TECH", "기술", Icons.Default.Computer)
+    object Esports : ScenarioCategory("ESPORTS", "게임", Icons.Default.SportsEsports)
+    object JLPT : ScenarioCategory("JLPT_PRACTICE", "JLPT", Icons.Default.MenuBook)
+    object Other : ScenarioCategory("OTHER", "기타", Icons.Default.MoreHoriz)
 }
 
 // 섹션 헤더용 카테고리 매핑 (16개 전체 카테고리)
 fun getCategoryLabel(category: String): String {
     return when (category) {
-        "DAILY_LIFE" -> "🏠 일상 생활"
-        "WORK" -> "💼 직장/업무"
-        "TRAVEL" -> "✈️ 여행"
-        "ENTERTAINMENT" -> "🎵 엔터테인먼트"
-        "ESPORTS" -> "🎮 e스포츠"
-        "TECH" -> "💻 기술/개발"
-        "FINANCE" -> "💰 금융/재테크"
-        "CULTURE" -> "🎭 문화"
-        "HOUSING" -> "🏢 부동산/주거"
-        "HEALTH" -> "🏥 건강/의료"
-        "STUDY" -> "📚 학습/교육"
-        "DAILY_CONVERSATION" -> "💬 일상 회화"
-        "JLPT_PRACTICE" -> "📖 JLPT 연습"
-        "BUSINESS" -> "🤝 비즈니스"
-        "ROMANCE" -> "💕 연애/관계"
-        "EMERGENCY" -> "🚨 긴급 상황"
-        else -> "📚 기타"
+        "DAILY_LIFE" -> "일상 생활"
+        "WORK" -> "직장/업무"
+        "TRAVEL" -> "여행"
+        "ENTERTAINMENT" -> "엔터테인먼트"
+        "ESPORTS" -> "e스포츠"
+        "TECH" -> "기술/개발"
+        "FINANCE" -> "금융/재테크"
+        "CULTURE" -> "문화"
+        "HOUSING" -> "부동산/주거"
+        "HEALTH" -> "건강/의료"
+        "STUDY" -> "학습/교육"
+        "DAILY_CONVERSATION" -> "일상 회화"
+        "JLPT_PRACTICE" -> "JLPT 연습"
+        "BUSINESS" -> "비즈니스"
+        "ROMANCE" -> "연애/관계"
+        "EMERGENCY" -> "긴급 상황"
+        else -> "기타"
     }
 }
 
@@ -173,7 +173,7 @@ fun ScenarioListScreen(
                     modifier = Modifier
                         .fillMaxWidth()
                         .padding(horizontal = 16.dp, vertical = 8.dp),
-                    placeholder = { Text("🔍 시나리오 검색...") },
+                    placeholder = { Text("시나리오 검색...") },
                     leadingIcon = {
                         Icon(
                             imageVector = Icons.Default.Search,
@@ -294,7 +294,11 @@ fun ScenarioListScreen(
                                     horizontalArrangement = Arrangement.spacedBy(4.dp),
                                     verticalAlignment = Alignment.CenterVertically
                                 ) {
-                                    Text(category.icon)
+                                    Icon(
+                                        imageVector = category.icon,
+                                        contentDescription = null,
+                                        modifier = Modifier.size(18.dp)
+                                    )
                                     Text(category.label)
                                 }
                             }
@@ -535,12 +539,12 @@ fun RecommendationBanner(
                 horizontalArrangement = Arrangement.spacedBy(8.dp)
             ) {
                 Icon(
-                    imageVector = Icons.Default.AutoAwesome,
+                    imageVector = Icons.Default.Recommend,
                     contentDescription = null,
                     tint = MaterialTheme.colorScheme.primary
                 )
                 Text(
-                    text = "맞춤 추천",
+                    text = "추천 시나리오",
                     style = MaterialTheme.typography.titleMedium,
                     fontWeight = FontWeight.Bold,
                     color = MaterialTheme.colorScheme.onPrimaryContainer

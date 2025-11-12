@@ -42,6 +42,8 @@ class MainActivity : ComponentActivity() {
                 ThemeMode.SYSTEM -> isSystemInDarkTheme()
             }
 
+            android.util.Log.d("MainActivity", "Recomposition: themeMode=${userSettings.themeMode}, darkTheme=$darkTheme")
+
             NihongoTheme(
                 darkTheme = darkTheme,
                 textSizePreference = userSettings.textSize,
