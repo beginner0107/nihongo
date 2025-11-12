@@ -23,6 +23,9 @@ class QuestViewModel @Inject constructor(
     private val _uiState = MutableStateFlow(QuestUiState())
     val uiState: StateFlow<QuestUiState> = _uiState.asStateFlow()
 
+    // Track previous quest completion state to detect when quest is newly completed
+    private var previousQuestCompletionState = mutableMapOf<Long, Boolean>()
+
     init {
         loadQuests()
         loadUserPoints()
@@ -36,6 +39,20 @@ class QuestViewModel @Inject constructor(
                     _uiState.update { it.copy(error = exception.message) }
                 }
                 .collect { quests ->
+                    // Detect newly completed quests
+                    quests.forEach { quest ->
+                        val wasCompleted = previousQuestCompletionState[quest.id] ?: false
+                        if (!wasCompleted && quest.isCompleted) {
+                            // Quest just completed - show dialog
+                            _uiState.update { it.copy(
+                                showQuestCompletedDialog = true,
+                                lastCompletedQuestReward = quest.rewardPoints
+                            ) }
+                        }
+                        // Update completion state
+                        previousQuestCompletionState[quest.id] = quest.isCompleted
+                    }
+
                     _uiState.update { it.copy(
                         quests = quests,
                         isLoading = false

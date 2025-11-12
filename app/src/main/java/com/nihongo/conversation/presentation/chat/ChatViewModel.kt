@@ -17,9 +17,11 @@ import com.nihongo.conversation.core.voice.VoiceEvent
 import com.nihongo.conversation.core.voice.VoiceManager
 import com.nihongo.conversation.core.voice.VoiceState
 import com.nihongo.conversation.data.local.SettingsDataStore
+import com.nihongo.conversation.data.local.entity.QuestType
 import com.nihongo.conversation.data.repository.ConversationRepository
 import com.nihongo.conversation.data.repository.GrammarFeedbackRepository
 import com.nihongo.conversation.data.repository.ProfileRepository
+import com.nihongo.conversation.data.repository.QuestRepository
 import com.nihongo.conversation.domain.model.Conversation
 import com.nihongo.conversation.domain.model.GrammarExplanation
 import com.nihongo.conversation.domain.model.GrammarFeedback
@@ -140,7 +142,8 @@ class ChatViewModel @Inject constructor(
     private val grammarFeedbackRepository: GrammarFeedbackRepository,
     private val mlKitTranslator: com.nihongo.conversation.core.translation.MLKitTranslator,
     private val translationRepository: com.nihongo.conversation.data.repository.TranslationRepository,
-    private val vocabularyRepository: com.nihongo.conversation.data.repository.VocabularyRepository
+    private val vocabularyRepository: com.nihongo.conversation.data.repository.VocabularyRepository,
+    private val questRepository: QuestRepository
 ) : ViewModel() {
 
     private val _uiState = MutableStateFlow(ChatUiState())
@@ -432,6 +435,15 @@ class ChatViewModel @Inject constructor(
             // After streaming is complete, analyze the user message for feedback
             userMessageId?.let { messageId ->
                 analyzeMessageForFeedback(messageId, message)
+            }
+
+            // Update quest progress: MESSAGE_COUNT (increment by 1)
+            viewModelScope.launch {
+                questRepository.incrementQuestProgressByType(
+                    userId = currentUserId,
+                    questType = QuestType.MESSAGE_COUNT,
+                    amount = 1
+                )
             }
         }
     }
@@ -1266,6 +1278,15 @@ class ChatViewModel @Inject constructor(
 
         // Stop any ongoing voice activity
         voiceManager.stopListening()
+
+        // Update quest progress: VOICE_ONLY_SESSION (completed 1 session)
+        viewModelScope.launch {
+            questRepository.incrementQuestProgressByType(
+                userId = currentUserId,
+                questType = QuestType.VOICE_ONLY_SESSION,
+                amount = 1
+            )
+        }
     }
 
 
