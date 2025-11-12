@@ -17,7 +17,10 @@ import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
+import com.nihongo.conversation.core.theme.AppDesignSystem
 import com.nihongo.conversation.domain.model.Scenario
+import com.nihongo.conversation.presentation.components.DifficultyBadge
+import com.nihongo.conversation.presentation.components.StandardCard
 
 // 카테고리 정의 (주요 탭만 표시)
 sealed class ScenarioCategory(val id: String?, val label: String, val icon: ImageVector) {
@@ -87,18 +90,7 @@ fun ScenarioListScreen(
                     }
                 },
                 actions = {
-                    IconButton(onClick = onProfileClick) {
-                        Icon(
-                            imageVector = Icons.Default.AccountCircle,
-                            contentDescription = "프로필"
-                        )
-                    }
-                    IconButton(onClick = onStatsClick) {
-                        Icon(
-                            imageVector = Icons.Default.BarChart,
-                            contentDescription = "통계"
-                        )
-                    }
+                    // Phase 12: 하단 네비게이션으로 이동, 설정만 유지
                     IconButton(onClick = onSettingsClick) {
                         Icon(
                             imageVector = Icons.Default.Settings,
@@ -317,8 +309,8 @@ fun ScenarioListScreen(
 
                 LazyColumn(
                     modifier = Modifier.fillMaxSize(),
-                    contentPadding = PaddingValues(16.dp),
-                    verticalArrangement = Arrangement.spacedBy(12.dp)
+                    contentPadding = PaddingValues(vertical = AppDesignSystem.Spacing.sectionSpacing),
+                    verticalArrangement = Arrangement.spacedBy(AppDesignSystem.Spacing.sectionSpacing)
                 ) {
                     groupedScenarios.forEach { (category, scenarios) ->
                         // 섹션 헤더 (전체 탭에서만 표시)
@@ -333,7 +325,10 @@ fun ScenarioListScreen(
                                         style = MaterialTheme.typography.titleMedium,
                                         fontWeight = FontWeight.Bold,
                                         color = MaterialTheme.colorScheme.primary,
-                                        modifier = Modifier.padding(vertical = 8.dp)
+                                        modifier = Modifier.padding(
+                                            horizontal = AppDesignSystem.Spacing.cardHorizontalPadding,
+                                            vertical = 8.dp
+                                        )
                                     )
                                 }
                             }
@@ -366,139 +361,98 @@ fun ScenarioCard(
     onFavoriteClick: () -> Unit = {},
     onDelete: (() -> Unit)? = null
 ) {
-    Card(
-        modifier = Modifier.fillMaxWidth(),
-        elevation = CardDefaults.cardElevation(defaultElevation = 2.dp)
+    StandardCard(
+        modifier = Modifier.clickable { onClick() }
     ) {
-        Column(
-            modifier = Modifier
-                .fillMaxWidth()
-                .clickable { onClick() }
-                .padding(20.dp),  // Increased padding for better touch
-            verticalArrangement = Arrangement.spacedBy(12.dp)
+        // First row: Title + Favorite star
+        Row(
+            modifier = Modifier.fillMaxWidth(),
+            horizontalArrangement = Arrangement.SpaceBetween,
+            verticalAlignment = Alignment.CenterVertically
         ) {
-            // First row: Title + Favorite star
-            Row(
-                modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.SpaceBetween,
-                verticalAlignment = Alignment.CenterVertically
+            Text(
+                text = "${scenario.thumbnailEmoji} ${scenario.title}",
+                style = MaterialTheme.typography.headlineSmall,  // ← Phase 12: titleMedium → headlineSmall
+                fontWeight = FontWeight.Bold,
+                modifier = Modifier.weight(1f)
+            )
+
+            // Favorite button (larger touch area)
+            IconButton(
+                onClick = { onFavoriteClick() },
+                modifier = Modifier.size(40.dp)
             ) {
-                Row(
-                    modifier = Modifier.weight(1f),
-                    horizontalArrangement = Arrangement.spacedBy(8.dp),
-                    verticalAlignment = Alignment.CenterVertically
+                Icon(
+                    imageVector = if (isFavorite) Icons.Filled.Star else Icons.Default.StarBorder,
+                    contentDescription = if (isFavorite) "즐겨찾기 해제" else "즐겨찾기",
+                    modifier = Modifier.size(28.dp),
+                    tint = if (isFavorite) androidx.compose.ui.graphics.Color(0xFFFFD700) else MaterialTheme.colorScheme.onSurfaceVariant
+                )
+            }
+        }
+
+        // Second row: Category + Difficulty badge
+        Row(
+            horizontalArrangement = Arrangement.spacedBy(8.dp),
+            verticalAlignment = Alignment.CenterVertically
+        ) {
+            Text(
+                text = getCategoryLabel(scenario.category),
+                style = MaterialTheme.typography.bodyMedium,  // ← Phase 12: labelMedium → bodyMedium
+                color = MaterialTheme.colorScheme.onSurfaceVariant
+            )
+
+            Text(
+                text = "·",
+                style = MaterialTheme.typography.bodyMedium,
+                color = MaterialTheme.colorScheme.onSurfaceVariant
+            )
+
+            // Phase 12: 통일된 DifficultyBadge 컴포넌트 사용
+            DifficultyBadge(difficulty = scenario.difficulty)
+
+            if (scenario.isCustom) {
+                Surface(
+                    shape = MaterialTheme.shapes.small,
+                    color = MaterialTheme.colorScheme.primary.copy(alpha = 0.2f)
                 ) {
                     Text(
-                        text = "${scenario.thumbnailEmoji} ${scenario.title}",
-                        style = MaterialTheme.typography.titleMedium,
+                        text = "커스텀",
+                        modifier = Modifier.padding(horizontal = 8.dp, vertical = 4.dp),
+                        style = MaterialTheme.typography.labelSmall,
+                        color = MaterialTheme.colorScheme.primary,
                         fontWeight = FontWeight.Bold
                     )
                 }
+            }
+        }
 
-                // Favorite button (larger touch area)
-                IconButton(
-                    onClick = { onFavoriteClick() },
-                    modifier = Modifier.size(40.dp)
+        // Third row: Description
+        Text(
+            text = scenario.description,
+            style = MaterialTheme.typography.bodyMedium,
+            color = MaterialTheme.colorScheme.onSurfaceVariant
+        )
+
+        // Bottom row: Delete button for custom scenarios (if applicable)
+        if (onDelete != null) {
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.End
+            ) {
+                TextButton(
+                    onClick = { onDelete() },
+                    colors = ButtonDefaults.textButtonColors(
+                        contentColor = MaterialTheme.colorScheme.error
+                    )
                 ) {
                     Icon(
-                        imageVector = if (isFavorite) Icons.Filled.Star else Icons.Default.StarBorder,
-                        contentDescription = if (isFavorite) "즐겨찾기 해제" else "즐겨찾기",
-                        modifier = Modifier.size(28.dp),  // Larger star icon
-                        tint = if (isFavorite) androidx.compose.ui.graphics.Color(0xFFFFD700) else MaterialTheme.colorScheme.onSurfaceVariant
+                        imageVector = Icons.Default.Delete,
+                        contentDescription = null,
+                        modifier = Modifier.size(20.dp)
                     )
-                }
-            }
-
-            // Second row: Category + Difficulty badge
-            Row(
-                horizontalArrangement = Arrangement.spacedBy(8.dp),
-                verticalAlignment = Alignment.CenterVertically
-            ) {
-                Text(
-                    text = getCategoryLabel(scenario.category),
-                    style = MaterialTheme.typography.labelMedium,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant
-                )
-
-                Text(
-                    text = "·",
-                    style = MaterialTheme.typography.labelMedium,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant
-                )
-
-                // Difficulty badge
-                Surface(
-                    shape = MaterialTheme.shapes.small,
-                    color = when (scenario.difficulty) {
-                        1 -> MaterialTheme.colorScheme.primaryContainer
-                        2 -> MaterialTheme.colorScheme.tertiaryContainer
-                        3 -> MaterialTheme.colorScheme.errorContainer
-                        else -> MaterialTheme.colorScheme.surfaceVariant
-                    }
-                ) {
-                    Text(
-                        text = when (scenario.difficulty) {
-                            1 -> "초급"
-                            2 -> "중급"
-                            3 -> "고급"
-                            else -> "초급"
-                        },
-                        modifier = Modifier.padding(horizontal = 8.dp, vertical = 4.dp),
-                        style = MaterialTheme.typography.labelSmall,
-                        fontWeight = FontWeight.Bold,
-                        color = when (scenario.difficulty) {
-                            1 -> MaterialTheme.colorScheme.onPrimaryContainer
-                            2 -> MaterialTheme.colorScheme.onTertiaryContainer
-                                3 -> MaterialTheme.colorScheme.onErrorContainer
-                                else -> MaterialTheme.colorScheme.onSurfaceVariant
-                        }
-                    )
-                }
-
-                if (scenario.isCustom) {
-                    Surface(
-                        shape = MaterialTheme.shapes.small,
-                        color = MaterialTheme.colorScheme.primary.copy(alpha = 0.2f)
-                    ) {
-                        Text(
-                            text = "커스텀",
-                            modifier = Modifier.padding(horizontal = 8.dp, vertical = 4.dp),
-                            style = MaterialTheme.typography.labelSmall,
-                            color = MaterialTheme.colorScheme.primary,
-                            fontWeight = FontWeight.Bold
-                        )
-                    }
-                }
-            }
-
-            // Third row: Description
-            Text(
-                text = scenario.description,
-                style = MaterialTheme.typography.bodyMedium,
-                color = MaterialTheme.colorScheme.onSurfaceVariant,
-                lineHeight = MaterialTheme.typography.bodyMedium.lineHeight
-            )
-
-            // Bottom row: Delete button for custom scenarios (if applicable)
-            if (onDelete != null) {
-                Row(
-                    modifier = Modifier.fillMaxWidth(),
-                    horizontalArrangement = Arrangement.End
-                ) {
-                    TextButton(
-                        onClick = { onDelete() },
-                        colors = ButtonDefaults.textButtonColors(
-                            contentColor = MaterialTheme.colorScheme.error
-                        )
-                    ) {
-                        Icon(
-                            imageVector = Icons.Default.Delete,
-                            contentDescription = null,
-                            modifier = Modifier.size(20.dp)
-                        )
-                        Spacer(modifier = Modifier.width(4.dp))
-                        Text("삭제")
-                    }
+                    Spacer(modifier = Modifier.width(4.dp))
+                    Text("삭제")
                 }
             }
         }
@@ -606,34 +560,8 @@ fun RecommendationCard(
                 )
             }
 
-            // Difficulty badge
-            Surface(
-                shape = MaterialTheme.shapes.small,
-                color = when (scoredScenario.scenario.difficulty) {
-                    1 -> MaterialTheme.colorScheme.primaryContainer
-                    2 -> MaterialTheme.colorScheme.tertiaryContainer
-                    3 -> MaterialTheme.colorScheme.errorContainer
-                    else -> MaterialTheme.colorScheme.surfaceVariant
-                }
-            ) {
-                Text(
-                    text = when (scoredScenario.scenario.difficulty) {
-                        1 -> "초급"
-                        2 -> "중급"
-                        3 -> "상급"
-                        else -> "초급"
-                    },
-                    modifier = Modifier.padding(horizontal = 8.dp, vertical = 4.dp),
-                    style = MaterialTheme.typography.labelSmall,
-                    fontWeight = FontWeight.Bold,
-                    color = when (scoredScenario.scenario.difficulty) {
-                        1 -> MaterialTheme.colorScheme.onPrimaryContainer
-                        2 -> MaterialTheme.colorScheme.onTertiaryContainer
-                        3 -> MaterialTheme.colorScheme.onErrorContainer
-                        else -> MaterialTheme.colorScheme.onSurfaceVariant
-                    }
-                )
-            }
+            // Phase 12: 통일된 DifficultyBadge 컴포넌트 사용
+            DifficultyBadge(difficulty = scoredScenario.scenario.difficulty)
         }
     }
 }

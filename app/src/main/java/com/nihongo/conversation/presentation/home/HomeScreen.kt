@@ -29,6 +29,7 @@ import com.nihongo.conversation.presentation.quest.QuestViewModel
 @Composable
 fun HomeScreen(
     onScenarioSelected: (Long) -> Unit,
+    onSettingsClick: () -> Unit = {},  // Phase 12: 설정 버튼 추가
     viewModel: HomeViewModel = hiltViewModel(),
     questViewModel: QuestViewModel = hiltViewModel()
 ) {
@@ -48,6 +49,15 @@ fun HomeScreen(
                             text = "빠른 학습 시작",
                             style = MaterialTheme.typography.bodySmall,
                             color = MaterialTheme.colorScheme.onSurfaceVariant
+                        )
+                    }
+                },
+                actions = {
+                    // Phase 12: 설정 버튼 추가
+                    IconButton(onClick = onSettingsClick) {
+                        Icon(
+                            imageVector = Icons.Default.Settings,
+                            contentDescription = "설정"
                         )
                     }
                 }

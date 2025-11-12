@@ -12,6 +12,9 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
+import com.nihongo.conversation.core.theme.AppDesignSystem
+import com.nihongo.conversation.presentation.components.ColoredChip
+import com.nihongo.conversation.presentation.components.StandardCard
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -43,14 +46,6 @@ fun ProfileScreen(
                             text = "당신의 정보를 설정하세요",
                             style = MaterialTheme.typography.bodySmall,
                             color = MaterialTheme.colorScheme.onSurfaceVariant
-                        )
-                    }
-                },
-                navigationIcon = {
-                    IconButton(onClick = onBackClick) {
-                        Icon(
-                            imageVector = Icons.AutoMirrored.Filled.ArrowBack,
-                            contentDescription = "뒤로"
                         )
                     }
                 },
@@ -93,8 +88,11 @@ fun ProfileScreen(
                 modifier = Modifier
                     .fillMaxSize()
                     .padding(padding),
-                contentPadding = PaddingValues(16.dp),
-                verticalArrangement = Arrangement.spacedBy(24.dp)
+                contentPadding = PaddingValues(
+                    horizontal = 0.dp,  // StandardCard가 자체 horizontal padding 가짐
+                    vertical = AppDesignSystem.Spacing.sectionSpacing
+                ),
+                verticalArrangement = Arrangement.spacedBy(AppDesignSystem.Spacing.sectionSpacing)
             ) {
                 // Avatar Section
                 item {
@@ -259,35 +257,26 @@ fun ProfileSection(
     modifier: Modifier = Modifier,
     content: @Composable ColumnScope.() -> Unit
 ) {
-    Card(
-        modifier = modifier.fillMaxWidth(),
-        elevation = CardDefaults.cardElevation(defaultElevation = 2.dp)
-    ) {
-        Column(
-            modifier = Modifier
-                .fillMaxWidth()
-                .padding(16.dp),
-            verticalArrangement = Arrangement.spacedBy(16.dp)
+    // Phase 12: StandardCard 사용
+    StandardCard(modifier = modifier) {
+        Row(
+            horizontalArrangement = Arrangement.spacedBy(8.dp),
+            verticalAlignment = Alignment.CenterVertically
         ) {
-            Row(
-                horizontalArrangement = Arrangement.spacedBy(8.dp),
-                verticalAlignment = Alignment.CenterVertically
-            ) {
-                Icon(
-                    imageVector = icon,
-                    contentDescription = null,
-                    tint = MaterialTheme.colorScheme.primary,
-                    modifier = Modifier.size(24.dp)
-                )
-                Text(
-                    text = title,
-                    style = MaterialTheme.typography.titleMedium,
-                    fontWeight = FontWeight.Bold
-                )
-            }
-
-            content()
+            Icon(
+                imageVector = icon,
+                contentDescription = null,
+                tint = MaterialTheme.colorScheme.primary,
+                modifier = Modifier.size(24.dp)
+            )
+            Text(
+                text = title,
+                style = MaterialTheme.typography.headlineSmall,  // Phase 12: titleMedium → headlineSmall
+                fontWeight = FontWeight.Bold
+            )
         }
+
+        content()
     }
 }
 

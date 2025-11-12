@@ -92,7 +92,8 @@ fun MainScreen(
         ) {
             composable(BottomNavItem.Home.route) {
                 HomeScreen(
-                    onScenarioSelected = onScenarioSelected
+                    onScenarioSelected = onScenarioSelected,
+                    onSettingsClick = onSettingsClick  // Phase 12: 설정 버튼 추가
                 )
             }
 

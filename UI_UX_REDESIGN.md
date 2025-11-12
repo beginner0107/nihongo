@@ -2490,4 +2490,807 @@ fun HomeScreen(
 
 ---
 
+## Phase 12: 디자인 통일성 개선 (Design Consistency)
+
+### 📊 현황 분석
+
+**완료된 작업**:
+- ✅ Phase 11: HomeScreen 리팩토링 (2000dp → 440dp, 78% 축소)
+
+**문제점**:
+- HomeScreen(신규)과 ScenarioListScreen/StatsScreen/ProfileScreen(기존) 간 디자인 불일치
+- 사용자 피드백: "홈 화면은 마음에 들고 나머지 Page 들과 통일성이 맞는지 생각하면, 조금 안 맞는 부분이 있는거 같아. 색채라던지."
+
+---
+
+### 🎨 디자인 불일치 분석
+
+#### 1. 색채 시스템 (Color Scheme)
+
+**HomeScreen (Phase 11 - 신규 디자인)**:
+```kotlin
+// LearningStatusCard.kt
+Surface(color = MaterialTheme.colorScheme.primaryContainer)     // 🔥 Streak chip
+Surface(color = MaterialTheme.colorScheme.secondaryContainer)   // 📊 Messages chip
+Surface(color = MaterialTheme.colorScheme.tertiaryContainer)    // 🏆 Level chip
+
+// Progress bar
+color = if (isGoalAchieved) Color(0xFF4CAF50) else MaterialTheme.colorScheme.primary
+trackColor = MaterialTheme.colorScheme.surfaceVariant
+
+// Quest status badge
+Surface(color = if (completed) Color(0xFF4CAF50).copy(alpha = 0.2f)
+               else Color(0xFFFFD700).copy(alpha = 0.2f))
+
+// TodayRecommendationCard.kt
+Surface(color = when (difficultyLevel) {
+    1 -> MaterialTheme.colorScheme.primaryContainer      // 초급: 파랑
+    2 -> MaterialTheme.colorScheme.tertiaryContainer     // 중급: 보라
+    3 -> MaterialTheme.colorScheme.errorContainer        // 고급: 빨강
+    else -> MaterialTheme.colorScheme.surfaceVariant
+})
+```
+
+**ScenarioListScreen (기존 디자인)**:
+```kotlin
+// ScenarioCard.kt
+Card(
+    elevation = CardDefaults.cardElevation(defaultElevation = 2.dp),
+    colors = CardDefaults.cardColors(
+        containerColor = MaterialTheme.colorScheme.surface  // 기본 surface
+    )
+)
+
+// DifficultyBadge (추정)
+// 난이도 표시에 일관된 색상 시스템 없음
+```
+
+**StatsScreen (기존 디자인)**:
+```kotlin
+// 통계 카드들이 단조로운 색상 (surface)
+// 진행 상황 시각화에 색상 활용 부족
+```
+
+**ProfileScreen (기존 디자인)**:
+```kotlin
+// 프로필 섹션들이 구분 없이 나열
+// 중요 정보 강조 색상 없음
+```
+
+**불일치 요소**:
+| 화면 | primaryContainer | secondaryContainer | tertiaryContainer | errorContainer | Custom Colors |
+|------|------------------|---------------------|-------------------|----------------|---------------|
+| HomeScreen | ✅ Streak chip | ✅ Messages chip | ✅ Level chip | ✅ 고급 난이도 | ✅ Green/Gold |
+| ScenarioListScreen | ❌ | ❌ | ❌ | ❌ | ❓ |
+| StatsScreen | ❌ | ❌ | ❌ | ❌ | ❓ |
+| ProfileScreen | ❌ | ❌ | ❌ | ❌ | ❓ |
+
+---
+
+#### 2. Card 스타일링
+
+**HomeScreen**:
+```kotlin
+Card(
+    modifier = modifier
+        .fillMaxWidth()
+        .padding(horizontal = 16.dp),
+    elevation = CardDefaults.cardElevation(defaultElevation = 2.dp)
+) {
+    Column(
+        modifier = Modifier
+            .fillMaxWidth()
+            .padding(20.dp),  // ← 통일된 padding
+        verticalArrangement = Arrangement.spacedBy(12.dp)  // ← 통일된 spacing
+    ) { ... }
+}
+```
+
+**ScenarioListScreen (추정)**:
+```kotlin
+Card(
+    modifier = Modifier
+        .fillMaxWidth()
+        .padding(horizontal = 16.dp, vertical = 8.dp),  // ← vertical padding 다름
+    elevation = CardDefaults.cardElevation(defaultElevation = 2.dp)
+) {
+    Row(  // ← Column이 아닌 Row 레이아웃
+        modifier = Modifier.padding(16.dp),  // ← 16dp padding (20dp과 차이)
+        horizontalArrangement = Arrangement.spacedBy(12.dp)
+    ) { ... }
+}
+```
+
+**불일치 요소**:
+| 화면 | Card Elevation | Inner Padding | Element Spacing | 레이아웃 |
+|------|---------------|---------------|-----------------|----------|
+| HomeScreen | 2.dp | 20.dp | 12.dp | Column 기반 |
+| ScenarioListScreen | 2.dp (동일) | 16.dp (차이) | 12.dp (동일) | Row 기반 (?) |
+| StatsScreen | ? | ? | ? | ? |
+| ProfileScreen | ? | ? | ? | ? |
+
+---
+
+#### 3. 타이포그래피 계층
+
+**HomeScreen**:
+```kotlin
+// LearningStatusCard - 3가지 크기
+Text("🔥 ${streak}일 연속", style = MaterialTheme.typography.bodyMedium)
+Text("${quest.title}", style = MaterialTheme.typography.bodyMedium)
+Text("완료!", style = MaterialTheme.typography.labelSmall)
+
+// TodayRecommendationCard - 명확한 계층
+Text(recommendation.reason, style = MaterialTheme.typography.bodySmall)       // 이유
+Text(recommendation.scenario.title, style = MaterialTheme.typography.headlineSmall)  // 제목 (강조!)
+Text("${estimatedTime}분 소요", style = MaterialTheme.typography.bodyMedium)  // 메타데이터
+```
+
+**ScenarioListScreen (추정)**:
+```kotlin
+// 시나리오 제목: titleMedium (?)
+// 설명: bodySmall (?)
+// → 계층이 명확하지 않음
+```
+
+**불일치 요소**:
+- HomeScreen: headlineSmall로 주요 콘텐츠 강조
+- 다른 화면: 모든 텍스트가 bodyMedium/bodySmall로 평탄함
+
+---
+
+#### 4. 시각적 밀도 (Visual Density)
+
+**HomeScreen**:
+```kotlin
+// 카드 간격: 16.dp
+LazyColumn(
+    verticalArrangement = Arrangement.spacedBy(16.dp),
+    contentPadding = PaddingValues(vertical = 16.dp)
+)
+
+// 카드 내부 요소 간격: 12.dp
+Column(verticalArrangement = Arrangement.spacedBy(12.dp))
+```
+
+**다른 화면 (추정)**:
+- 카드 간격이 더 좁을 가능성 (8dp?)
+- 내부 요소 간격이 일관되지 않음
+
+---
+
+### 🎯 개선 방안
+
+#### Option A: 기존 화면들을 HomeScreen 스타일로 업그레이드 (추천)
+
+**작업 범위**: ScenarioListScreen, StatsScreen, ProfileScreen 리팩토링
+
+**디자인 시스템 통일**:
+
+1. **색상 팔레트**:
+   ```kotlin
+   // theme/Color.kt 또는 각 화면
+   object AppColors {
+       // Primary actions & highlights
+       val primaryChip = MaterialTheme.colorScheme.primaryContainer       // 파랑 계열
+       val secondaryChip = MaterialTheme.colorScheme.secondaryContainer   // 주황 계열
+       val tertiaryChip = MaterialTheme.colorScheme.tertiaryContainer     // 보라 계열
+
+       // Difficulty levels (통일!)
+       val difficultyBeginner = MaterialTheme.colorScheme.primaryContainer    // 초급: 파랑
+       val difficultyIntermediate = MaterialTheme.colorScheme.tertiaryContainer  // 중급: 보라
+       val difficultyAdvanced = MaterialTheme.colorScheme.errorContainer      // 고급: 빨강
+
+       // Status colors
+       val success = Color(0xFF4CAF50)      // 완료/달성
+       val warning = Color(0xFFFFB300)      // 진행 중
+       val gold = Color(0xFFFFD700)         // 보상/포인트
+
+       // Backgrounds
+       val surfaceVariant = MaterialTheme.colorScheme.surfaceVariant  // 프로그레스 바 트랙
+   }
+   ```
+
+2. **Card 스타일 컴포넌트**:
+   ```kotlin
+   @Composable
+   fun StandardCard(
+       modifier: Modifier = Modifier,
+       content: @Composable ColumnScope.() -> Unit
+   ) {
+       Card(
+           modifier = modifier
+               .fillMaxWidth()
+               .padding(horizontal = 16.dp),
+           elevation = CardDefaults.cardElevation(defaultElevation = 2.dp)
+       ) {
+           Column(
+               modifier = Modifier
+                   .fillMaxWidth()
+                   .padding(20.dp),  // 통일된 padding
+               verticalArrangement = Arrangement.spacedBy(12.dp),  // 통일된 spacing
+               content = content
+           )
+       }
+   }
+   ```
+
+3. **타이포그래피 가이드**:
+   ```kotlin
+   // 제목 (주요 콘텐츠): headlineSmall + FontWeight.Bold
+   Text(scenario.title, style = MaterialTheme.typography.headlineSmall, fontWeight = FontWeight.Bold)
+
+   // 부제/이유: bodySmall + onSurfaceVariant
+   Text(description, style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
+
+   // 본문: bodyMedium
+   Text(content, style = MaterialTheme.typography.bodyMedium)
+
+   // 라벨/뱃지: labelSmall + FontWeight.Bold
+   Text(badge, style = MaterialTheme.typography.labelSmall, fontWeight = FontWeight.Bold)
+   ```
+
+4. **Spacing 시스템**:
+   ```kotlin
+   object AppSpacing {
+       val cardHorizontalPadding = 16.dp
+       val cardInnerPadding = 20.dp
+       val elementSpacing = 12.dp
+       val sectionSpacing = 16.dp
+   }
+   ```
+
+---
+
+#### 구체적 개선 작업
+
+##### 1. ScenarioListScreen
+
+**Before (추정)**:
+```kotlin
+Card {
+    Row(padding = 16.dp) {
+        Icon(scenario.icon, size = 56.dp)  // 큰 아이콘
+        Column {
+            Text(scenario.title, style = bodyMedium)  // 강조 부족
+            Text(scenario.description, style = bodySmall)
+            Row {
+                Text("초급")  // 색상 없음
+                Text(scenario.category)
+            }
+        }
+    }
+}
+```
+
+**After**:
+```kotlin
+StandardCard {  // 통일된 Card 스타일
+    // Row 1: Title + Difficulty badge
+    Row(horizontalArrangement = SpaceBetween) {
+        Text(
+            text = scenario.title,
+            style = MaterialTheme.typography.headlineSmall,  // ← 강조!
+            fontWeight = FontWeight.Bold
+        )
+
+        Surface(
+            shape = MaterialTheme.shapes.small,
+            color = when (scenario.difficulty) {  // ← HomeScreen과 동일한 색상!
+                1 -> MaterialTheme.colorScheme.primaryContainer
+                2 -> MaterialTheme.colorScheme.tertiaryContainer
+                3 -> MaterialTheme.colorScheme.errorContainer
+            }
+        ) {
+            Text(
+                text = when (difficulty) { 1 -> "초급"; 2 -> "중급"; 3 -> "고급" },
+                style = MaterialTheme.typography.labelSmall,
+                fontWeight = FontWeight.Bold
+            )
+        }
+    }
+
+    // Row 2: Description
+    Text(
+        text = scenario.description,
+        style = MaterialTheme.typography.bodyMedium,
+        color = MaterialTheme.colorScheme.onSurfaceVariant
+    )
+
+    // Row 3: Category + Meta
+    Row(horizontalArrangement = spacedBy(8.dp)) {
+        Text(scenario.category, style = bodyMedium, color = onSurfaceVariant)
+        Text("·")
+        Text("5분 소요", style = bodyMedium, color = onSurfaceVariant)
+    }
+}
+```
+
+**변경 사항**:
+- ✅ Icon 제거 (56dp 공간 절약)
+- ✅ 제목을 headlineSmall + Bold로 강조
+- ✅ 난이도 배지에 HomeScreen과 동일한 색상 시스템 적용
+- ✅ StandardCard 사용으로 padding/spacing 통일
+
+---
+
+##### 2. StatsScreen
+
+**Before (추정)**:
+```kotlin
+Card {
+    Column {
+        Text("총 대화 시간")
+        Text("120분")
+        LinearProgressIndicator(...)  // 색상 없음
+    }
+}
+```
+
+**After**:
+```kotlin
+StandardCard {
+    // Stat item with color-coded chips
+    Row(horizontalArrangement = SpaceBetween) {
+        Text("오늘 학습 시간", style = bodyMedium)
+        Surface(color = MaterialTheme.colorScheme.primaryContainer) {
+            Text("25분", style = labelSmall, fontWeight = Bold)
+        }
+    }
+
+    Row(horizontalArrangement = SpaceBetween) {
+        Text("완료한 시나리오", style = bodyMedium)
+        Surface(color = MaterialTheme.colorScheme.secondaryContainer) {
+            Text("12개", style = labelSmall, fontWeight = Bold)
+        }
+    }
+
+    Row(horizontalArrangement = SpaceBetween) {
+        Text("누적 포인트", style = bodyMedium)
+        Surface(color = Color(0xFFFFD700).copy(alpha = 0.2f)) {  // Gold
+            Text("⭐ 450P", style = labelSmall, fontWeight = Bold, color = Color(0xFFFFB300))
+        }
+    }
+
+    // Progress bar (HomeScreen 스타일)
+    LinearProgressIndicator(
+        progress = 0.75f,
+        modifier = Modifier.fillMaxWidth().height(12.dp),
+        color = Color(0xFF4CAF50),  // Success green
+        trackColor = MaterialTheme.colorScheme.surfaceVariant
+    )
+}
+```
+
+**변경 사항**:
+- ✅ 각 통계 항목을 색상 칩으로 강조 (primaryContainer, secondaryContainer, gold)
+- ✅ HomeScreen과 동일한 progress bar 스타일 (12.dp height, Green/SurfaceVariant)
+- ✅ StandardCard로 통일
+
+---
+
+##### 3. ProfileScreen
+
+**Before (추정)**:
+```kotlin
+Column {
+    Section { Text("프로필") }
+    Section { Text("학습 설정") }
+    Section { Text("즐겨찾기 시나리오") }
+}
+```
+
+**After**:
+```kotlin
+LazyColumn(
+    verticalArrangement = Arrangement.spacedBy(16.dp),  // HomeScreen과 동일
+    contentPadding = PaddingValues(vertical = 16.dp)
+) {
+    // User info card
+    item {
+        StandardCard {
+            Row(verticalAlignment = CenterVertically) {
+                Surface(
+                    shape = CircleShape,
+                    color = MaterialTheme.colorScheme.primaryContainer  // ← 색상 강조
+                ) {
+                    Text("🎓", fontSize = 48.sp, modifier = Modifier.size(80.dp))
+                }
+
+                Column {
+                    Text(user.name, style = headlineSmall, fontWeight = Bold)
+
+                    Surface(color = MaterialTheme.colorScheme.tertiaryContainer) {
+                        Text("Lv.${user.level}", style = labelSmall, fontWeight = Bold)
+                    }
+                }
+            }
+        }
+    }
+
+    // Learning stats card (StatsScreen과 동일한 스타일)
+    item {
+        StandardCard {
+            Text("학습 현황", style = titleMedium, fontWeight = Bold)
+
+            Row(horizontalArrangement = SpaceBetween) {
+                Text("🔥 현재 스트릭", style = bodyMedium)
+                Surface(color = MaterialTheme.colorScheme.primaryContainer) {
+                    Text("${streak}일", style = labelSmall, fontWeight = Bold)
+                }
+            }
+
+            Row(horizontalArrangement = SpaceBetween) {
+                Text("⭐ 누적 포인트", style = bodyMedium)
+                Surface(color = Color(0xFFFFD700).copy(alpha = 0.2f)) {
+                    Text("${points}P", style = labelSmall, fontWeight = Bold, color = Color(0xFFFFB300))
+                }
+            }
+        }
+    }
+}
+```
+
+**변경 사항**:
+- ✅ 아바타 배경에 primaryContainer 적용
+- ✅ 레벨 배지에 tertiaryContainer 적용
+- ✅ 학습 통계를 color-coded chips로 표시 (StatsScreen과 통일)
+- ✅ LazyColumn spacing 통일 (16.dp)
+
+---
+
+#### Option B: HomeScreen을 기존 스타일로 다운그레이드 (비추천)
+
+**이유**:
+- Phase 11의 개선사항을 되돌리는 것
+- 사용자 피드백: "홈 화면은 마음에 들고"
+
+**결론**: ❌ 선택하지 않음
+
+---
+
+### 📐 구현 계획
+
+#### Step 1: 디자인 시스템 정의 (30분)
+```kotlin
+// core/theme/AppDesignSystem.kt
+object AppColors { ... }
+object AppSpacing { ... }
+
+// presentation/components/StandardCard.kt
+@Composable fun StandardCard(...) { ... }
+
+// presentation/components/ColoredChip.kt
+@Composable fun ColoredChip(
+    text: String,
+    color: Color,
+    modifier: Modifier = Modifier
+)
+
+// presentation/components/DifficultyBadge.kt
+@Composable fun DifficultyBadge(
+    difficulty: Int,
+    modifier: Modifier = Modifier
+) {
+    Surface(
+        shape = MaterialTheme.shapes.small,
+        color = when (difficulty) {
+            1 -> MaterialTheme.colorScheme.primaryContainer
+            2 -> MaterialTheme.colorScheme.tertiaryContainer
+            3 -> MaterialTheme.colorScheme.errorContainer
+            else -> MaterialTheme.colorScheme.surfaceVariant
+        }
+    ) {
+        Text(
+            text = when (difficulty) {
+                1 -> "초급"
+                2 -> "중급"
+                3 -> "고급"
+                else -> "초급"
+            },
+            modifier = Modifier.padding(horizontal = 8.dp, vertical = 4.dp),
+            style = MaterialTheme.typography.labelSmall,
+            fontWeight = FontWeight.Bold
+        )
+    }
+}
+```
+
+#### Step 2: ScenarioListScreen 리팩토링 (1h)
+```kotlin
+// presentation/scenario/ScenarioListScreen.kt
+LazyColumn(
+    verticalArrangement = Arrangement.spacedBy(AppSpacing.sectionSpacing),
+    contentPadding = PaddingValues(vertical = AppSpacing.sectionSpacing)
+) {
+    items(scenarios) { scenario ->
+        ScenarioCardV2(  // 새 버전
+            scenario = scenario,
+            onClick = { onScenarioSelected(scenario.id) }
+        )
+    }
+}
+
+// presentation/scenario/ScenarioCardV2.kt (새 파일)
+@Composable
+fun ScenarioCardV2(
+    scenario: Scenario,
+    onClick: () -> Unit,
+    modifier: Modifier = Modifier
+) {
+    StandardCard(modifier = modifier.clickable { onClick() }) {
+        // Row 1: Title + Difficulty
+        Row(horizontalArrangement = SpaceBetween) {
+            Text(scenario.title, style = headlineSmall, fontWeight = Bold)
+            DifficultyBadge(difficulty = scenario.difficulty)
+        }
+
+        // Row 2: Description
+        Text(scenario.description, style = bodyMedium, color = onSurfaceVariant)
+
+        // Row 3: Category + Meta
+        Row(horizontalArrangement = spacedBy(8.dp)) {
+            Text(scenario.category)
+            Text("·")
+            Text("5분 소요")
+        }
+    }
+}
+```
+
+#### Step 3: StatsScreen 리팩토링 (1h)
+```kotlin
+// presentation/stats/StatsScreen.kt
+LazyColumn(
+    verticalArrangement = Arrangement.spacedBy(AppSpacing.sectionSpacing),
+    contentPadding = PaddingValues(vertical = AppSpacing.sectionSpacing)
+) {
+    // Today's stats card
+    item {
+        StandardCard {
+            Text("오늘의 학습", style = titleMedium, fontWeight = Bold)
+
+            StatItemRow(
+                label = "학습 시간",
+                value = "${todayMinutes}분",
+                chipColor = MaterialTheme.colorScheme.primaryContainer
+            )
+
+            StatItemRow(
+                label = "완료 시나리오",
+                value = "${todayScenarios}개",
+                chipColor = MaterialTheme.colorScheme.secondaryContainer
+            )
+
+            // Progress bar (HomeScreen 스타일)
+            Column {
+                Row(horizontalArrangement = SpaceBetween) {
+                    Text("일일 목표", style = bodySmall)
+                    Text("${todayMessages}/${dailyGoal}", style = bodySmall)
+                }
+                LinearProgressIndicator(
+                    progress = todayMessages.toFloat() / dailyGoal,
+                    modifier = Modifier.fillMaxWidth().height(12.dp),
+                    color = if (todayMessages >= dailyGoal) AppColors.success
+                           else MaterialTheme.colorScheme.primary,
+                    trackColor = MaterialTheme.colorScheme.surfaceVariant
+                )
+            }
+        }
+    }
+
+    // All-time stats card
+    item {
+        StandardCard {
+            Text("누적 통계", style = titleMedium, fontWeight = Bold)
+
+            StatItemRow(
+                label = "총 학습 시간",
+                value = "${totalMinutes}분",
+                chipColor = MaterialTheme.colorScheme.primaryContainer
+            )
+
+            StatItemRow(
+                label = "완료 시나리오",
+                value = "${completedScenarios}개",
+                chipColor = MaterialTheme.colorScheme.secondaryContainer
+            )
+
+            StatItemRow(
+                label = "누적 포인트",
+                value = "⭐ ${totalPoints}P",
+                chipColor = AppColors.gold.copy(alpha = 0.2f),
+                valueColor = Color(0xFFFFB300)
+            )
+        }
+    }
+}
+
+@Composable
+private fun StatItemRow(
+    label: String,
+    value: String,
+    chipColor: Color,
+    valueColor: Color = MaterialTheme.colorScheme.onSurface
+) {
+    Row(
+        modifier = Modifier.fillMaxWidth(),
+        horizontalArrangement = Arrangement.SpaceBetween,
+        verticalAlignment = Alignment.CenterVertically
+    ) {
+        Text(label, style = MaterialTheme.typography.bodyMedium)
+
+        Surface(
+            shape = MaterialTheme.shapes.small,
+            color = chipColor
+        ) {
+            Text(
+                text = value,
+                modifier = Modifier.padding(horizontal = 8.dp, vertical = 4.dp),
+                style = MaterialTheme.typography.labelSmall,
+                fontWeight = FontWeight.Bold,
+                color = valueColor
+            )
+        }
+    }
+}
+```
+
+#### Step 4: ProfileScreen 리팩토링 (1h)
+```kotlin
+// presentation/profile/ProfileScreen.kt
+LazyColumn(
+    verticalArrangement = Arrangement.spacedBy(AppSpacing.sectionSpacing),
+    contentPadding = PaddingValues(vertical = AppSpacing.sectionSpacing)
+) {
+    // User info card
+    item {
+        StandardCard {
+            Row(
+                verticalAlignment = Alignment.CenterVertically,
+                horizontalArrangement = Arrangement.spacedBy(16.dp)
+            ) {
+                Surface(
+                    shape = CircleShape,
+                    color = MaterialTheme.colorScheme.primaryContainer
+                ) {
+                    Text(
+                        text = user.avatar,
+                        fontSize = 48.sp,
+                        modifier = Modifier.size(80.dp).wrapContentSize()
+                    )
+                }
+
+                Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                    Text(
+                        text = user.name,
+                        style = MaterialTheme.typography.headlineSmall,
+                        fontWeight = FontWeight.Bold
+                    )
+
+                    Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                        Surface(color = MaterialTheme.colorScheme.tertiaryContainer) {
+                            Text(
+                                text = "Lv.${user.level}",
+                                modifier = Modifier.padding(horizontal = 8.dp, vertical = 4.dp),
+                                style = MaterialTheme.typography.labelSmall,
+                                fontWeight = FontWeight.Bold
+                            )
+                        }
+
+                        Surface(color = AppColors.gold.copy(alpha = 0.2f)) {
+                            Text(
+                                text = "⭐ ${user.totalPoints}P",
+                                modifier = Modifier.padding(horizontal = 8.dp, vertical = 4.dp),
+                                style = MaterialTheme.typography.labelSmall,
+                                fontWeight = FontWeight.Bold,
+                                color = Color(0xFFFFB300)
+                            )
+                        }
+                    }
+                }
+            }
+        }
+    }
+
+    // Learning stats card
+    item {
+        StandardCard {
+            Text("학습 현황", style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.Bold)
+
+            StatItemRow(
+                label = "🔥 현재 스트릭",
+                value = "${streak}일",
+                chipColor = MaterialTheme.colorScheme.primaryContainer
+            )
+
+            StatItemRow(
+                label = "📚 완료 시나리오",
+                value = "${completedScenarios}개",
+                chipColor = MaterialTheme.colorScheme.secondaryContainer
+            )
+
+            StatItemRow(
+                label = "⏱️ 총 학습 시간",
+                value = "${totalMinutes}분",
+                chipColor = MaterialTheme.colorScheme.tertiaryContainer
+            )
+        }
+    }
+
+    // Settings sections...
+}
+```
+
+#### Step 5: 기존 컴포넌트 deprecate (30분)
+```kotlin
+// ScenarioCard.kt
+@Deprecated("Use ScenarioCardV2 for design consistency")
+@Composable
+fun ScenarioCard(...) { ... }
+```
+
+---
+
+### ✅ 완료 기준
+
+1. **색상 일관성**:
+   - ✅ 모든 난이도 배지가 동일한 색상 시스템 사용 (primaryContainer/tertiaryContainer/errorContainer)
+   - ✅ 모든 화면이 동일한 success/warning/gold 색상 사용
+
+2. **Card 스타일 일관성**:
+   - ✅ 모든 화면이 StandardCard 사용 (2.dp elevation, 20.dp padding, 12.dp spacing)
+
+3. **타이포그래피 일관성**:
+   - ✅ 주요 제목: headlineSmall + Bold
+   - ✅ 부제: bodySmall + onSurfaceVariant
+   - ✅ 본문: bodyMedium
+   - ✅ 라벨: labelSmall + Bold
+
+4. **Spacing 일관성**:
+   - ✅ 카드 간격: 16.dp
+   - ✅ 카드 내부 요소 간격: 12.dp
+
+---
+
+### 📊 예상 효과
+
+**Before (현재 상태)**:
+- ❌ HomeScreen만 세련된 디자인, 다른 화면은 구식
+- ❌ 사용자가 화면 전환 시 일관성 부족 느낌
+- ❌ 색상 활용도 낮아 정보 구분 어려움
+
+**After (개선 후)**:
+- ✅ 모든 화면이 통일된 디자인 언어 사용
+- ✅ 색상 시스템으로 정보 구분 명확
+- ✅ 앱 전체가 세련되고 일관된 느낌
+- ✅ 사용자 경험 향상 (시각적 일관성 → 사용 편의성 ↑)
+
+---
+
+### 🚀 구현 순서
+
+1. **Step 1**: 디자인 시스템 정의 (30분)
+   - AppColors, AppSpacing 정의
+   - StandardCard, ColoredChip, DifficultyBadge 공통 컴포넌트
+
+2. **Step 2**: ScenarioListScreen 리팩토링 (1h)
+   - ScenarioCardV2 생성
+   - 난이도 배지 색상 통일
+
+3. **Step 3**: StatsScreen 리팩토링 (1h)
+   - StatItemRow 컴포넌트
+   - Color-coded chips 적용
+
+4. **Step 4**: ProfileScreen 리팩토링 (1h)
+   - 사용자 정보 카드 색상 강조
+   - 학습 현황 카드 통일
+
+5. **Step 5**: 기존 컴포넌트 deprecate (30분)
+   - 구 버전 컴포넌트에 @Deprecated 추가
+
+**총 작업 시간**: ~4시간
+
+---
+
 이 문서는 **살아있는 문서**입니다. 각 Phase를 구현하면서 발견한 이슈, 개선 사항, 새로운 아이디어를 계속 업데이트하세요.

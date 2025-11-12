@@ -285,7 +285,15 @@ fun ChartLegend(
 
 /**
  * Simple stat card
+ * @deprecated Use StandardCard with ColoredChip for Phase 12 design consistency
  */
+@Deprecated(
+    message = "Use StandardCard with ColoredChip for Phase 12 design consistency",
+    replaceWith = ReplaceWith(
+        "StandardCard { StatItemRow(...) }",
+        "com.nihongo.conversation.presentation.components.StandardCard"
+    )
+)
 @Composable
 fun StatCard(
     title: String,
