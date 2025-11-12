@@ -93,7 +93,15 @@ fun HomeScreen(
                     )
                 }
 
-                // 2. Today's Recommendation Card (~160dp)
+                // 2. Compact Streak Card (~100dp) - Phase 1 completion
+                item {
+                    CompactStreakCard(
+                        currentStreak = uiState.currentStreak,
+                        longestStreak = uiState.longestStreak
+                    )
+                }
+
+                // 3. Today's Recommendation Card (~160dp)
                 item {
                     val recommendation = uiState.todayRecommendation
                     if (recommendation != null) {
@@ -105,7 +113,7 @@ fun HomeScreen(
                     }
                 }
 
-                // 3. Quick Actions Row (~100dp)
+                // 4. Quick Actions Row (~100dp)
                 item {
                     QuickActionsRow(
                         onResume = { viewModel.resumeLastConversation() },

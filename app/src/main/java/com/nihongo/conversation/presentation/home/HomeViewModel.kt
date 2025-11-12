@@ -5,6 +5,7 @@ import androidx.lifecycle.viewModelScope
 import com.nihongo.conversation.core.recommendation.ScenarioRecommendationEngine
 import com.nihongo.conversation.data.repository.ConversationRepository
 import com.nihongo.conversation.data.repository.QuestRepository
+import com.nihongo.conversation.data.repository.StatsRepository
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.flow.*
 import kotlinx.coroutines.launch
@@ -12,11 +13,13 @@ import javax.inject.Inject
 
 /**
  * ViewModel for simplified HomeScreen (Phase 11)
+ * Phase 1 Completion: Added streak data support
  */
 @HiltViewModel
 class HomeViewModel @Inject constructor(
     private val conversationRepository: ConversationRepository,
     private val questRepository: QuestRepository,
+    private val statsRepository: StatsRepository,
     private val recommendationEngine: ScenarioRecommendationEngine
 ) : ViewModel() {
 
@@ -55,6 +58,19 @@ class HomeViewModel @Inject constructor(
                                 ) }
                             }
                         }
+                } catch (e: Exception) {
+                    // Ignore - not critical
+                }
+            }
+
+            // Phase 1 Completion: Load streak data
+            viewModelScope.launch {
+                try {
+                    val streak = statsRepository.getStudyStreak()
+                    _uiState.update { it.copy(
+                        currentStreak = streak.currentStreak,
+                        longestStreak = streak.longestStreak
+                    ) }
                 } catch (e: Exception) {
                     // Ignore - not critical
                 }
@@ -116,6 +132,7 @@ class HomeViewModel @Inject constructor(
 data class HomeUiState(
     val isLoading: Boolean = true,
     val currentStreak: Int = 0,
+    val longestStreak: Int = 0,  // Phase 1 Completion: Added longest streak
     val todayMessageCount: Int = 0,
     val dailyGoal: Int = 10,
     val userLevel: Int = 1,
