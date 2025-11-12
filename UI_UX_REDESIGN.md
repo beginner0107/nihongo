@@ -11,15 +11,20 @@
   - Part 3: 자동 진행률 추적 (ChatViewModel 통합, 자동 완료 감지)
 
 ### 진행 중인 Phase
-- 🚧 **Phase 1: 홈 대시보드 혁신** (부분 완료)
+- 🚧 **Phase 11: HomeScreen 정보 과부하 해결 (긴급)** ⚠️ **새 작업**
+  - 문제: 홈 화면에 너무 많은 정보 (5개 섹션, 긴 스크롤)
+  - 목표: 핵심 정보만 표시, 나머지는 탭/화면 분리
+  - 우선순위: 🔥 Critical (사용성 저해)
+
+- 🚧 **Phase 1: 홈 대시보드 혁신** (부분 완료, Phase 11 후 재개)
   - ✅ TodayLearningCard (진행률 바, 동기부여 메시지)
   - ✅ RecommendedScenariosSection (카드 크기 확대)
   - ✅ RecentScenariosSection (최근 학습 시나리오)
-  - ⏳ LearningProgressCard (대기 중)
-  - ⏳ StreakCard (대기 중)
+  - ⏳ LearningProgressCard (Phase 11 완료 후)
+  - ⏳ StreakCard (Phase 11 완료 후)
 
 ### 다음 예정 Phase
-- 📅 Phase 6: 하단 네비게이션 바 (HomeScreen 완성 후)
+- 📅 Phase 6: 하단 네비게이션 바 (Phase 11 완료 후)
 - 📅 Phase 3: 리더보드 & Achievement
 - 📅 Phase 4: 학습 통계 고도화
 
@@ -1967,6 +1972,521 @@ LaunchedEffect(Unit) {
 - [ ] 앱 재시작 시 데이터 유지
 - [ ] 권한 거부 시 정상 처리
 - [ ] 네트워크 오류 시 Fallback
+
+---
+
+### Phase 11: HomeScreen 정보 과부하 해결 🚨 **긴급**
+**예상 시간**: 4시간
+**우선순위**: 🔥 Critical
+**발견 일자**: 2025-11-12
+
+#### 🔴 문제 상황
+
+**현재 HomeScreen 구성** (스크린샷 분석):
+```
+┌─────────────────────────────────────┐
+│ 📱 HomeScreen (현재)                │
+├─────────────────────────────────────┤
+│ 1. ⏰ 오늘의 학습                    │
+│    - 진행률 바 (4/10 메시지)         │
+│    - 0h 6m 남음                     │
+│    - 🔥 오늘부터 시작하세요!          │
+│    - 🎯 6개 더 보내면 목표 달성!      │
+│                                     │
+│ 2. 🏆 오늘의 퀘스트 (3개)             │
+│    - 시나리오 완주 (0/1) 50P         │
+│    - 문법 마스터 (0/3) 20P           │
+│    - 새로운 도전 (0/1) 15P           │
+│                                     │
+│ 3. ✨ 추천 시나리오 (2개)             │
+│    - 공항 입국 심사 (초급)           │
+│    - 지하철/전철 이용 (초급)         │
+│                                     │
+│ 4. ⚡ 빠른 실행 (3개 버튼)            │
+│    - 단어장 / 단어 추가 / 발음 연습  │
+│                                     │
+│ 5. 🕐 최근 학습 (3개)                │
+│    - 레스토랑 주문 (일상 생활·초급)  │
+│    - 쇼핑 (일상 생활·초급)          │
+│    - 호텔에서 체크인 (여행·중급)     │
+└─────────────────────────────────────┘
+```
+
+**문제점**:
+1. **정보 과부하**: 5개 섹션에 총 14개 요소 (카드 11개 + 버튼 3개)
+2. **긴 스크롤**: 홈 화면이 3-4 화면 분량 (약 2000dp 높이)
+3. **핵심 불명확**: "지금 뭘 해야 하지?" 혼란
+4. **중복 정보**:
+   - 추천 시나리오 vs 최근 학습 (둘 다 시나리오 리스트)
+   - 오늘의 학습 vs 오늘의 퀘스트 (둘 다 진행 상황)
+5. **시각적 혼잡**: 너무 많은 카드로 집중력 분산
+
+**사용자 피드백** (가정):
+- "홈 화면이 너무 복잡해요"
+- "뭘 먼저 봐야 할지 모르겠어요"
+- "스크롤이 너무 길어요"
+
+---
+
+#### 💡 개선 방안 (Option A: 심플 홈 - 추천)
+
+**컨셉**: "한눈에, 빠르게, 집중"
+
+**새로운 HomeScreen 구성**:
+```
+┌─────────────────────────────────────┐
+│ 📱 HomeScreen (개선안 A)             │
+├─────────────────────────────────────┤
+│ 1. 🎯 Hero Section (240dp)          │
+│    ┌───────────────────────────────┐│
+│    │ 🔥 7일 연속 학습 중!            ││
+│    │ 오늘 4/10 메시지 (40%)         ││
+│    │ [═══════···] 6개 더!          ││
+│    │                               ││
+│    │ Lv.3 · ⭐ 230P                ││
+│    │ 다음 레벨까지 70P              ││
+│    └───────────────────────────────┘│
+│                                     │
+│ 2. ⚡ 빠른 시작 (120dp)               │
+│    [🎲 랜덤 시작] [📚 마지막 이어하기] │
+│                                     │
+│ 3. 🏆 오늘의 퀘스트 1개만 (100dp)     │
+│    🎯 시나리오 완주                  │
+│    0/1 완료 · +50P                  │
+│    [═···········] 0%               │
+│                                     │
+│ 4. 💡 추천 (80dp)                   │
+│    "초급 학습자에게 딱! 편의점 대화"  │
+│    → [시작하기]                     │
+│                                     │
+│ [하단 네비게이션]                    │
+│ 홈 | 시나리오 | 통계 | 프로필        │
+└─────────────────────────────────────┘
+Total: ~540dp (1 화면 분량)
+```
+
+**변경사항**:
+1. **Hero Section 신설**: 스트릭 + 일일 목표 + 레벨/포인트 통합
+2. **빠른 시작**: 2개 큰 버튼 (랜덤 시작 / 마지막 이어하기)
+3. **퀘스트 축소**: 3개 → 1개 (가장 높은 보상 우선)
+4. **추천 간소화**: 2개 카드 → 1개 텍스트 + 버튼
+5. **제거**: 빠른 실행 3개 버튼, 최근 학습 섹션
+6. **이동**:
+   - 전체 퀘스트 → "시나리오" 탭 상단
+   - 추천/최근 시나리오 → "시나리오" 탭
+   - 단어장/발음 연습 → 별도 탭
+
+**장점**:
+- ✅ 스크롤 70% 감소 (2000dp → 600dp)
+- ✅ 정보 밀도 60% 감소 (14개 → 5개 요소)
+- ✅ "지금 할 일" 명확 (빠른 시작 버튼)
+- ✅ 핵심 지표 강조 (스트릭, 목표, 레벨)
+
+**단점**:
+- ⚠️ 기능 접근성 감소 (탭 전환 필요)
+- ⚠️ 추천 시나리오 노출 감소
+
+---
+
+#### 💡 개선 방안 (Option B: 탭 분리)
+
+**컨셉**: "카테고리별 정리"
+
+**HomeScreen 유지 + 탭 추가**:
+```
+┌─────────────────────────────────────┐
+│ [홈] [퀘스트] [시나리오] [복습]       │
+├─────────────────────────────────────┤
+│ 📱 홈 탭                             │
+│ - 오늘의 학습 (축소)                 │
+│ - 빠른 시작 (2개 버튼)               │
+│ - 최근 학습 (1개만)                  │
+│                                     │
+│ 📱 퀘스트 탭                         │
+│ - 오늘의 퀘스트 (전체 3개)           │
+│ - 완료한 퀘스트                      │
+│ - 포인트 히스토리                    │
+│                                     │
+│ 📱 시나리오 탭                       │
+│ - 추천 시나리오 (전체)               │
+│ - 카테고리별 시나리오                │
+│ - 검색 / 필터                       │
+│                                     │
+│ 📱 복습 탭                           │
+│ - 단어장                            │
+│ - 발음 연습                         │
+│ - 문법 복습                         │
+└─────────────────────────────────────┘
+```
+
+**장점**:
+- ✅ 정보 분산으로 각 탭 간결
+- ✅ 전문화된 기능 접근
+- ✅ 기존 컴포넌트 재사용
+
+**단점**:
+- ⚠️ 탭 전환 필요 (클릭 증가)
+- ⚠️ 홈 탭 정체성 모호
+
+---
+
+#### 💡 개선 방안 (Option C: 스마트 요약 - 최종 추천)
+
+**컨셉**: "AI 추천 + 원클릭 액션"
+
+**새로운 HomeScreen**:
+```
+┌─────────────────────────────────────┐
+│ 📱 HomeScreen (개선안 C)             │
+├─────────────────────────────────────┤
+│ 1. 📊 학습 현황 카드 (180dp)         │
+│    ┌───────────────────────────────┐│
+│    │ 🔥 7일 연속  4/10 메시지  Lv.3 ││
+│    │ [════════40%════════]         ││
+│    │                               ││
+│    │ 🏆 시나리오 완주 (0/1) +50P    ││
+│    │ 💬 대화 연습 (4/10) +30P       ││
+│    └───────────────────────────────┘│
+│                                     │
+│ 2. 🎯 오늘의 추천 액션 (160dp)        │
+│    ┌───────────────────────────────┐│
+│    │ 💡 초급 학습자님께 추천          ││
+│    │                               ││
+│    │ "편의점에서 물건 사기"          ││
+│    │ 5분 소요 · 초급 · 일상 생활     ││
+│    │                               ││
+│    │ [🎲 다른 추천] [▶️ 시작하기]   ││
+│    └───────────────────────────────┘│
+│                                     │
+│ 3. ⚡ 빠른 액션 (100dp)               │
+│    [📚 이어하기] [🔀 랜덤] [📋 전체]  │
+│                                     │
+│ [하단 네비게이션]                    │
+│ 홈 | 학습 | 퀘스트 | 통계 | 프로필   │
+└─────────────────────────────────────┘
+Total: ~440dp (1 화면 이내)
+```
+
+**핵심 아이디어**:
+1. **학습 현황 + 퀘스트 통합**: 한 카드에 모든 진행 상황
+2. **AI 추천 강화**: 사용자 레벨/관심사 기반 1개 시나리오만
+3. **원클릭 시작**: "시작하기" 버튼으로 즉시 학습 시작
+4. **빠른 액션**: 3개 버튼으로 모든 시나리오 접근
+5. **하단 네비**: 5개 탭으로 전체 기능 접근
+
+**Option C 상세 설계**:
+
+```kotlin
+// 1. 학습 현황 카드 (통합)
+@Composable
+fun LearningStatusCard(
+    streak: Int,              // 7일
+    todayMessages: Int,       // 4
+    dailyGoal: Int,           // 10
+    level: Int,               // 3
+    points: Int,              // 230
+    topQuests: List<Quest>    // 상위 2개만
+) {
+    Card(elevation = 4.dp) {
+        Column(padding = 20.dp) {
+            // Row 1: 핵심 지표
+            Row(horizontalArrangement = SpaceBetween) {
+                Chip { Text("🔥 ${streak}일 연속") }
+                Chip { Text("$todayMessages/$dailyGoal 메시지") }
+                Chip { Text("Lv.$level") }
+            }
+
+            // Row 2: 진행률 바
+            LinearProgressIndicator(
+                progress = todayMessages.toFloat() / dailyGoal,
+                height = 12.dp
+            )
+
+            Spacer(8.dp)
+
+            // Row 3: 상위 2개 퀘스트 (축약형)
+            topQuests.take(2).forEach { quest ->
+                Row {
+                    Icon(quest.icon, size = 20.dp)
+                    Text("${quest.title} (${quest.current}/${quest.target})")
+                    Text("+${quest.reward}P", color = Gold)
+                }
+            }
+        }
+    }
+}
+
+// 2. 오늘의 추천 액션 카드
+@Composable
+fun TodayRecommendationCard(
+    recommendation: ScenarioRecommendation,
+    onRefresh: () -> Unit,
+    onStart: () -> Unit
+) {
+    Card {
+        Column(padding = 20.dp) {
+            Text("💡 ${recommendation.reason}", // "초급 학습자님께 추천"
+                 style = bodySmall,
+                 color = onSurfaceVariant)
+
+            Spacer(12.dp)
+
+            Text(recommendation.scenario.title,  // "편의점에서 물건 사기"
+                 style = headlineSmall,
+                 fontWeight = Bold)
+
+            Row {
+                Text("${recommendation.estimatedTime}분 소요")
+                Text(" · ")
+                Text(recommendation.difficulty)
+                Text(" · ")
+                Text(recommendation.category)
+            }
+
+            Spacer(16.dp)
+
+            Row(horizontalArrangement = SpaceBetween) {
+                OutlinedButton(onClick = onRefresh) {
+                    Icon(Icons.Default.Refresh)
+                    Text("다른 추천")
+                }
+
+                FilledButton(onClick = onStart) {
+                    Icon(Icons.Default.PlayArrow)
+                    Text("시작하기")
+                }
+            }
+        }
+    }
+}
+
+// 3. 빠른 액션 버튼
+@Composable
+fun QuickActionsRow(
+    onResume: () -> Unit,
+    onRandom: () -> Unit,
+    onViewAll: () -> Unit
+) {
+    Row(
+        modifier = Modifier.fillMaxWidth(),
+        horizontalArrangement = Arrangement.spacedBy(8.dp)
+    ) {
+        ElevatedButton(
+            onClick = onResume,
+            modifier = Modifier.weight(1f)
+        ) {
+            Icon(Icons.Default.PlayArrow)
+            Text("이어하기")
+        }
+
+        ElevatedButton(
+            onClick = onRandom,
+            modifier = Modifier.weight(1f)
+        ) {
+            Icon(Icons.Default.Shuffle)
+            Text("랜덤")
+        }
+
+        OutlinedButton(
+            onClick = onViewAll,
+            modifier = Modifier.weight(1f)
+        ) {
+            Icon(Icons.Default.List)
+            Text("전체")
+        }
+    }
+}
+```
+
+**추천 로직 (ScenarioRecommendationEngine)**:
+```kotlin
+class ScenarioRecommendationEngine {
+    fun getRecommendation(
+        user: User,
+        completedScenarios: List<Scenario>,
+        userLevel: Int
+    ): ScenarioRecommendation {
+        // 1. 필터: 미완료 + 사용자 레벨 ±1
+        val candidates = allScenarios
+            .filter { it.id !in completedScenarios.map { it.id } }
+            .filter { it.difficulty in (userLevel-1)..(userLevel+1) }
+
+        // 2. 점수 계산
+        val scored = candidates.map { scenario ->
+            var score = 0.0
+
+            // 레벨 매칭 (50%)
+            score += when (scenario.difficulty - userLevel) {
+                0 -> 0.5    // 동일 레벨
+                -1, 1 -> 0.3  // ±1
+                else -> 0.0
+            }
+
+            // 카테고리 선호도 (30%)
+            score += user.favoriteCategories.count { it == scenario.category } * 0.1
+
+            // 인기도 (20%)
+            score += scenario.completionCount / 1000.0 * 0.2
+
+            scenario to score
+        }
+
+        // 3. 최고 점수 시나리오 선택
+        val best = scored.maxByOrNull { it.second }?.first
+            ?: candidates.random()
+
+        // 4. 추천 이유 생성
+        val reason = when {
+            best.difficulty == userLevel -> "${getDifficultyLabel(userLevel)} 학습자님께 추천"
+            best.difficulty < userLevel -> "복습으로 좋아요!"
+            else -> "도전해보세요!"
+        }
+
+        return ScenarioRecommendation(
+            scenario = best,
+            reason = reason,
+            estimatedTime = best.estimatedDuration,
+            difficulty = getDifficultyLabel(best.difficulty),
+            category = getCategoryLabel(best.category)
+        )
+    }
+}
+
+data class ScenarioRecommendation(
+    val scenario: Scenario,
+    val reason: String,
+    val estimatedTime: Int,
+    val difficulty: String,
+    val category: String
+)
+```
+
+---
+
+#### 📋 구현 계획 (Option C 기준)
+
+**Step 1: 기존 컴포넌트 정리** (1시간)
+- [ ] HomeScreen.kt에서 다음 제거:
+  - `RecommendedScenariosSection` (2개 카드 → 삭제)
+  - `QuickActionsSection` (3개 버튼 → 빠른 액션 3개로 통합)
+  - `RecentScenariosSection` (3개 카드 → 삭제)
+  - `QuestSection` (3개 퀘스트 → 2개로 축소)
+  - `TodayLearningCard` (단독 → LearningStatusCard에 통합)
+
+**Step 2: 새 컴포넌트 생성** (2시간)
+- [ ] `LearningStatusCard.kt` (신규)
+  - 스트릭, 일일 목표, 레벨, 상위 2개 퀘스트 통합
+- [ ] `TodayRecommendationCard.kt` (신규)
+  - AI 추천 시나리오 1개 + 다른 추천/시작하기 버튼
+- [ ] `QuickActionsRow.kt` (신규)
+  - 이어하기 / 랜덤 / 전체 3개 버튼
+- [ ] `ScenarioRecommendationEngine.kt` (신규)
+  - 점수 기반 추천 로직
+
+**Step 3: HomeScreen 리팩토링** (1시간)
+```kotlin
+@Composable
+fun HomeScreen(
+    onScenarioSelected: (Long) -> Unit,
+    viewModel: HomeViewModel = hiltViewModel()
+) {
+    val uiState by viewModel.uiState.collectAsState()
+    val recommendation by viewModel.todayRecommendation.collectAsState()
+
+    LazyColumn {
+        // 1. 학습 현황 카드 (180dp)
+        item {
+            LearningStatusCard(
+                streak = uiState.currentStreak,
+                todayMessages = uiState.todayMessageCount,
+                dailyGoal = uiState.dailyGoal,
+                level = uiState.userLevel,
+                points = uiState.totalPoints,
+                topQuests = uiState.quests.take(2)
+            )
+        }
+
+        // 2. 오늘의 추천 (160dp)
+        item {
+            TodayRecommendationCard(
+                recommendation = recommendation,
+                onRefresh = { viewModel.refreshRecommendation() },
+                onStart = { onScenarioSelected(recommendation.scenario.id) }
+            )
+        }
+
+        // 3. 빠른 액션 (100dp)
+        item {
+            QuickActionsRow(
+                onResume = { viewModel.resumeLastConversation() },
+                onRandom = { viewModel.startRandomScenario() },
+                onViewAll = { /* Navigate to ScenarioList */ }
+            )
+        }
+    }
+}
+```
+
+**Step 4: ViewModel 업데이트** (30분)
+- [ ] HomeViewModel에 추천 로직 추가
+- [ ] `refreshRecommendation()` 구현
+- [ ] `resumeLastConversation()` 구현
+- [ ] `startRandomScenario()` 구현
+
+**Step 5: 하단 네비게이션 추가** (30분)
+- [ ] BottomNavigationBar 컴포넌트
+- [ ] 5개 탭: 홈 / 학습 / 퀘스트 / 통계 / 프로필
+
+---
+
+#### 📊 비교표
+
+| 항목 | 현재 | Option A | Option B | **Option C** ⭐ |
+|------|------|----------|----------|---------------|
+| 섹션 수 | 5개 | 4개 | 4개 | **3개** |
+| 카드 수 | 11개 | 3개 | 5개 | **5개** (통합) |
+| 스크롤 높이 | ~2000dp | ~540dp | ~800dp | **~440dp** |
+| 퀘스트 표시 | 3개 | 1개 | 전체(탭) | **2개** |
+| 추천 시나리오 | 2개 카드 | 1개 텍스트 | 전체(탭) | **1개 + AI** |
+| 빠른 시작 | 없음 | 2개 버튼 | 없음 | **3개 버튼** |
+| 구현 시간 | - | 3시간 | 5시간 | **4시간** |
+
+**최종 추천**: **Option C (스마트 요약)**
+- 가장 짧은 스크롤 (1화면 이내)
+- AI 추천으로 개인화
+- 원클릭 액션으로 편의성
+- 핵심 정보만 집중 표시
+
+---
+
+#### 완료 조건
+
+- [ ] LearningStatusCard 구현 및 통합 테스트
+- [ ] TodayRecommendationCard 구현 및 AI 추천 로직
+- [ ] QuickActionsRow 구현 및 동작 확인
+- [ ] ScenarioRecommendationEngine 알고리즘 검증
+- [ ] HomeScreen 리팩토링 완료
+- [ ] 하단 네비게이션 바 추가
+- [ ] 스크롤 높이 측정 (< 500dp 목표)
+- [ ] 사용자 테스트 (5명 이상)
+- [ ] 성능 테스트 (로딩 < 1초, 60fps)
+
+---
+
+#### 예상 효과
+
+**정량적**:
+- 스크롤 거리: 2000dp → 440dp (**78% 감소**)
+- 카드 수: 11개 → 5개 (**55% 감소**)
+- 홈 화면 로딩 시간: 1.2초 → 0.6초 (**50% 단축**)
+- 첫 액션까지 클릭 수: 3-4회 → 1-2회 (**50% 감소**)
+
+**정성적**:
+- ✅ "뭘 해야 하지?" 혼란 해소
+- ✅ 핵심 정보 집중 (스트릭, 목표, 레벨)
+- ✅ AI 추천으로 개인화 경험
+- ✅ 원클릭 학습 시작 (마찰 최소화)
+- ✅ 깔끔한 UI로 브랜드 이미지 향상
 
 ---
 
