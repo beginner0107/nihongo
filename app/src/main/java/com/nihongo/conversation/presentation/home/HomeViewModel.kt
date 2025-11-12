@@ -31,34 +31,39 @@ class HomeViewModel @Inject constructor(
 
     private fun loadHomeData() {
         viewModelScope.launch {
-            try {
-                // Load today's message count
-                conversationRepository.getTodayMessageCount(currentUserId)
-                    .collect { count ->
-                        _uiState.update { it.copy(todayMessageCount = count) }
-                    }
-            } catch (e: Exception) {
-                // Ignore - not critical
+            // Load today's message count
+            viewModelScope.launch {
+                try {
+                    conversationRepository.getTodayMessageCount(currentUserId)
+                        .collect { count ->
+                            _uiState.update { it.copy(todayMessageCount = count) }
+                        }
+                } catch (e: Exception) {
+                    // Ignore - not critical
+                }
             }
 
-            try {
-                // Load user points
-                questRepository.getUserPoints(currentUserId)
-                    .collect { points ->
-                        if (points != null) {
-                            _uiState.update { it.copy(
-                                userLevel = points.level,
-                                totalPoints = points.totalPoints
-                            ) }
+            // Load user points
+            viewModelScope.launch {
+                try {
+                    questRepository.getUserPoints(currentUserId)
+                        .collect { points ->
+                            if (points != null) {
+                                _uiState.update { it.copy(
+                                    userLevel = points.level,
+                                    totalPoints = points.totalPoints
+                                ) }
+                            }
                         }
-                    }
-            } catch (e: Exception) {
-                // Ignore - not critical
+                } catch (e: Exception) {
+                    // Ignore - not critical
+                }
             }
 
             // Load recommendation
             refreshRecommendation()
 
+            // Set loading to false immediately
             _uiState.update { it.copy(isLoading = false) }
         }
     }
