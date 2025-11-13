@@ -1506,14 +1506,19 @@ fun MessageInput(
             verticalAlignment = Alignment.CenterVertically,
             horizontalArrangement = Arrangement.spacedBy(8.dp)
         ) {
-            // Voice button with language badge
-            VoiceInputButton(
-                selectedLanguage = selectedVoiceLanguage,
-                onStartRecording = onStartRecording,
-                onStopRecording = onStopRecording,
-                onLongPress = onShowLanguageSheet,
-                voiceState = voiceState
-            )
+            // Language selection button (independent)
+            IconButton(
+                onClick = onShowLanguageSheet,
+                modifier = Modifier.size(48.dp)
+            ) {
+                Text(
+                    text = when (selectedVoiceLanguage) {
+                        com.nihongo.conversation.core.voice.VoiceLanguage.JAPANESE -> "🇯🇵"
+                        com.nihongo.conversation.core.voice.VoiceLanguage.KOREAN -> "🇰🇷"
+                    },
+                    fontSize = 24.sp
+                )
+            }
 
             // Text input
             OutlinedTextField(
@@ -1533,6 +1538,26 @@ fun MessageInput(
                 )
             )
 
+            // Hint button
+            IconButton(
+                onClick = onRequestHint,
+                enabled = enabled,
+                modifier = Modifier.size(48.dp)
+            ) {
+                Icon(
+                    imageVector = Icons.Default.Lightbulb,
+                    contentDescription = "힌트",
+                    modifier = Modifier.size(24.dp)
+                )
+            }
+
+            // Voice button (simplified - no badge)
+            VoiceInputButton(
+                onStartRecording = onStartRecording,
+                onStopRecording = onStopRecording,
+                voiceState = voiceState
+            )
+
             // Send button
             Button(
                 onClick = onSend,
@@ -1540,21 +1565,6 @@ fun MessageInput(
             ) {
                 Text("전송")
             }
-        }
-
-        // Hint button
-        TextButton(
-            onClick = onRequestHint,
-            modifier = Modifier.padding(horizontal = 8.dp),
-            enabled = enabled
-        ) {
-            Icon(
-                imageVector = Icons.Default.Lightbulb,
-                contentDescription = null,
-                modifier = Modifier.size(18.dp)
-            )
-            Spacer(modifier = Modifier.width(4.dp))
-            Text("힌트 요청 (Korean-Japanese)")
         }
     }
 }
@@ -1756,78 +1766,47 @@ fun GrammarFeedbackCard(feedback: com.nihongo.conversation.domain.model.GrammarF
 }
 
 /**
- * Voice Input Button with Language Badge
- * Supports click for recording and long-press for language selection
+ * Voice Input Button (Simplified)
+ * Simple mic button without language badge
  */
-@OptIn(ExperimentalFoundationApi::class)
 @Composable
 fun VoiceInputButton(
-    selectedLanguage: com.nihongo.conversation.core.voice.VoiceLanguage,
     onStartRecording: () -> Unit,
     onStopRecording: () -> Unit,
-    onLongPress: () -> Unit,
     voiceState: com.nihongo.conversation.core.voice.VoiceState
 ) {
-    Box(
-        modifier = Modifier.size(56.dp),
-        contentAlignment = Alignment.Center
-    ) {
-        // Main button with combinedClickable for both click and long-press
-        Surface(
-            modifier = Modifier
-                .size(56.dp)
-                .combinedClickable(
-                    onClick = {
-                        when (voiceState) {
-                            is com.nihongo.conversation.core.voice.VoiceState.Listening -> onStopRecording()
-                            else -> onStartRecording()
-                        }
-                    },
-                    onLongClick = { onLongPress() }
-                ),
-            shape = CircleShape,
-            color = when (voiceState) {
-                is com.nihongo.conversation.core.voice.VoiceState.Listening -> MaterialTheme.colorScheme.error
-                else -> MaterialTheme.colorScheme.primary
+    Surface(
+        modifier = Modifier.size(48.dp),
+        onClick = {
+            when (voiceState) {
+                is com.nihongo.conversation.core.voice.VoiceState.Listening -> onStopRecording()
+                else -> onStartRecording()
             }
-        ) {
-            Box(
-                contentAlignment = Alignment.Center,
-                modifier = Modifier.fillMaxSize()
-            ) {
-                Icon(
-                    imageVector = when (voiceState) {
-                        is com.nihongo.conversation.core.voice.VoiceState.Idle -> Icons.Default.Mic
-                        is com.nihongo.conversation.core.voice.VoiceState.Listening -> Icons.Default.MicOff
-                        is com.nihongo.conversation.core.voice.VoiceState.Processing -> Icons.Default.Sync
-                        else -> Icons.Default.Mic
-                    },
-                    contentDescription = "音声入力",
-                    tint = Color.White,
-                    modifier = when (voiceState) {
-                        is com.nihongo.conversation.core.voice.VoiceState.Processing ->
-                            Modifier.size(28.dp).rotate(infiniteAnimation())
-                        else -> Modifier.size(28.dp)
-                    }
-                )
-            }
+        },
+        shape = CircleShape,
+        color = when (voiceState) {
+            is com.nihongo.conversation.core.voice.VoiceState.Listening -> MaterialTheme.colorScheme.error
+            else -> MaterialTheme.colorScheme.primary
         }
-
-        // Language badge (bottom-right corner)
-        Badge(
-            modifier = Modifier
-                .align(Alignment.BottomEnd)
-                .offset(x = 2.dp, y = 2.dp),
-            containerColor = MaterialTheme.colorScheme.primaryContainer,
-            contentColor = MaterialTheme.colorScheme.onPrimaryContainer
+    ) {
+        Box(
+            contentAlignment = Alignment.Center,
+            modifier = Modifier.fillMaxSize()
         ) {
-            Text(
-                text = when (selectedLanguage) {
-                    com.nihongo.conversation.core.voice.VoiceLanguage.JAPANESE -> "🇯🇵"
-                    com.nihongo.conversation.core.voice.VoiceLanguage.KOREAN -> "🇰🇷"
+            Icon(
+                imageVector = when (voiceState) {
+                    is com.nihongo.conversation.core.voice.VoiceState.Idle -> Icons.Default.Mic
+                    is com.nihongo.conversation.core.voice.VoiceState.Listening -> Icons.Default.MicOff
+                    is com.nihongo.conversation.core.voice.VoiceState.Processing -> Icons.Default.Sync
+                    else -> Icons.Default.Mic
                 },
-                fontSize = 12.sp,
-                modifier = Modifier.padding(2.dp)
+                contentDescription = "음성 입력",
+                tint = Color.White,
+                modifier = when (voiceState) {
+                    is com.nihongo.conversation.core.voice.VoiceState.Processing ->
+                        Modifier.size(24.dp).rotate(infiniteAnimation())
+                    else -> Modifier.size(24.dp)
+                }
             )
         }
     }
@@ -1868,25 +1847,31 @@ fun VoiceLanguageBottomSheet(
                 .padding(16.dp)
         ) {
             Text(
-                "音声入力の言語",
+                "음성 입력 언어 선택",
                 style = MaterialTheme.typography.titleLarge,
+                fontWeight = FontWeight.Bold,
                 modifier = Modifier.padding(bottom = 16.dp)
             )
 
             // Japanese option
             ListItem(
                 headlineContent = {
-                    Text("日本語", fontWeight = FontWeight.Bold)
+                    Text("日本語 (일본어)", fontWeight = FontWeight.Bold, fontSize = 18.sp)
                 },
                 supportingContent = {
-                    Text("일본어로 직접 입력")
+                    Text("일본어로 직접 음성 입력", color = MaterialTheme.colorScheme.onSurfaceVariant)
                 },
                 leadingContent = {
-                    Text("🇯🇵", fontSize = 32.sp)
+                    Text("🇯🇵", fontSize = 40.sp)
                 },
                 trailingContent = {
                     if (selectedLanguage == com.nihongo.conversation.core.voice.VoiceLanguage.JAPANESE) {
-                        Icon(Icons.Default.Check, null, tint = Color(0xFF4CAF50))
+                        Icon(
+                            Icons.Default.Check,
+                            contentDescription = "선택됨",
+                            tint = MaterialTheme.colorScheme.primary,
+                            modifier = Modifier.size(28.dp)
+                        )
                     }
                 },
                 modifier = Modifier
@@ -1894,7 +1879,7 @@ fun VoiceLanguageBottomSheet(
                         onSelectLanguage(com.nihongo.conversation.core.voice.VoiceLanguage.JAPANESE)
                         onDismiss()
                     }
-                    .padding(vertical = 4.dp)
+                    .padding(vertical = 8.dp)
             )
 
             HorizontalDivider(modifier = Modifier.padding(vertical = 8.dp))
@@ -1906,29 +1891,38 @@ fun VoiceLanguageBottomSheet(
                         horizontalArrangement = Arrangement.spacedBy(8.dp),
                         verticalAlignment = Alignment.CenterVertically
                     ) {
-                        Text("한국어", fontWeight = FontWeight.Bold)
+                        Text("한국어 (Korean)", fontWeight = FontWeight.Bold, fontSize = 18.sp)
                         Surface(
-                            color = Color(0xFFFF9800).copy(alpha = 0.2f),
+                            color = MaterialTheme.colorScheme.tertiaryContainer,
                             shape = MaterialTheme.shapes.small
                         ) {
                             Text(
                                 "자동번역",
-                                fontSize = 11.sp,
-                                color = Color(0xFFFF6F00),
-                                modifier = Modifier.padding(horizontal = 6.dp, vertical = 2.dp)
+                                fontSize = 12.sp,
+                                fontWeight = FontWeight.Bold,
+                                color = MaterialTheme.colorScheme.onTertiaryContainer,
+                                modifier = Modifier.padding(horizontal = 8.dp, vertical = 4.dp)
                             )
                         }
                     }
                 },
                 supportingContent = {
-                    Text("한국어 → 일본어로 자동 번역됨")
+                    Text(
+                        "한국어 → 일본어로 자동 번역",
+                        color = MaterialTheme.colorScheme.onSurfaceVariant
+                    )
                 },
                 leadingContent = {
-                    Text("🇰🇷", fontSize = 32.sp)
+                    Text("🇰🇷", fontSize = 40.sp)
                 },
                 trailingContent = {
                     if (selectedLanguage == com.nihongo.conversation.core.voice.VoiceLanguage.KOREAN) {
-                        Icon(Icons.Default.Check, null, tint = Color(0xFF4CAF50))
+                        Icon(
+                            Icons.Default.Check,
+                            contentDescription = "선택됨",
+                            tint = MaterialTheme.colorScheme.primary,
+                            modifier = Modifier.size(28.dp)
+                        )
                     }
                 },
                 modifier = Modifier
@@ -1936,31 +1930,40 @@ fun VoiceLanguageBottomSheet(
                         onSelectLanguage(com.nihongo.conversation.core.voice.VoiceLanguage.KOREAN)
                         onDismiss()
                     }
-                    .padding(vertical = 4.dp)
+                    .padding(vertical = 8.dp)
             )
 
             Spacer(Modifier.height(16.dp))
 
             // Guidance text
             Surface(
-                color = MaterialTheme.colorScheme.surfaceVariant,
+                color = MaterialTheme.colorScheme.primaryContainer.copy(alpha = 0.5f),
                 shape = MaterialTheme.shapes.medium
             ) {
                 Row(
-                    modifier = Modifier.padding(12.dp),
-                    horizontalArrangement = Arrangement.spacedBy(8.dp)
+                    modifier = Modifier.padding(16.dp),
+                    horizontalArrangement = Arrangement.spacedBy(12.dp)
                 ) {
                     Icon(
                         Icons.Default.Info,
-                        null,
-                        modifier = Modifier.size(20.dp),
-                        tint = MaterialTheme.colorScheme.onSurfaceVariant
+                        contentDescription = null,
+                        modifier = Modifier.size(24.dp),
+                        tint = MaterialTheme.colorScheme.onPrimaryContainer
                     )
-                    Text(
-                        "マイクボタンを長押しして言語を変更できます",
-                        style = MaterialTheme.typography.bodySmall,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant
-                    )
+                    Column {
+                        Text(
+                            "언어를 변경하면 음성 입력 언어가 바뀝니다.",
+                            style = MaterialTheme.typography.bodyMedium,
+                            color = MaterialTheme.colorScheme.onPrimaryContainer,
+                            fontWeight = FontWeight.Medium
+                        )
+                        Spacer(Modifier.height(4.dp))
+                        Text(
+                            "한국어 선택 시 자동으로 일본어로 번역됩니다.",
+                            style = MaterialTheme.typography.bodySmall,
+                            color = MaterialTheme.colorScheme.onPrimaryContainer.copy(alpha = 0.8f)
+                        )
+                    }
                 }
             }
 
