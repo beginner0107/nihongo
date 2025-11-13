@@ -24,7 +24,20 @@ data class ScenarioUiState(
     val searchQuery: String = "",  // Search query
     val selectedDifficulties: Set<Int> = emptySet(),  // Selected difficulty filters (1, 2, 3)
     val isLoading: Boolean = true,
-    val favoriteScenarioIds: List<Long> = emptyList() // Track favorite scenario IDs
+    val favoriteScenarioIds: List<Long> = emptyList(), // Track favorite scenario IDs
+
+    // Dashboard data
+    val completedCount: Int = 0,
+    val inProgressCount: Int = 0,
+    val favoriteCount: Int = 0,
+    val averageProgress: Float = 0f,
+    val currentStreak: Int = 0,
+    val bestStreak: Int = 0,
+    val lastStudyDate: String = "",
+    val todayMessageCount: Int = 0,
+    val dailyGoal: Int = 10,
+    val remainingHours: Int = 0,
+    val remainingMinutes: Int = 0
 )
 
 @HiltViewModel
@@ -42,6 +55,7 @@ class ScenarioViewModel @Inject constructor(
         loadScenarios()
         loadFavorites()
         loadRecommendations()
+        loadDashboardData()
     }
 
     private fun loadScenarios() {
@@ -341,5 +355,59 @@ class ScenarioViewModel @Inject constructor(
 
             【重要】マークダウン記号（**、_など）や読み仮名（例：お席（せき））を絶対に使わないでください。
         """.trimIndent()
+    }
+
+    /**
+     * Load dashboard statistics
+     */
+    private fun loadDashboardData() {
+        viewModelScope.launch {
+            try {
+                val userId = userSessionManager.getCurrentUserIdSync() ?: 1L
+
+                // Load all data in parallel
+                val allScenarios = repository.getAllScenarios().first()
+                val completedScenarios = repository.getCompletedScenarios(userId).first()
+                val inProgressScenarios = repository.getInProgressScenarios(userId).first()
+                val favoriteScenarios = allScenarios.filter { it.id in _uiState.value.favoriteScenarioIds }
+                val todayMessages = repository.getTodayMessageCount(userId).first()
+                val streak = repository.getStudyStreak(userId).first()
+
+                // Calculate average progress
+                val totalProgress = if (allScenarios.isNotEmpty()) {
+                    completedScenarios.size.toFloat() / allScenarios.size
+                } else {
+                    0f
+                }
+
+                // Calculate remaining time until midnight
+                val now = java.time.LocalDateTime.now()
+                val midnight = now.toLocalDate().plusDays(1).atStartOfDay()
+                val duration = java.time.Duration.between(now, midnight)
+
+                _uiState.value = _uiState.value.copy(
+                    completedCount = completedScenarios.size,
+                    inProgressCount = inProgressScenarios.size,
+                    favoriteCount = favoriteScenarios.size,
+                    averageProgress = totalProgress,
+                    currentStreak = streak.current,
+                    bestStreak = streak.best,
+                    lastStudyDate = streak.lastStudyDate.ifEmpty { "기록 없음" },
+                    todayMessageCount = todayMessages,
+                    remainingHours = duration.toHours().toInt(),
+                    remainingMinutes = (duration.toMinutes() % 60).toInt()
+                )
+            } catch (e: Exception) {
+                // If dashboard data loading fails, just keep default values
+                e.printStackTrace()
+            }
+        }
+    }
+
+    /**
+     * Refresh dashboard data (call after completing a conversation or sending messages)
+     */
+    fun refreshDashboard() {
+        loadDashboardData()
     }
 }

@@ -26,6 +26,7 @@ import com.nihongo.conversation.presentation.onboarding.OnboardingScreen
 sealed class Screen(val route: String) {
     data object Onboarding : Screen("onboarding")
     data object UserSelection : Screen("user_selection")
+    data object Main : Screen("main")  // NEW: Main screen with bottom nav
     data object ScenarioList : Screen("scenarios")
     data object Flashcard : Screen("flashcard")
     data object FlashcardStats : Screen("flashcard_stats")
@@ -67,10 +68,30 @@ fun NihongoNavHost(
         composable(route = Screen.UserSelection.route) {
             UserSelectionScreen(
                 onUserSelected = {
-                    navController.navigate(Screen.ScenarioList.route) {
+                    navController.navigate(Screen.Main.route) {
                         // Remove user selection from back stack
                         popUpTo(Screen.UserSelection.route) { inclusive = true }
                     }
+                }
+            )
+        }
+
+        composable(route = Screen.Main.route) {
+            MainScreen(
+                onScenarioSelected = { scenarioId ->
+                    navController.navigate(Screen.Chat.createRoute(1L, scenarioId))
+                },
+                onFlashcardClick = {
+                    navController.navigate(Screen.Flashcard.route)
+                },
+                onAddVocabularyClick = {
+                    navController.navigate(Screen.AddVocabulary.route)
+                },
+                onSettingsClick = {
+                    navController.navigate(Screen.Settings.route)
+                },
+                onCreateScenarioClick = {
+                    navController.navigate(Screen.CreateScenario.route)
                 }
             )
         }

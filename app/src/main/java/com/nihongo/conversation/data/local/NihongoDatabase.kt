@@ -21,6 +21,10 @@ import com.nihongo.conversation.data.local.entity.TranslationCacheEntity
 import com.nihongo.conversation.data.local.dao.TranslationCacheDao
 import com.nihongo.conversation.data.local.entity.GrammarFeedbackCacheEntity
 import com.nihongo.conversation.data.local.dao.GrammarFeedbackCacheDao
+import com.nihongo.conversation.data.local.entity.DailyQuestEntity
+import com.nihongo.conversation.data.local.entity.UserPointsEntity
+import com.nihongo.conversation.data.local.entity.SavedMessageEntity
+import com.nihongo.conversation.data.local.SavedMessageDao
 
 @Database(
     entities = [
@@ -40,12 +44,15 @@ import com.nihongo.conversation.data.local.dao.GrammarFeedbackCacheDao
         com.nihongo.conversation.domain.model.CachedResponse::class,
         com.nihongo.conversation.domain.model.CacheAnalytics::class,
         TranslationCacheEntity::class,
-        GrammarFeedbackCacheEntity::class
+        GrammarFeedbackCacheEntity::class,
+        DailyQuestEntity::class,
+        UserPointsEntity::class,
+        SavedMessageEntity::class  // Phase 5: Message bookmarking
     ],
     views = [
         ConversationStats::class
     ],
-    version = 15,  // Added GrammarFeedbackCacheEntity for caching grammar analysis
+    version = 18,  // Phase 5단계 난이도 세분화: difficulty 범위 1-3 → 1-5 확장
     exportSchema = false
 )
 abstract class NihongoDatabase : RoomDatabase() {
@@ -65,6 +72,9 @@ abstract class NihongoDatabase : RoomDatabase() {
     abstract fun cacheAnalyticsDao(): CacheAnalyticsDao
     abstract fun translationCacheDao(): TranslationCacheDao
     abstract fun grammarFeedbackCacheDao(): GrammarFeedbackCacheDao
+    abstract fun dailyQuestDao(): DailyQuestDao
+    abstract fun userPointsDao(): UserPointsDao
+    abstract fun savedMessageDao(): SavedMessageDao  // Phase 5: Message bookmarking
 
     companion object {
         val MIGRATION_1_2 = object : Migration(1, 2) {
@@ -547,6 +557,87 @@ abstract class NihongoDatabase : RoomDatabase() {
 
                 database.execSQL("CREATE INDEX IF NOT EXISTS index_grammar_feedback_cache_messageText ON grammar_feedback_cache(messageText)")
                 database.execSQL("CREATE INDEX IF NOT EXISTS index_grammar_feedback_cache_timestamp ON grammar_feedback_cache(timestamp)")
+            }
+        }
+
+        val MIGRATION_15_16 = object : Migration(15, 16) {
+            override fun migrate(database: SupportSQLiteDatabase) {
+                // Create daily_quests table
+                database.execSQL("""
+                    CREATE TABLE daily_quests (
+                        id INTEGER PRIMARY KEY AUTOINCREMENT NOT NULL,
+                        userId INTEGER NOT NULL,
+                        title TEXT NOT NULL,
+                        description TEXT NOT NULL,
+                        questType TEXT NOT NULL,
+                        targetValue INTEGER NOT NULL,
+                        currentValue INTEGER NOT NULL,
+                        rewardPoints INTEGER NOT NULL,
+                        expiresAt INTEGER NOT NULL,
+                        isCompleted INTEGER NOT NULL,
+                        completedAt INTEGER,
+                        createdAt INTEGER NOT NULL
+                    )
+                """.trimIndent())
+
+                database.execSQL("CREATE INDEX IF NOT EXISTS index_daily_quests_userId ON daily_quests(userId)")
+                database.execSQL("CREATE INDEX IF NOT EXISTS index_daily_quests_expiresAt ON daily_quests(expiresAt)")
+                database.execSQL("CREATE INDEX IF NOT EXISTS index_daily_quests_isCompleted ON daily_quests(isCompleted)")
+
+                // Create user_points table
+                database.execSQL("""
+                    CREATE TABLE user_points (
+                        userId INTEGER PRIMARY KEY NOT NULL,
+                        totalPoints INTEGER NOT NULL,
+                        todayPoints INTEGER NOT NULL,
+                        weeklyPoints INTEGER NOT NULL,
+                        level INTEGER NOT NULL,
+                        weeklyRank INTEGER,
+                        lastResetDate INTEGER NOT NULL
+                    )
+                """.trimIndent())
+            }
+        }
+
+        val MIGRATION_16_17 = object : Migration(16, 17) {
+            override fun migrate(database: SupportSQLiteDatabase) {
+                // Phase 5: Create saved_messages table for message bookmarking
+                database.execSQL("""
+                    CREATE TABLE saved_messages (
+                        id INTEGER PRIMARY KEY AUTOINCREMENT NOT NULL,
+                        messageId INTEGER NOT NULL,
+                        userId INTEGER NOT NULL,
+                        messageContent TEXT NOT NULL,
+                        isUserMessage INTEGER NOT NULL,
+                        scenarioTitle TEXT NOT NULL,
+                        userNote TEXT,
+                        tags TEXT,
+                        savedAt INTEGER NOT NULL
+                    )
+                """.trimIndent())
+
+                database.execSQL("CREATE INDEX IF NOT EXISTS index_saved_messages_messageId ON saved_messages(messageId)")
+                database.execSQL("CREATE INDEX IF NOT EXISTS index_saved_messages_userId ON saved_messages(userId)")
+                database.execSQL("CREATE INDEX IF NOT EXISTS index_saved_messages_savedAt ON saved_messages(savedAt)")
+            }
+        }
+
+        val MIGRATION_17_18 = object : Migration(17, 18) {
+            override fun migrate(database: SupportSQLiteDatabase) {
+                // Phase 5단계 난이도 세분화: 기존 시나리오 difficulty 값 매핑
+                // 1 (초급) → 2 (초급)
+                // 2 (중급) → 3 (중급)
+                // 3 (고급) → 4 (고급)
+                // 새로운 난이도 체계: 1=입문, 2=초급, 3=중급, 4=고급, 5=최상급
+                database.execSQL("""
+                    UPDATE scenarios
+                    SET difficulty = CASE difficulty
+                        WHEN 1 THEN 2  -- 기존 초급 → 새 초급
+                        WHEN 2 THEN 3  -- 기존 중급 → 새 중급
+                        WHEN 3 THEN 4  -- 기존 고급 → 새 고급
+                        ELSE difficulty
+                    END
+                """.trimIndent())
             }
         }
     }

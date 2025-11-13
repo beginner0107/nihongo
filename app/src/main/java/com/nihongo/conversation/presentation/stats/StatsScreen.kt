@@ -16,7 +16,10 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
+import com.nihongo.conversation.core.theme.AppDesignSystem
 import com.nihongo.conversation.data.repository.ScenarioProgress
+import com.nihongo.conversation.presentation.components.ColoredChip
+import com.nihongo.conversation.presentation.components.StandardCard
 import java.text.SimpleDateFormat
 import java.util.*
 
@@ -44,14 +47,6 @@ fun StatsScreen(
                         )
                     }
                 },
-                navigationIcon = {
-                    IconButton(onClick = onBackClick) {
-                        Icon(
-                            imageVector = Icons.AutoMirrored.Filled.ArrowBack,
-                            contentDescription = "뒤로"
-                        )
-                    }
-                },
                 actions = {
                     IconButton(onClick = { viewModel.refresh() }) {
                         Icon(
@@ -61,8 +56,8 @@ fun StatsScreen(
                     }
                 },
                 colors = TopAppBarDefaults.topAppBarColors(
-                    containerColor = MaterialTheme.colorScheme.tertiaryContainer,
-                    titleContentColor = MaterialTheme.colorScheme.onTertiaryContainer
+                    containerColor = MaterialTheme.colorScheme.primaryContainer,  // Phase 12: tertiaryContainer → primaryContainer (통일성)
+                    titleContentColor = MaterialTheme.colorScheme.onPrimaryContainer
                 )
             )
         }
@@ -105,8 +100,11 @@ fun StatsScreen(
                 modifier = Modifier
                     .fillMaxSize()
                     .padding(padding),
-                contentPadding = PaddingValues(16.dp),
-                verticalArrangement = Arrangement.spacedBy(16.dp)
+                contentPadding = PaddingValues(
+                    horizontal = 0.dp,  // StandardCard가 자체 horizontal padding 가짐
+                    vertical = AppDesignSystem.Spacing.sectionSpacing
+                ),
+                verticalArrangement = Arrangement.spacedBy(AppDesignSystem.Spacing.sectionSpacing)
             ) {
                 // Time Period Toggle
                 item {
@@ -218,22 +216,23 @@ fun StreakCard(
     streak: com.nihongo.conversation.data.repository.StudyStreak,
     modifier: Modifier = Modifier
 ) {
+    // Phase 12: StandardCard로 통일 (색상은 유지)
     Card(
-        modifier = modifier.fillMaxWidth(),
+        modifier = modifier.fillMaxWidth().padding(horizontal = AppDesignSystem.Spacing.cardHorizontalPadding),
         colors = CardDefaults.cardColors(
             containerColor = MaterialTheme.colorScheme.primaryContainer
         ),
-        elevation = CardDefaults.cardElevation(defaultElevation = 4.dp)
+        elevation = CardDefaults.cardElevation(defaultElevation = 2.dp)
     ) {
         Row(
             modifier = Modifier
                 .fillMaxWidth()
-                .padding(20.dp),
+                .padding(AppDesignSystem.Spacing.cardInnerPadding),
             horizontalArrangement = Arrangement.SpaceBetween,
             verticalAlignment = Alignment.CenterVertically
         ) {
             Column(
-                verticalArrangement = Arrangement.spacedBy(8.dp)
+                verticalArrangement = Arrangement.spacedBy(AppDesignSystem.Spacing.elementSpacing)
             ) {
                 Row(
                     verticalAlignment = Alignment.CenterVertically,
@@ -247,7 +246,7 @@ fun StreakCard(
                     )
                     Text(
                         text = "연속 학습",
-                        style = MaterialTheme.typography.titleMedium,
+                        style = MaterialTheme.typography.headlineSmall,  // Phase 12: titleMedium → headlineSmall
                         fontWeight = FontWeight.Bold
                     )
                 }
@@ -274,6 +273,35 @@ fun StreakCard(
     }
 }
 
+/**
+ * Phase 12: Color-coded chips를 사용하는 통계 항목 Row
+ */
+@Composable
+private fun StatItemRow(
+    label: String,
+    value: String,
+    chipColor: Color,
+    valueColor: Color = MaterialTheme.colorScheme.onSurface,
+    modifier: Modifier = Modifier
+) {
+    Row(
+        modifier = modifier.fillMaxWidth(),
+        horizontalArrangement = Arrangement.SpaceBetween,
+        verticalAlignment = Alignment.CenterVertically
+    ) {
+        Text(
+            text = label,
+            style = MaterialTheme.typography.bodyMedium
+        )
+
+        ColoredChip(
+            text = value,
+            color = chipColor,
+            textColor = valueColor
+        )
+    }
+}
+
 @Composable
 fun SummaryStatsRow(
     conversations: Int,
@@ -281,50 +309,30 @@ fun SummaryStatsRow(
     minutes: Int,
     modifier: Modifier = Modifier
 ) {
-    Row(
-        modifier = modifier.fillMaxWidth(),
-        horizontalArrangement = Arrangement.spacedBy(8.dp)
-    ) {
-        StatCard(
-            title = "대화 수",
-            value = conversations.toString(),
-            icon = {
-                Icon(
-                    imageVector = Icons.Default.Chat,
-                    contentDescription = null,
-                    tint = MaterialTheme.colorScheme.primary,
-                    modifier = Modifier.size(32.dp)
-                )
-            },
-            modifier = Modifier.weight(1f)
+    // Phase 12: StandardCard 사용 및 color-coded chips로 표시
+    StandardCard(modifier = modifier) {
+        Text(
+            text = "학습 통계",
+            style = MaterialTheme.typography.titleMedium,
+            fontWeight = FontWeight.Bold
         )
 
-        StatCard(
-            title = "메시지",
-            value = messages.toString(),
-            icon = {
-                Icon(
-                    imageVector = Icons.Default.Message,
-                    contentDescription = null,
-                    tint = MaterialTheme.colorScheme.secondary,
-                    modifier = Modifier.size(32.dp)
-                )
-            },
-            modifier = Modifier.weight(1f)
+        StatItemRow(
+            label = "💬 대화 수",
+            value = "${conversations}개",
+            chipColor = AppDesignSystem.Colors.primaryChip()
         )
 
-        StatCard(
-            title = "학습 시간",
+        StatItemRow(
+            label = "📨 메시지 수",
+            value = "${messages}개",
+            chipColor = AppDesignSystem.Colors.secondaryChip()
+        )
+
+        StatItemRow(
+            label = "⏱️ 학습 시간",
             value = "${minutes}분",
-            icon = {
-                Icon(
-                    imageVector = Icons.Default.Timer,
-                    contentDescription = null,
-                    tint = MaterialTheme.colorScheme.tertiary,
-                    modifier = Modifier.size(32.dp)
-                )
-            },
-            modifier = Modifier.weight(1f)
+            chipColor = AppDesignSystem.Colors.tertiaryChip()
         )
     }
 }
@@ -336,28 +344,19 @@ fun ChartCard(
     modifier: Modifier = Modifier,
     content: @Composable () -> Unit
 ) {
-    Card(
-        modifier = modifier.fillMaxWidth(),
-        elevation = CardDefaults.cardElevation(defaultElevation = 2.dp)
-    ) {
-        Column(
-            modifier = Modifier
-                .fillMaxWidth()
-                .padding(16.dp),
-            verticalArrangement = Arrangement.spacedBy(8.dp)
-        ) {
-            Text(
-                text = title,
-                style = MaterialTheme.typography.titleMedium,
-                fontWeight = FontWeight.Bold
-            )
-            Text(
-                text = subtitle,
-                style = MaterialTheme.typography.bodySmall,
-                color = MaterialTheme.colorScheme.onSurfaceVariant
-            )
-            content()
-        }
+    // Phase 12: StandardCard 사용
+    StandardCard(modifier = modifier) {
+        Text(
+            text = title,
+            style = MaterialTheme.typography.headlineSmall,  // Phase 12: titleMedium → headlineSmall
+            fontWeight = FontWeight.Bold
+        )
+        Text(
+            text = subtitle,
+            style = MaterialTheme.typography.bodySmall,
+            color = MaterialTheme.colorScheme.onSurfaceVariant
+        )
+        content()
     }
 }
 
@@ -375,41 +374,32 @@ fun ScenarioProgressCard(
         Color(0xFFFFA726) // Orange
     )
 
-    Card(
-        modifier = modifier.fillMaxWidth(),
-        elevation = CardDefaults.cardElevation(defaultElevation = 2.dp)
-    ) {
-        Column(
-            modifier = Modifier
-                .fillMaxWidth()
-                .padding(16.dp),
-            verticalArrangement = Arrangement.spacedBy(16.dp)
+    // Phase 12: StandardCard 사용
+    StandardCard(modifier = modifier) {
+        Text(
+            text = "시나리오별 진행도",
+            style = MaterialTheme.typography.headlineSmall,  // Phase 12: titleMedium → headlineSmall
+            fontWeight = FontWeight.Bold
+        )
+
+        Row(
+            modifier = Modifier.fillMaxWidth(),
+            horizontalArrangement = Arrangement.SpaceEvenly,
+            verticalAlignment = Alignment.CenterVertically
         ) {
-            Text(
-                text = "시나리오별 진행도",
-                style = MaterialTheme.typography.titleMedium,
-                fontWeight = FontWeight.Bold
+            val chartData = scenarioProgress.map { it.scenarioTitle to it.conversationsCount }
+            PieChart(
+                data = chartData,
+                colors = colors,
+                modifier = Modifier.weight(1f)
             )
 
-            Row(
-                modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.SpaceEvenly,
-                verticalAlignment = Alignment.CenterVertically
-            ) {
-                val chartData = scenarioProgress.map { it.scenarioTitle to it.conversationsCount }
-                PieChart(
-                    data = chartData,
-                    colors = colors,
-                    modifier = Modifier.weight(1f)
-                )
-
-                ChartLegend(
-                    items = scenarioProgress.mapIndexed { index, progress ->
-                        "${progress.scenarioTitle} (${progress.conversationsCount})" to colors.getOrElse(index) { colors[0] }
-                    },
-                    modifier = Modifier.weight(1f)
-                )
-            }
+            ChartLegend(
+                items = scenarioProgress.mapIndexed { index, progress ->
+                    "${progress.scenarioTitle} (${progress.conversationsCount})" to colors.getOrElse(index) { colors[0] }
+                },
+                modifier = Modifier.weight(1f)
+            )
         }
     }
 }

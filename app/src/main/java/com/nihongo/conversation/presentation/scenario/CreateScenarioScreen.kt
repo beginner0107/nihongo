@@ -198,30 +198,66 @@ fun CreateScenarioScreen(
                         style = MaterialTheme.typography.labelLarge
                     )
 
-                    Row(
+                    // Phase 5단계: 난이도 선택 (2줄로 표시)
+                    Column(
                         modifier = Modifier.fillMaxWidth(),
-                        horizontalArrangement = Arrangement.spacedBy(8.dp)
+                        verticalArrangement = Arrangement.spacedBy(8.dp)
                     ) {
-                        listOf(
-                            1 to "초급",
-                            2 to "중급",
-                            3 to "고급"
-                        ).forEach { (level, label) ->
-                            FilterChip(
-                                selected = difficulty == level,
-                                onClick = { difficulty = level },
-                                label = { Text(label) },
-                                modifier = Modifier.weight(1f),
-                                leadingIcon = if (difficulty == level) {
-                                    {
-                                        Icon(
-                                            Icons.Default.Check,
+                        // 첫 번째 줄: 입문, 초급, 중급
+                        Row(
+                            modifier = Modifier.fillMaxWidth(),
+                            horizontalArrangement = Arrangement.spacedBy(8.dp)
+                        ) {
+                            listOf(
+                                1 to "입문",
+                                2 to "초급",
+                                3 to "중급"
+                            ).forEach { (level, label) ->
+                                FilterChip(
+                                    selected = difficulty == level,
+                                    onClick = { difficulty = level },
+                                    label = { Text(label) },
+                                    modifier = Modifier.weight(1f),
+                                    leadingIcon = if (difficulty == level) {
+                                        {
+                                            Icon(
+                                                Icons.Default.Check,
                                             contentDescription = null,
                                             modifier = Modifier.size(18.dp)
                                         )
                                     }
                                 } else null
                             )
+                        }
+                    }
+
+                        // 두 번째 줄: 고급, 최상급
+                        Row(
+                            modifier = Modifier.fillMaxWidth(),
+                            horizontalArrangement = Arrangement.spacedBy(8.dp)
+                        ) {
+                            listOf(
+                                4 to "고급",
+                                5 to "최상급"
+                            ).forEach { (level, label) ->
+                                FilterChip(
+                                    selected = difficulty == level,
+                                    onClick = { difficulty = level },
+                                    label = { Text(label) },
+                                    modifier = Modifier.weight(1f),
+                                    leadingIcon = if (difficulty == level) {
+                                        {
+                                            Icon(
+                                                Icons.Default.Check,
+                                                contentDescription = null,
+                                                modifier = Modifier.size(18.dp)
+                                            )
+                                        }
+                                    } else null
+                                )
+                            }
+                            // 빈 공간 채우기 (3칸 중 2칸만 사용)
+                            Spacer(modifier = Modifier.weight(1f))
                         }
                     }
                 }
@@ -442,14 +478,16 @@ fun CreateScenarioScreen(
 }
 
 /**
- * 기본 시스템 프롬프트 생성
+ * 기본 시스템 프롬프트 생성 (Phase 5단계 지원)
  */
 private fun generateDefaultPrompt(title: String, description: String, difficulty: Int): String {
     val difficultyText = when (difficulty) {
-        1 -> "初級レベルの簡単な表現を使って"
-        2 -> "中級レベルの自然な表現を使って"
-        3 -> "上級レベルの丁寧で正確な表現を使って"
-        else -> ""
+        1 -> "入門レベル: 1-2文（合計10語以内）、超簡単な表現を使って"
+        2 -> "初級レベル: 1-2文（5-12語）、簡単な表現を使って"
+        3 -> "中級レベル: 2-3文（10-15語）、自然な表現を使って"
+        4 -> "上級レベル: 2-4文（15-20語）、丁寧で正確な表現を使って"
+        5 -> "最上級レベル: 3-5文（20-30語）、高度で専門的な表現を使って"
+        else -> "自然な表現を使って"
     }
 
     return """
@@ -459,6 +497,10 @@ private fun generateDefaultPrompt(title: String, description: String, difficulty
 
         ${difficultyText}、自然な日本語で応答してください。
 
-        【重要】マークダウン記号（**、_など）や読み仮名（例：お席（せき））を絶対に使わないでください。
+        【重要】
+        - マークダウン記号（**、_など）や読み仮名（例：お席（せき））を絶対に使わないでください
+        - 自然な会話の流れを作る（モデル提示+質問など）
+        - 1ターンにつき指定された文数と語数を守る
+        - ユーザーの返答を待つ
     """.trimIndent()
 }

@@ -17,9 +17,11 @@ import com.nihongo.conversation.core.voice.VoiceEvent
 import com.nihongo.conversation.core.voice.VoiceManager
 import com.nihongo.conversation.core.voice.VoiceState
 import com.nihongo.conversation.data.local.SettingsDataStore
+import com.nihongo.conversation.data.local.entity.QuestType
 import com.nihongo.conversation.data.repository.ConversationRepository
 import com.nihongo.conversation.data.repository.GrammarFeedbackRepository
 import com.nihongo.conversation.data.repository.ProfileRepository
+import com.nihongo.conversation.data.repository.QuestRepository
 import com.nihongo.conversation.domain.model.Conversation
 import com.nihongo.conversation.domain.model.GrammarExplanation
 import com.nihongo.conversation.domain.model.GrammarFeedback
@@ -109,7 +111,14 @@ data class ChatUiState(
     val userGrammarFeedback: ImmutableMap<Long, ImmutableList<GrammarFeedback>> = ImmutableMap.empty(), // messageId -> feedback list
     val expandedUserGrammarFeedback: ImmutableSet<Long> = ImmutableSet.empty(), // messageIds with feedback expanded
     val userGrammarAnalyzing: ImmutableSet<Long> = ImmutableSet.empty(), // messageIds being analyzed
-    val userGrammarErrors: ImmutableMap<Long, String> = ImmutableMap.empty() // messageId -> error message
+    val userGrammarErrors: ImmutableMap<Long, String> = ImmutableMap.empty(), // messageId -> error message
+
+    // Phase 5: Message bookmarking & sharing
+    val savedMessages: ImmutableSet<Long> = ImmutableSet.empty(), // messageIds that are bookmarked
+
+    // Snackbar/feedback messages
+    val snackbarMessage: String? = null,
+    val errorMessage: String? = null
 ) {
     /**
      * Computed property using derivedStateOf pattern
@@ -140,7 +149,9 @@ class ChatViewModel @Inject constructor(
     private val grammarFeedbackRepository: GrammarFeedbackRepository,
     private val mlKitTranslator: com.nihongo.conversation.core.translation.MLKitTranslator,
     private val translationRepository: com.nihongo.conversation.data.repository.TranslationRepository,
-    private val vocabularyRepository: com.nihongo.conversation.data.repository.VocabularyRepository
+    private val vocabularyRepository: com.nihongo.conversation.data.repository.VocabularyRepository,
+    private val questRepository: QuestRepository,
+    private val savedMessageRepository: com.nihongo.conversation.data.repository.SavedMessageRepository  // Phase 5
 ) : ViewModel() {
 
     private val _uiState = MutableStateFlow(ChatUiState())
@@ -168,6 +179,7 @@ class ChatViewModel @Inject constructor(
         observeVoiceEvents()
         observeSettings()
         observeUserProfile()
+        observeSavedMessages()  // Phase 5
         observeMemoryPressure()  // Phase 6A
     }
 
@@ -192,6 +204,20 @@ class ChatViewModel @Inject constructor(
             profileRepository.getCurrentUser().collect { user ->
                 _uiState.update { it.copy(user = user) }
             }
+        }
+    }
+
+    // Phase 5: Observe saved messages for current conversation
+    private fun observeSavedMessages() {
+        viewModelScope.launch {
+            // Collect saved messages and update UI state
+            savedMessageRepository.getSavedMessages(currentUserId)
+                .collect { savedMessagesList ->
+                    val savedMessageIds = savedMessagesList.map { it.messageId }.toSet()
+                    _uiState.update {
+                        it.copy(savedMessages = savedMessageIds.toImmutableSet())
+                    }
+                }
         }
     }
 
@@ -432,6 +458,15 @@ class ChatViewModel @Inject constructor(
             // After streaming is complete, analyze the user message for feedback
             userMessageId?.let { messageId ->
                 analyzeMessageForFeedback(messageId, message)
+            }
+
+            // Update quest progress: MESSAGE_COUNT (increment by 1)
+            viewModelScope.launch {
+                questRepository.incrementQuestProgressByType(
+                    userId = currentUserId,
+                    questType = QuestType.MESSAGE_COUNT,
+                    amount = 1
+                )
             }
         }
     }
@@ -1266,6 +1301,15 @@ class ChatViewModel @Inject constructor(
 
         // Stop any ongoing voice activity
         voiceManager.stopListening()
+
+        // Update quest progress: VOICE_ONLY_SESSION (completed 1 session)
+        viewModelScope.launch {
+            questRepository.incrementQuestProgressByType(
+                userId = currentUserId,
+                questType = QuestType.VOICE_ONLY_SESSION,
+                amount = 1
+            )
+        }
     }
 
 
@@ -1753,5 +1797,97 @@ class ChatViewModel @Inject constructor(
             )
         }
         requestUserGrammarFeedback(messageId, userText)
+    }
+
+    // ========== Phase 5: Message Bookmarking & Sharing ==========
+
+    /**
+     * Check if a message is bookmarked
+     */
+    fun isMessageSaved(messageId: Long): Flow<Boolean> {
+        return savedMessageRepository.isMessageSaved(currentUserId, messageId)
+    }
+
+    /**
+     * Bookmark a message for later review
+     */
+    fun saveMessage(messageId: Long, userNote: String? = null) {
+        viewModelScope.launch {
+            // Find the message in current conversation
+            val message = _uiState.value.messages.firstOrNull { it.id == messageId }
+            if (message == null) {
+                _uiState.update {
+                    it.copy(errorMessage = "メッセージが見つかりません")
+                }
+                return@launch
+            }
+
+            val scenarioTitle = _uiState.value.scenario?.title ?: "不明なシナリオ"
+
+            val result = savedMessageRepository.saveMessage(
+                userId = currentUserId,
+                message = message,
+                scenarioTitle = scenarioTitle,
+                userNote = userNote
+            )
+
+            result.onSuccess {
+                _uiState.update {
+                    it.copy(
+                        errorMessage = null,
+                        snackbarMessage = "メッセージを保存しました"  // "Message saved"
+                    )
+                }
+            }.onFailure { error ->
+                _uiState.update {
+                    it.copy(
+                        errorMessage = "保存に失敗しました: ${error.message}",
+                        snackbarMessage = null
+                    )
+                }
+            }
+        }
+    }
+
+    /**
+     * Remove bookmark from a message
+     */
+    fun unsaveMessage(messageId: Long) {
+        viewModelScope.launch {
+            val result = savedMessageRepository.unsaveMessage(currentUserId, messageId)
+
+            result.onSuccess {
+                _uiState.update {
+                    it.copy(
+                        errorMessage = null,
+                        snackbarMessage = "保存を解除しました"  // "Bookmark removed"
+                    )
+                }
+            }.onFailure { error ->
+                _uiState.update {
+                    it.copy(
+                        errorMessage = "解除に失敗しました: ${error.message}",
+                        snackbarMessage = null
+                    )
+                }
+            }
+        }
+    }
+
+    /**
+     * Share message text via Android Share API
+     * Returns the text to be shared
+     */
+    fun getShareText(message: Message): String {
+        val scenario = _uiState.value.scenario
+        val prefix = if (message.isUser) "🗣️ 私: " else "🤖 AI: "
+        val scenarioInfo = scenario?.let { "\n\n📚 シナリオ: ${it.title}" } ?: ""
+
+        return """
+            $prefix${message.content}
+            $scenarioInfo
+
+            📱 日本語会話アプリで学習中
+        """.trimIndent()
     }
 }
