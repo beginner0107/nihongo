@@ -14,6 +14,7 @@ import com.nihongo.conversation.core.util.toImmutableList
 import com.nihongo.conversation.core.util.toImmutableMap
 import com.nihongo.conversation.core.util.toImmutableSet
 import com.nihongo.conversation.core.voice.VoiceEvent
+import com.nihongo.conversation.core.voice.VoiceLanguage
 import com.nihongo.conversation.core.voice.VoiceManager
 import com.nihongo.conversation.core.voice.VoiceState
 import com.nihongo.conversation.data.local.SettingsDataStore
@@ -98,6 +99,7 @@ data class ChatUiState(
     val isTranslatingKorToJpn: Boolean = false, // Loading state for conversion
     val showFurigana: Boolean = false, // Show furigana on AI messages
     val furiganaType: com.nihongo.conversation.domain.model.FuriganaType = com.nihongo.conversation.domain.model.FuriganaType.HIRAGANA, // Furigana display type
+    val selectedVoiceLanguage: VoiceLanguage = VoiceLanguage.JAPANESE, // Selected voice input language
 
     // User message translation (Japanese → Korean)
     val userTranslations: ImmutableMap<Long, String> = ImmutableMap.empty(), // messageId -> Korean translation
@@ -553,7 +555,17 @@ class ChatViewModel @Inject constructor(
                         if (_uiState.value.isPronunciationRecording) {
                             checkPronunciation(event.text)
                         } else {
-                            _uiState.update { it.copy(inputText = event.text) }
+                            // Handle based on selected language
+                            when (_uiState.value.selectedVoiceLanguage) {
+                                VoiceLanguage.JAPANESE -> {
+                                    // Japanese: set input text directly
+                                    _uiState.update { it.copy(inputText = event.text) }
+                                }
+                                VoiceLanguage.KOREAN -> {
+                                    // Korean: auto-translate to Japanese
+                                    translateKoreanToJapanese(event.text)
+                                }
+                            }
                         }
                     }
                     is VoiceEvent.Error -> {
@@ -568,7 +580,18 @@ class ChatViewModel @Inject constructor(
     }
 
     fun startVoiceRecording() {
-        voiceManager.startListening()
+        voiceManager.startListening(_uiState.value.selectedVoiceLanguage)
+    }
+
+    fun toggleVoiceLanguage() {
+        _uiState.update {
+            it.copy(
+                selectedVoiceLanguage = when (it.selectedVoiceLanguage) {
+                    VoiceLanguage.JAPANESE -> VoiceLanguage.KOREAN
+                    VoiceLanguage.KOREAN -> VoiceLanguage.JAPANESE
+                }
+            )
+        }
     }
 
     fun stopVoiceRecording() {
