@@ -45,6 +45,7 @@ import androidx.compose.ui.unit.sp
 import androidx.hilt.navigation.compose.hiltViewModel
 import com.nihongo.conversation.domain.model.Message
 import com.nihongo.conversation.R
+import com.nihongo.conversation.presentation.components.DifficultyBadge
 
 @OptIn(ExperimentalMaterial3Api::class, ExperimentalFoundationApi::class)
 @Composable
@@ -52,7 +53,7 @@ fun ChatScreen(
     userId: Long,
     scenarioId: Long,
     onBackClick: () -> Unit = {},
-    onReviewClick: () -> Unit = {},
+    onReviewClick: (conversationId: Long) -> Unit = {},
     viewModel: ChatViewModel = hiltViewModel()
 ) {
     val uiState by viewModel.uiState.collectAsState()
@@ -169,7 +170,7 @@ fun ChatScreen(
                                 )
                             }
 
-                            if (uiState.scenarioCategory != null && uiState.scenarioDifficulty != null) {
+                            if (uiState.scenarioCategory != null && uiState.scenarioDifficultyLevel != null) {
                                 Text(
                                     text = "·",
                                     style = MaterialTheme.typography.labelSmall,
@@ -177,28 +178,8 @@ fun ChatScreen(
                                 )
                             }
 
-                            uiState.scenarioDifficulty?.let { difficulty ->
-                                Surface(
-                                    color = when (difficulty) {
-                                        "초급" -> MaterialTheme.colorScheme.primaryContainer
-                                        "중급" -> MaterialTheme.colorScheme.tertiaryContainer
-                                        "고급" -> MaterialTheme.colorScheme.errorContainer
-                                        else -> MaterialTheme.colorScheme.surfaceVariant
-                                    },
-                                    shape = RoundedCornerShape(4.dp)
-                                ) {
-                                    Text(
-                                        text = difficulty,
-                                        style = MaterialTheme.typography.labelSmall,
-                                        modifier = Modifier.padding(horizontal = 6.dp, vertical = 2.dp),
-                                        color = when (difficulty) {
-                                            "초급" -> MaterialTheme.colorScheme.onPrimaryContainer
-                                            "중급" -> MaterialTheme.colorScheme.onTertiaryContainer
-                                            "고급" -> MaterialTheme.colorScheme.onErrorContainer
-                                            else -> MaterialTheme.colorScheme.onSurfaceVariant
-                                        }
-                                    )
-                                }
+                            uiState.scenarioDifficultyLevel?.let { difficultyLevel ->
+                                DifficultyBadge(difficulty = difficultyLevel)
                             }
                         }
                     }
@@ -230,7 +211,12 @@ fun ChatScreen(
                             )
                         }
                     }
-                    IconButton(onClick = onReviewClick) {
+                    IconButton(
+                        onClick = {
+                            uiState.conversationId?.let { onReviewClick(it) }
+                        },
+                        enabled = uiState.conversationId != null
+                    ) {
                         Icon(
                             imageVector = Icons.Default.HistoryEdu,
                             contentDescription = stringResource(R.string.review)
@@ -392,7 +378,10 @@ fun ChatScreen(
                         } else null,
                         onRetryUserGrammarFeedback = if (message.isUser) {
                             { viewModel.retryUserGrammarAnalysis(message.id, message.content) }
-                        } else null
+                        } else null,
+                        onPlayVoice = message.voiceRecordingId?.let { recId ->
+                            { viewModel.playVoice(recId) }
+                        }
                     )
                 }
 
@@ -744,7 +733,8 @@ fun MessageBubble(
     userGrammarError: String? = null,
     onToggleUserGrammarFeedback: (() -> Unit)? = null,
     onRequestUserGrammarFeedback: (() -> Unit)? = null,
-    onRetryUserGrammarFeedback: (() -> Unit)? = null
+    onRetryUserGrammarFeedback: (() -> Unit)? = null,
+    onPlayVoice: ((Long) -> Unit)? = null
 ) {
     val timeFormatter = remember {
         java.text.SimpleDateFormat("HH:mm", java.util.Locale.getDefault())
@@ -817,6 +807,37 @@ fun MessageBubble(
                         MaterialTheme.colorScheme.onSecondaryContainer
                     }
                 )
+
+                // Mini voice player for recorded user messages
+                val recordingId = message.voiceRecordingId
+                if (recordingId != null && onPlayVoice != null) {
+                    Spacer(modifier = Modifier.height(6.dp))
+                    Row(
+                        verticalAlignment = Alignment.CenterVertically,
+                        horizontalArrangement = Arrangement.spacedBy(8.dp)
+                    ) {
+                        FilledIconButton(
+                            onClick = { onPlayVoice(recordingId) },
+                            modifier = Modifier.size(36.dp),
+                            colors = IconButtonDefaults.filledIconButtonColors(
+                                containerColor = if (message.isUser) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.secondary
+                            )
+                        ) {
+                            Icon(
+                                imageVector = Icons.Default.PlayArrow,
+                                contentDescription = "재생",
+                                modifier = Modifier.size(20.dp)
+                            )
+                        }
+                        Text(
+                            text = "🎤",
+                            style = MaterialTheme.typography.labelMedium
+                        )
+                        
+                        // Phase 3: Bookmark button (will be implemented in full version)
+                        // Placeholder for now - actual implementation requires state management
+                    }
+                }
 
                 // Show translation button and translation for AI messages
                 if (!message.isUser && onToggleTranslation != null && onRequestTranslation != null) {

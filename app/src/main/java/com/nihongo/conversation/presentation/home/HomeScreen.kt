@@ -30,6 +30,7 @@ import com.nihongo.conversation.presentation.quest.QuestViewModel
 fun HomeScreen(
     onScenarioSelected: (Long) -> Unit,
     onSettingsClick: () -> Unit = {},  // Phase 12: 설정 버튼 추가
+    onReviewClick: () -> Unit = {},
     viewModel: HomeViewModel = hiltViewModel(),
     questViewModel: QuestViewModel = hiltViewModel()
 ) {
@@ -64,17 +65,56 @@ fun HomeScreen(
             )
         }
     ) { padding ->
-        if (uiState.isLoading) {
-            Box(
-                modifier = Modifier
-                    .fillMaxSize()
-                    .padding(padding),
-                contentAlignment = Alignment.Center
-            ) {
-                CircularProgressIndicator()
+        when {
+            uiState.isLoading -> {
+                Box(
+                    modifier = Modifier
+                        .fillMaxSize()
+                        .padding(padding),
+                    contentAlignment = Alignment.Center
+                ) {
+                    CircularProgressIndicator()
+                }
             }
-        } else {
-            LazyColumn(
+            uiState.error != null -> {
+                // Error UI
+                val errorMessage = uiState.error
+                Box(
+                    modifier = Modifier
+                        .fillMaxSize()
+                        .padding(padding),
+                    contentAlignment = Alignment.Center
+                ) {
+                    Column(
+                        horizontalAlignment = Alignment.CenterHorizontally,
+                        verticalArrangement = Arrangement.spacedBy(16.dp),
+                        modifier = Modifier.padding(16.dp)
+                    ) {
+                        Icon(
+                            imageVector = Icons.Default.Error,
+                            contentDescription = null,
+                            modifier = Modifier.size(64.dp),
+                            tint = MaterialTheme.colorScheme.error
+                        )
+                        Text(
+                            text = errorMessage ?: "알 수 없는 오류",
+                            style = MaterialTheme.typography.bodyLarge,
+                            color = MaterialTheme.colorScheme.error
+                        )
+                        Button(onClick = { viewModel.retry() }) {
+                            Icon(
+                                imageVector = Icons.Default.Refresh,
+                                contentDescription = null,
+                                modifier = Modifier.size(20.dp)
+                            )
+                            Spacer(modifier = Modifier.width(8.dp))
+                            Text("다시 시도")
+                        }
+                    }
+                }
+            }
+            else -> {
+                LazyColumn(
                 modifier = Modifier
                     .fillMaxSize()
                     .padding(padding),
@@ -121,6 +161,14 @@ fun HomeScreen(
                         onViewAll = { /* TODO: Navigate to ScenarioListScreen */ }
                     )
                 }
+
+                // 5. Conversation History Card
+                item {
+                    ConversationHistoryCard(
+                        onViewHistory = onReviewClick
+                    )
+                }
+            }
             }
         }
     }
@@ -131,5 +179,66 @@ fun HomeScreen(
             rewardPoints = questUiState.lastCompletedQuestReward,
             onDismiss = { questViewModel.dismissQuestCompletedDialog() }
         )
+    }
+}
+
+/**
+ * Conversation History Card - Navigate to past conversations
+ */
+@Composable
+fun ConversationHistoryCard(
+    onViewHistory: () -> Unit
+) {
+    Card(
+        modifier = Modifier
+            .fillMaxWidth()
+            .padding(horizontal = 16.dp),
+        elevation = CardDefaults.cardElevation(defaultElevation = 2.dp)
+    ) {
+        Column(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(16.dp),
+            verticalArrangement = Arrangement.spacedBy(12.dp)
+        ) {
+            Row(
+                verticalAlignment = Alignment.CenterVertically,
+                horizontalArrangement = Arrangement.spacedBy(8.dp)
+            ) {
+                Icon(
+                    imageVector = Icons.Default.History,
+                    contentDescription = null,
+                    tint = MaterialTheme.colorScheme.primary,
+                    modifier = Modifier.size(24.dp)
+                )
+                Text(
+                    text = "대화 히스토리",
+                    style = MaterialTheme.typography.titleMedium,
+                    fontWeight = androidx.compose.ui.text.font.FontWeight.Bold
+                )
+            }
+
+            Text(
+                text = "과거 대화를 복습하고 음성 녹음을 다시 들어보세요",
+                style = MaterialTheme.typography.bodyMedium,
+                color = MaterialTheme.colorScheme.onSurfaceVariant
+            )
+
+            Button(
+                onClick = onViewHistory,
+                modifier = Modifier.fillMaxWidth(),
+                colors = ButtonDefaults.buttonColors(
+                    containerColor = MaterialTheme.colorScheme.primary
+                )
+            ) {
+                Icon(
+                    imageVector = Icons.Default.HistoryEdu,
+                    contentDescription = null,
+                    modifier = Modifier.size(20.dp)
+                )
+                Spacer(Modifier.width(8.dp))
+                Text("히스토리 보기")
+            }
+        }
     }
 }

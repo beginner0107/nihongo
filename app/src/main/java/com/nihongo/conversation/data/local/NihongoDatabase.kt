@@ -47,12 +47,13 @@ import com.nihongo.conversation.data.local.SavedMessageDao
         GrammarFeedbackCacheEntity::class,
         DailyQuestEntity::class,
         UserPointsEntity::class,
-        SavedMessageEntity::class  // Phase 5: Message bookmarking
+        SavedMessageEntity::class,  // Phase 5: Message bookmarking
+        com.nihongo.conversation.domain.model.VoiceRecording::class
     ],
     views = [
         ConversationStats::class
     ],
-    version = 20,  // 시나리오별 성격 유연성 추가
+    version = 21,  // 음성 녹음/재생 스키마 추가
     exportSchema = false
 )
 abstract class NihongoDatabase : RoomDatabase() {
@@ -75,6 +76,7 @@ abstract class NihongoDatabase : RoomDatabase() {
     abstract fun dailyQuestDao(): DailyQuestDao
     abstract fun userPointsDao(): UserPointsDao
     abstract fun savedMessageDao(): SavedMessageDao  // Phase 5: Message bookmarking
+    abstract fun voiceRecordingDao(): VoiceRecordingDao
 
     companion object {
         val MIGRATION_1_2 = object : Migration(1, 2) {
@@ -664,6 +666,40 @@ abstract class NihongoDatabase : RoomDatabase() {
                 database.execSQL(
                     "ALTER TABLE scenarios ADD COLUMN defaultPersonality TEXT NOT NULL DEFAULT 'FRIENDLY'"
                 )
+            }
+        }
+
+        val MIGRATION_20_21 = object : Migration(20, 21) {
+            override fun migrate(database: SupportSQLiteDatabase) {
+                // Create voice_recordings table
+                database.execSQL(
+                    """
+                    CREATE TABLE IF NOT EXISTS voice_recordings (
+                        id INTEGER PRIMARY KEY AUTOINCREMENT NOT NULL,
+                        messageId INTEGER,
+                        conversationId INTEGER NOT NULL,
+                        filePath TEXT NOT NULL,
+                        fileName TEXT NOT NULL,
+                        durationMs INTEGER NOT NULL,
+                        fileSizeBytes INTEGER NOT NULL,
+                        recordedAt INTEGER NOT NULL,
+                        language TEXT NOT NULL,
+                        isBookmarked INTEGER NOT NULL,
+                        createdAt INTEGER NOT NULL,
+                        FOREIGN KEY (messageId) REFERENCES messages(id) ON DELETE CASCADE,
+                        FOREIGN KEY (conversationId) REFERENCES conversations(id) ON DELETE CASCADE
+                    )
+                    """.trimIndent()
+                )
+
+                // Indices - must match Entity definition exactly
+                database.execSQL("CREATE INDEX IF NOT EXISTS idx_voice_recordings_message ON voice_recordings(messageId)")
+                database.execSQL("CREATE INDEX IF NOT EXISTS idx_voice_recordings_conversation ON voice_recordings(conversationId)")
+                database.execSQL("CREATE INDEX IF NOT EXISTS idx_voice_recordings_created_at ON voice_recordings(createdAt)")
+
+                // Add columns to messages
+                database.execSQL("ALTER TABLE messages ADD COLUMN voiceRecordingId INTEGER")
+                database.execSQL("ALTER TABLE messages ADD COLUMN inputType TEXT NOT NULL DEFAULT 'text'")
             }
         }
     }

@@ -32,6 +32,7 @@ import java.util.*
 @Composable
 fun ReviewScreen(
     onBackClick: () -> Unit = {},
+    onConversationClick: (Long) -> Unit = {},
     viewModel: ReviewViewModel = hiltViewModel()
 ) {
     val uiState by viewModel.uiState.collectAsState()
@@ -149,6 +150,7 @@ fun ReviewScreen(
                         ConversationCard(
                             conversationDetails = conversationDetails,
                             onExpandToggle = { viewModel.toggleConversationExpanded(conversationDetails.conversation.id) },
+                            onConversationClick = { onConversationClick(conversationDetails.conversation.id) },
                             onPlayMessage = viewModel::playMessage,
                             onDelete = { viewModel.showDeleteConfirmation(conversationDetails) },
                             importantPhrases = viewModel.extractImportantPhrases(conversationDetails.messages)
@@ -248,6 +250,7 @@ fun DateHeader(dateText: String) {
 fun ConversationCard(
     conversationDetails: ConversationWithDetails,
     onExpandToggle: () -> Unit,
+    onConversationClick: () -> Unit = {},
     onPlayMessage: (String) -> Unit,
     onDelete: () -> Unit,
     importantPhrases: List<String>
@@ -326,13 +329,16 @@ fun ConversationCard(
                 )
             }
 
-            // Summary Stats
+            // Summary Stats + Voice Review Button
             if (!conversationDetails.isExpanded) {
-                Row(
-                    modifier = Modifier.fillMaxWidth(),
-                    horizontalArrangement = Arrangement.spacedBy(16.dp),
-                    verticalAlignment = Alignment.CenterVertically
+                Column(
+                    verticalArrangement = Arrangement.spacedBy(8.dp)
                 ) {
+                    Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        horizontalArrangement = Arrangement.spacedBy(16.dp),
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
                     // Messages count
                     Row(
                         horizontalArrangement = Arrangement.spacedBy(4.dp),
@@ -390,6 +396,24 @@ fun ConversationCard(
                         )
                     }
                 }
+
+                // Voice Review Button
+                Button(
+                    onClick = onConversationClick,
+                    modifier = Modifier.fillMaxWidth(),
+                    colors = ButtonDefaults.buttonColors(
+                        containerColor = MaterialTheme.colorScheme.primaryContainer
+                    )
+                ) {
+                    Icon(
+                        imageVector = Icons.Default.Headphones,
+                        contentDescription = null,
+                        modifier = Modifier.size(20.dp)
+                    )
+                    Spacer(Modifier.width(8.dp))
+                    Text("음성 복습하기")
+                }
+            }
             }
 
             // Expanded content

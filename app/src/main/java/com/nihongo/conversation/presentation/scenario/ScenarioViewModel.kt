@@ -25,6 +25,7 @@ data class ScenarioUiState(
     val selectedDifficulties: Set<Int> = emptySet(),  // Selected difficulty filters (1, 2, 3)
     val isLoading: Boolean = true,
     val favoriteScenarioIds: List<Long> = emptyList(), // Track favorite scenario IDs
+    val error: String? = null,  // Error message
 
     // Dashboard data
     val completedCount: Int = 0,
@@ -60,21 +61,46 @@ class ScenarioViewModel @Inject constructor(
 
     private fun loadScenarios() {
         viewModelScope.launch {
-            repository.getAllScenarios().collect { scenarios ->
+            try {
+                repository.getAllScenarios().collect { scenarios ->
+                    _uiState.value = _uiState.value.copy(
+                        allScenarios = scenarios,
+                        isLoading = false,
+                        error = null
+                    )
+                    applyFilters()  // Apply filters after scenarios are loaded
+                }
+            } catch (e: Exception) {
                 _uiState.value = _uiState.value.copy(
-                    allScenarios = scenarios,
-                    isLoading = false
+                    isLoading = false,
+                    error = "시나리오 로딩 실패: ${e.message}"
                 )
-                applyFilters()  // Apply filters after scenarios are loaded
             }
         }
     }
 
     private fun loadFavorites() {
         viewModelScope.launch {
-            val favoriteIds = profileRepository.getFavoriteScenarioIds()
-            _uiState.value = _uiState.value.copy(favoriteScenarioIds = favoriteIds)
+            try {
+                val favoriteIds = profileRepository.getFavoriteScenarioIds()
+                _uiState.value = _uiState.value.copy(favoriteScenarioIds = favoriteIds)
+            } catch (e: Exception) {
+                // Non-critical error, just log it
+                _uiState.value = _uiState.value.copy(favoriteScenarioIds = emptyList())
+            }
         }
+    }
+
+    fun clearError() {
+        _uiState.value = _uiState.value.copy(error = null)
+    }
+
+    fun retry() {
+        _uiState.value = _uiState.value.copy(isLoading = true, error = null)
+        loadScenarios()
+        loadFavorites()
+        loadRecommendations()
+        loadDashboardData()
     }
 
     /**

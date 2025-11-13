@@ -15,6 +15,7 @@ import com.nihongo.conversation.presentation.flashcard.FlashcardStatsScreen
 import com.nihongo.conversation.presentation.profile.ProfileScreen
 import com.nihongo.conversation.presentation.pronunciation.PronunciationHistoryScreen
 import com.nihongo.conversation.presentation.review.ReviewScreen
+import com.nihongo.conversation.presentation.review.ConversationReviewScreen
 import com.nihongo.conversation.presentation.scenario.ScenarioListScreen
 import com.nihongo.conversation.presentation.settings.SettingsScreen
 import com.nihongo.conversation.presentation.stats.StatsScreen
@@ -40,6 +41,10 @@ sealed class Screen(val route: String) {
 
     data object Chat : Screen("chat/{userId}/{scenarioId}") {
         fun createRoute(userId: Long, scenarioId: Long) = "chat/$userId/$scenarioId"
+    }
+
+    data object ConversationReview : Screen("conversation_review/{conversationId}") {
+        fun createRoute(conversationId: Long) = "conversation_review/$conversationId"
     }
 }
 
@@ -92,6 +97,9 @@ fun NihongoNavHost(
                 },
                 onCreateScenarioClick = {
                     navController.navigate(Screen.CreateScenario.route)
+                },
+                onReviewClick = {
+                    navController.navigate(Screen.Review.route)
                 }
             )
         }
@@ -156,7 +164,10 @@ fun NihongoNavHost(
 
         composable(route = Screen.Review.route) {
             ReviewScreen(
-                onBackClick = { navController.popBackStack() }
+                onBackClick = { navController.popBackStack() },
+                onConversationClick = { conversationId ->
+                    navController.navigate(Screen.ConversationReview.createRoute(conversationId))
+                }
             )
         }
 
@@ -193,7 +204,22 @@ fun NihongoNavHost(
                 userId = userId,
                 scenarioId = scenarioId,
                 onBackClick = { navController.popBackStack() },
-                onReviewClick = { navController.navigate(Screen.Review.route) }
+                onReviewClick = { conversationId ->
+                    navController.navigate(Screen.ConversationReview.createRoute(conversationId))
+                }
+            )
+        }
+
+        composable(
+            route = Screen.ConversationReview.route,
+            arguments = listOf(
+                navArgument("conversationId") { type = NavType.LongType }
+            )
+        ) { backStackEntry ->
+            val conversationId = backStackEntry.arguments?.getLong("conversationId") ?: 0L
+            ConversationReviewScreen(
+                conversationId = conversationId,
+                onNavigateBack = { navController.popBackStack() }
             )
         }
     }
