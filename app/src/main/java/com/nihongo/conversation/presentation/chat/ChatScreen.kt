@@ -21,6 +21,7 @@ import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.lazy.rememberLazyListState
+import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.KeyboardActions
 import androidx.compose.foundation.text.KeyboardOptions
@@ -1758,6 +1759,7 @@ fun GrammarFeedbackCard(feedback: com.nihongo.conversation.domain.model.GrammarF
  * Voice Input Button with Language Badge
  * Supports click for recording and long-press for language selection
  */
+@OptIn(ExperimentalFoundationApi::class)
 @Composable
 fun VoiceInputButton(
     selectedLanguage: com.nihongo.conversation.core.voice.VoiceLanguage,
@@ -1767,49 +1769,55 @@ fun VoiceInputButton(
     voiceState: com.nihongo.conversation.core.voice.VoiceState
 ) {
     Box(
-        modifier = Modifier.size(48.dp),
+        modifier = Modifier.size(56.dp),
         contentAlignment = Alignment.Center
     ) {
-        IconButton(
-            onClick = {
-                when (voiceState) {
-                    is com.nihongo.conversation.core.voice.VoiceState.Listening -> onStopRecording()
-                    else -> onStartRecording()
-                }
-            },
+        // Main button with combinedClickable for both click and long-press
+        Surface(
             modifier = Modifier
-                .size(48.dp)
-                .pointerInput(Unit) {
-                    detectTapGestures(
-                        onLongPress = { onLongPress() }
-                    )
-                }
+                .size(56.dp)
+                .combinedClickable(
+                    onClick = {
+                        when (voiceState) {
+                            is com.nihongo.conversation.core.voice.VoiceState.Listening -> onStopRecording()
+                            else -> onStartRecording()
+                        }
+                    },
+                    onLongClick = { onLongPress() }
+                ),
+            shape = CircleShape,
+            color = when (voiceState) {
+                is com.nihongo.conversation.core.voice.VoiceState.Listening -> MaterialTheme.colorScheme.error
+                else -> MaterialTheme.colorScheme.primary
+            }
         ) {
-            Icon(
-                imageVector = when (voiceState) {
-                    is com.nihongo.conversation.core.voice.VoiceState.Idle -> Icons.Default.Mic
-                    is com.nihongo.conversation.core.voice.VoiceState.Listening -> Icons.Default.MicOff
-                    is com.nihongo.conversation.core.voice.VoiceState.Processing -> Icons.Default.Sync
-                    else -> Icons.Default.Mic
-                },
-                contentDescription = "音声入力",
-                tint = when (voiceState) {
-                    is com.nihongo.conversation.core.voice.VoiceState.Listening -> MaterialTheme.colorScheme.error
-                    else -> MaterialTheme.colorScheme.primary
-                },
-                modifier = when (voiceState) {
-                    is com.nihongo.conversation.core.voice.VoiceState.Processing ->
-                        Modifier.size(24.dp).rotate(infiniteAnimation())
-                    else -> Modifier.size(24.dp)
-                }
-            )
+            Box(
+                contentAlignment = Alignment.Center,
+                modifier = Modifier.fillMaxSize()
+            ) {
+                Icon(
+                    imageVector = when (voiceState) {
+                        is com.nihongo.conversation.core.voice.VoiceState.Idle -> Icons.Default.Mic
+                        is com.nihongo.conversation.core.voice.VoiceState.Listening -> Icons.Default.MicOff
+                        is com.nihongo.conversation.core.voice.VoiceState.Processing -> Icons.Default.Sync
+                        else -> Icons.Default.Mic
+                    },
+                    contentDescription = "音声入力",
+                    tint = Color.White,
+                    modifier = when (voiceState) {
+                        is com.nihongo.conversation.core.voice.VoiceState.Processing ->
+                            Modifier.size(28.dp).rotate(infiniteAnimation())
+                        else -> Modifier.size(28.dp)
+                    }
+                )
+            }
         }
 
         // Language badge (bottom-right corner)
         Badge(
             modifier = Modifier
                 .align(Alignment.BottomEnd)
-                .offset(x = (-2).dp, y = (-2).dp),
+                .offset(x = 2.dp, y = 2.dp),
             containerColor = MaterialTheme.colorScheme.primaryContainer,
             contentColor = MaterialTheme.colorScheme.onPrimaryContainer
         ) {
@@ -1818,7 +1826,8 @@ fun VoiceInputButton(
                     com.nihongo.conversation.core.voice.VoiceLanguage.JAPANESE -> "🇯🇵"
                     com.nihongo.conversation.core.voice.VoiceLanguage.KOREAN -> "🇰🇷"
                 },
-                fontSize = 10.sp
+                fontSize = 12.sp,
+                modifier = Modifier.padding(2.dp)
             )
         }
     }
