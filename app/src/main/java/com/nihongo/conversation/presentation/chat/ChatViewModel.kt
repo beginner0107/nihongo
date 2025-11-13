@@ -653,16 +653,22 @@ class ChatViewModel @Inject constructor(
     }
 
     fun startVoiceRecording() {
-        // Ensure we have a conversation to associate recording
+        // IMPORTANT: VoiceRecordingManager and SpeechRecognizer CANNOT use microphone simultaneously
+        // Android allows only ONE AudioSource to access microphone at a time
+        // Priority: STT (Speech-to-Text) is more critical than audio recording
+
+        // Ensure we have a conversation to associate recording (for future use)
         viewModelScope.launch {
             if (currentConversationId == null) {
                 currentConversationId = repository.getOrCreateConversation(currentUserId, currentScenarioId)
             }
-            val convId = currentConversationId ?: return@launch
-            // Start background audio recording (parallel to STT)
-            val lang = _uiState.value.selectedVoiceLanguage.locale
-            voiceRecordingManager.startRecording(convId, lang)
-            // Start STT listening
+            // val convId = currentConversationId ?: return@launch
+            // val lang = _uiState.value.selectedVoiceLanguage.locale
+
+            // DISABLED: Audio recording conflicts with STT - causes STT to fail completely
+            // voiceRecordingManager.startRecording(convId, lang)
+
+            // Start STT listening (prioritize speech recognition over recording)
             voiceManager.startListening(_uiState.value.selectedVoiceLanguage)
         }
     }
@@ -680,7 +686,11 @@ class ChatViewModel @Inject constructor(
 
     fun stopVoiceRecording() {
         voiceManager.stopListening()
-        // Finalize recording and persist metadata
+
+        // DISABLED: Audio recording is disabled to prioritize STT
+        // voiceRecordingManager.stopRecording() would conflict with SpeechRecognizer
+
+        /* // Finalize recording and persist metadata
         val result = voiceRecordingManager.stopRecording()
         val convId = currentConversationId
         if (convId != null && result.file.exists()) {
@@ -704,6 +714,7 @@ class ChatViewModel @Inject constructor(
                 }
             }
         }
+        */
     }
 
     fun speakMessage(text: String) {
