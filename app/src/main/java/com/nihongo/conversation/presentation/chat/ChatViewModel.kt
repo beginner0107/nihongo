@@ -455,32 +455,9 @@ class ChatViewModel @Inject constructor(
             var userMessageId: Long? = null
             var finalAiMessage: String? = null
 
-            // Pre-insert user message if there's a pending voice recording
-            val pendingId = pendingVoiceRecordingId
-            val conversationHistory = if (pendingId != null) {
-                val newMsgId = repository.insertUserMessage(
-                    conversationId = conversationId,
-                    content = message,
-                    inputType = "voice",
-                    voiceRecordingId = pendingId
-                )
-                userMessageId = newMsgId
-                // Link file to message (rename temp -> final)
-                voiceRecordingRepository.linkToMessage(pendingId, newMsgId)
-                // Clear pending
-                pendingVoiceRecordingId = null
-                // Append to existing history for API
-                _uiState.value.messages.items + com.nihongo.conversation.domain.model.Message(
-                    id = newMsgId,
-                    conversationId = conversationId,
-                    content = message,
-                    isUser = true,
-                    inputType = "voice",
-                    voiceRecordingId = pendingId
-                )
-            } else {
-                _uiState.value.messages.items
-            }
+            // FIX: Removed voice recording logic (MediaRecorder conflict with STT)
+            // Use existing conversation history for API
+            val conversationHistory = _uiState.value.messages.items
 
             // Set voice state to Thinking when starting AI generation
             voiceManager.setThinking()
@@ -490,8 +467,8 @@ class ChatViewModel @Inject constructor(
                 userMessage = message,
                 conversationHistory = conversationHistory,
                 systemPrompt = enhancedPrompt,
-                inputType = if (pendingId != null) "voice" else "text",
-                voiceRecordingId = pendingId,
+                inputType = "text",  // FIX: Always text (no voice recording)
+                voiceRecordingId = null,  // FIX: No voice recording
                 preInsertedUserMessageId = userMessageId
             ).collect { result ->
                 when (result) {
@@ -653,18 +630,10 @@ class ChatViewModel @Inject constructor(
     }
 
     fun startVoiceRecording() {
-        // Ensure we have a conversation to associate recording
-        viewModelScope.launch {
-            if (currentConversationId == null) {
-                currentConversationId = repository.getOrCreateConversation(currentUserId, currentScenarioId)
-            }
-            val convId = currentConversationId ?: return@launch
-            // Start background audio recording (parallel to STT)
-            val lang = _uiState.value.selectedVoiceLanguage.locale
-            voiceRecordingManager.startRecording(convId, lang)
-            // Start STT listening
-            voiceManager.startListening(_uiState.value.selectedVoiceLanguage)
-        }
+        // FIX: Only use STT (SpeechRecognizer), NOT MediaRecorder
+        // MediaRecorder and SpeechRecognizer cannot use mic simultaneously
+        // MediaRecorder was blocking STT from working
+        voiceManager.startListening(_uiState.value.selectedVoiceLanguage)
     }
 
     fun toggleVoiceLanguage() {
@@ -679,31 +648,8 @@ class ChatViewModel @Inject constructor(
     }
 
     fun stopVoiceRecording() {
+        // FIX: Only stop STT listening (no MediaRecorder to stop)
         voiceManager.stopListening()
-        // Finalize recording and persist metadata
-        val result = voiceRecordingManager.stopRecording()
-        val convId = currentConversationId
-        if (convId != null && result.file.exists()) {
-            viewModelScope.launch {
-                val id = voiceRecordingRepository.savePending(
-                    conversationId = convId,
-                    tempFilePath = result.file.absolutePath,
-                    durationMs = result.durationMs,
-                    fileSizeBytes = result.fileSizeBytes,
-                    recordedAt = result.recordedAt,
-                    language = result.language
-                )
-                pendingVoiceRecordingId = id
-                // Storage management warnings and cleanup
-                val total = voiceRecordingRepository.totalSize()
-                if (total > 50L * 1024 * 1024) {
-                    _uiState.update { it.copy(snackbarMessage = "음성 파일이 50MB를 초과했습니다") }
-                }
-                if (total > 100L * 1024 * 1024) {
-                    voiceRecordingRepository.cleanup(100L * 1024 * 1024)
-                }
-            }
-        }
     }
 
     fun speakMessage(text: String) {
