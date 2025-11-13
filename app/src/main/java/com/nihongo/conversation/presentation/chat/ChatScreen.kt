@@ -392,7 +392,10 @@ fun ChatScreen(
                         } else null,
                         onRetryUserGrammarFeedback = if (message.isUser) {
                             { viewModel.retryUserGrammarAnalysis(message.id, message.content) }
-                        } else null
+                        } else null,
+                        onPlayVoice = message.voiceRecordingId?.let { recId ->
+                            { viewModel.playVoice(recId) }
+                        }
                     )
                 }
 
@@ -744,7 +747,8 @@ fun MessageBubble(
     userGrammarError: String? = null,
     onToggleUserGrammarFeedback: (() -> Unit)? = null,
     onRequestUserGrammarFeedback: (() -> Unit)? = null,
-    onRetryUserGrammarFeedback: (() -> Unit)? = null
+    onRetryUserGrammarFeedback: (() -> Unit)? = null,
+    onPlayVoice: ((Long) -> Unit)? = null
 ) {
     val timeFormatter = remember {
         java.text.SimpleDateFormat("HH:mm", java.util.Locale.getDefault())
@@ -817,6 +821,37 @@ fun MessageBubble(
                         MaterialTheme.colorScheme.onSecondaryContainer
                     }
                 )
+
+                // Mini voice player for recorded user messages
+                val recordingId = message.voiceRecordingId
+                if (recordingId != null && onPlayVoice != null) {
+                    Spacer(modifier = Modifier.height(6.dp))
+                    Row(
+                        verticalAlignment = Alignment.CenterVertically,
+                        horizontalArrangement = Arrangement.spacedBy(8.dp)
+                    ) {
+                        FilledIconButton(
+                            onClick = { onPlayVoice(recordingId) },
+                            modifier = Modifier.size(36.dp),
+                            colors = IconButtonDefaults.filledIconButtonColors(
+                                containerColor = if (message.isUser) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.secondary
+                            )
+                        ) {
+                            Icon(
+                                imageVector = Icons.Default.PlayArrow,
+                                contentDescription = "재생",
+                                modifier = Modifier.size(20.dp)
+                            )
+                        }
+                        Text(
+                            text = "🎤",
+                            style = MaterialTheme.typography.labelMedium
+                        )
+                        
+                        // Phase 3: Bookmark button (will be implemented in full version)
+                        // Placeholder for now - actual implementation requires state management
+                    }
+                }
 
                 // Show translation button and translation for AI messages
                 if (!message.isUser && onToggleTranslation != null && onRequestTranslation != null) {

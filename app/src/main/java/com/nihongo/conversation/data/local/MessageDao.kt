@@ -13,6 +13,12 @@ interface MessageDao {
      */
     @Query("SELECT * FROM messages WHERE conversationId = :conversationId ORDER BY timestamp ASC")
     fun getMessagesByConversation(conversationId: Long): Flow<List<Message>>
+    
+    /**
+     * Get all messages synchronously (for review/export features)
+     */
+    @Query("SELECT * FROM messages WHERE conversationId = :conversationId ORDER BY timestamp ASC")
+    suspend fun getMessagesByConversationSync(conversationId: Long): List<Message>
 
     /**
      * Get messages with pagination (for review/history screens)

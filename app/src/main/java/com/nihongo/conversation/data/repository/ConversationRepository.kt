@@ -112,23 +112,49 @@ class ConversationRepository @Inject constructor(
     // Message operations
     fun getMessages(conversationId: Long): Flow<List<Message>> =
         messageDao.getMessagesByConversation(conversationId)
+    
+    suspend fun getMessagesByConversation(conversationId: Long): List<Message> =
+        messageDao.getMessagesByConversationSync(conversationId)
+
+    suspend fun insertUserMessage(
+        conversationId: Long,
+        content: String,
+        inputType: String = "text",
+        voiceRecordingId: Long? = null
+    ): Long {
+        val userMsg = Message(
+            conversationId = conversationId,
+            content = content,
+            isUser = true,
+            inputType = inputType,
+            voiceRecordingId = voiceRecordingId
+        )
+        return messageDao.insertMessage(userMsg)
+    }
 
     suspend fun sendMessage(
         conversationId: Long,
         userMessage: String,
         conversationHistory: List<Message>,
-        systemPrompt: String
+        systemPrompt: String,
+        inputType: String = "text",
+        voiceRecordingId: Long? = null,
+        preInsertedUserMessageId: Long? = null
     ): Flow<Result<Message>> = flow {
         emit(Result.Loading)
 
         try {
-            // Save user message
-            val userMsg = Message(
-                conversationId = conversationId,
-                content = userMessage,
-                isUser = true
-            )
-            messageDao.insertMessage(userMsg)
+            // Save user message if not pre-inserted
+            if (preInsertedUserMessageId == null) {
+                val userMsg = Message(
+                    conversationId = conversationId,
+                    content = userMessage,
+                    isUser = true,
+                    inputType = inputType,
+                    voiceRecordingId = voiceRecordingId
+                )
+                messageDao.insertMessage(userMsg)
+            }
 
             // Prepare history for API
             val history = conversationHistory.map { it.content to it.isUser }
@@ -167,18 +193,25 @@ class ConversationRepository @Inject constructor(
         conversationId: Long,
         userMessage: String,
         conversationHistory: List<Message>,
-        systemPrompt: String
+        systemPrompt: String,
+        inputType: String = "text",
+        voiceRecordingId: Long? = null,
+        preInsertedUserMessageId: Long? = null
     ): Flow<Result<Message>> = flow {
         emit(Result.Loading)
 
         try {
-            // Save user message
-            val userMsg = Message(
-                conversationId = conversationId,
-                content = userMessage,
-                isUser = true
-            )
-            messageDao.insertMessage(userMsg)
+            // Save user message unless already inserted by caller
+            if (preInsertedUserMessageId == null) {
+                val userMsg = Message(
+                    conversationId = conversationId,
+                    content = userMessage,
+                    isUser = true,
+                    inputType = inputType,
+                    voiceRecordingId = voiceRecordingId
+                )
+                messageDao.insertMessage(userMsg)
+            }
 
             // Prepare history for API
             val history = conversationHistory.map { it.content to it.isUser }

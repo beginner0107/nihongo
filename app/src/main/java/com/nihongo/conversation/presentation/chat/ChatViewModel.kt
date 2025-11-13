@@ -17,6 +17,8 @@ import com.nihongo.conversation.core.voice.VoiceEvent
 import com.nihongo.conversation.core.voice.VoiceLanguage
 import com.nihongo.conversation.core.voice.VoiceManager
 import com.nihongo.conversation.core.voice.VoiceState
+import com.nihongo.conversation.core.voice.VoiceRecordingManager
+import com.nihongo.conversation.core.voice.VoicePlaybackManager
 import com.nihongo.conversation.data.local.SettingsDataStore
 import com.nihongo.conversation.data.local.entity.QuestType
 import com.nihongo.conversation.data.repository.ConversationRepository
@@ -36,6 +38,7 @@ import com.nihongo.conversation.domain.model.User
 import com.nihongo.conversation.domain.model.VoiceOnlySession
 import com.nihongo.conversation.domain.model.PersonalityType
 import com.nihongo.conversation.domain.model.ScenarioFlexibility
+import com.nihongo.conversation.domain.model.VoiceRecording
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.flow.*
@@ -119,6 +122,9 @@ data class ChatUiState(
 
     // Phase 5: Message bookmarking & sharing
     val savedMessages: ImmutableSet<Long> = ImmutableSet.empty(), // messageIds that are bookmarked
+    
+    // Phase 2/3: Voice recordings management
+    val voiceRecordings: ImmutableMap<Long, VoiceRecording> = ImmutableMap.empty(), // recordingId -> VoiceRecording
 
     // Snackbar/feedback messages
     val snackbarMessage: String? = null,
@@ -158,7 +164,10 @@ class ChatViewModel @Inject constructor(
     private val translationRepository: com.nihongo.conversation.data.repository.TranslationRepository,
     private val vocabularyRepository: com.nihongo.conversation.data.repository.VocabularyRepository,
     private val questRepository: QuestRepository,
-    private val savedMessageRepository: com.nihongo.conversation.data.repository.SavedMessageRepository  // Phase 5
+    private val savedMessageRepository: com.nihongo.conversation.data.repository.SavedMessageRepository,  // Phase 5
+    private val voiceRecordingManager: VoiceRecordingManager,
+    private val voicePlaybackManager: VoicePlaybackManager,
+    private val voiceRecordingRepository: com.nihongo.conversation.data.repository.VoiceRecordingRepository
 ) : ViewModel() {
 
     private val _uiState = MutableStateFlow(ChatUiState())
@@ -169,6 +178,7 @@ class ChatViewModel @Inject constructor(
     private var currentConversationId: Long? = null
     private var currentUserId: Long = 0
     private var currentScenarioId: Long = 0
+    private var pendingVoiceRecordingId: Long? = null
 
     // Job references for proper cancellation in onCleared()
     private var settingsFlowJob: Job? = null
@@ -194,6 +204,8 @@ class ChatViewModel @Inject constructor(
         observeSavedMessages()  // Phase 5
         observeMemoryPressure()  // Phase 6A
     }
+
+    
 
     private fun observeSettings() {
         settingsFlowJob = viewModelScope.launch {
@@ -302,7 +314,19 @@ class ChatViewModel @Inject constructor(
                                 } else {
                                     messages
                                 }
-                                _uiState.update { it.copy(messages = limitedMessages.toImmutableList()) }
+                                
+                                // Load voice recordings for messages
+                                val recordingIds = limitedMessages.mapNotNull { it.voiceRecordingId }
+                                val recordings = recordingIds.mapNotNull { id ->
+                                    voiceRecordingRepository.getById(id)?.let { id to it }
+                                }.toMap()
+                                
+                                _uiState.update { 
+                                    it.copy(
+                                        messages = limitedMessages.toImmutableList(),
+                                        voiceRecordings = recordings.toImmutableMap()
+                                    ) 
+                                }
                             }
                     }
                 } else {
@@ -436,14 +460,44 @@ class ChatViewModel @Inject constructor(
             var userMessageId: Long? = null
             var finalAiMessage: String? = null
 
+            // Pre-insert user message if there's a pending voice recording
+            val pendingId = pendingVoiceRecordingId
+            val conversationHistory = if (pendingId != null) {
+                val newMsgId = repository.insertUserMessage(
+                    conversationId = conversationId,
+                    content = message,
+                    inputType = "voice",
+                    voiceRecordingId = pendingId
+                )
+                userMessageId = newMsgId
+                // Link file to message (rename temp -> final)
+                voiceRecordingRepository.linkToMessage(pendingId, newMsgId)
+                // Clear pending
+                pendingVoiceRecordingId = null
+                // Append to existing history for API
+                _uiState.value.messages.items + com.nihongo.conversation.domain.model.Message(
+                    id = newMsgId,
+                    conversationId = conversationId,
+                    content = message,
+                    isUser = true,
+                    inputType = "voice",
+                    voiceRecordingId = pendingId
+                )
+            } else {
+                _uiState.value.messages.items
+            }
+
             // Set voice state to Thinking when starting AI generation
             voiceManager.setThinking()
 
             repository.sendMessageStream(
                 conversationId = conversationId,
                 userMessage = message,
-                conversationHistory = _uiState.value.messages.items,
-                systemPrompt = enhancedPrompt
+                conversationHistory = conversationHistory,
+                systemPrompt = enhancedPrompt,
+                inputType = if (pendingId != null) "voice" else "text",
+                voiceRecordingId = pendingId,
+                preInsertedUserMessageId = userMessageId
             ).collect { result ->
                 when (result) {
                     is Result.Loading -> {
@@ -455,11 +509,13 @@ class ChatViewModel @Inject constructor(
 
                         // Store user message ID for feedback analysis
                         // User message is typically the second-to-last message
-                        val messages = _uiState.value.messages.items
-                        if (messages.size >= 2) {
-                            val userMessage = messages[messages.size - 2]
-                            if (userMessage.isUser && userMessageId == null) {
-                                userMessageId = userMessage.id
+                        if (userMessageId == null) {
+                            val messages = _uiState.value.messages.items
+                            if (messages.size >= 2) {
+                                val userMessage = messages[messages.size - 2]
+                                if (userMessage.isUser) {
+                                    userMessageId = userMessage.id
+                                }
                             }
                         }
 
@@ -602,7 +658,18 @@ class ChatViewModel @Inject constructor(
     }
 
     fun startVoiceRecording() {
-        voiceManager.startListening(_uiState.value.selectedVoiceLanguage)
+        // Ensure we have a conversation to associate recording
+        viewModelScope.launch {
+            if (currentConversationId == null) {
+                currentConversationId = repository.getOrCreateConversation(currentUserId, currentScenarioId)
+            }
+            val convId = currentConversationId ?: return@launch
+            // Start background audio recording (parallel to STT)
+            val lang = _uiState.value.selectedVoiceLanguage.locale
+            voiceRecordingManager.startRecording(convId, lang)
+            // Start STT listening
+            voiceManager.startListening(_uiState.value.selectedVoiceLanguage)
+        }
     }
 
     fun toggleVoiceLanguage() {
@@ -618,6 +685,30 @@ class ChatViewModel @Inject constructor(
 
     fun stopVoiceRecording() {
         voiceManager.stopListening()
+        // Finalize recording and persist metadata
+        val result = voiceRecordingManager.stopRecording()
+        val convId = currentConversationId
+        if (convId != null && result.file.exists()) {
+            viewModelScope.launch {
+                val id = voiceRecordingRepository.savePending(
+                    conversationId = convId,
+                    tempFilePath = result.file.absolutePath,
+                    durationMs = result.durationMs,
+                    fileSizeBytes = result.fileSizeBytes,
+                    recordedAt = result.recordedAt,
+                    language = result.language
+                )
+                pendingVoiceRecordingId = id
+                // Storage management warnings and cleanup
+                val total = voiceRecordingRepository.totalSize()
+                if (total > 50L * 1024 * 1024) {
+                    _uiState.update { it.copy(snackbarMessage = "음성 파일이 50MB를 초과했습니다") }
+                }
+                if (total > 100L * 1024 * 1024) {
+                    voiceRecordingRepository.cleanup(100L * 1024 * 1024)
+                }
+            }
+        }
     }
 
     fun speakMessage(text: String) {
@@ -626,6 +717,28 @@ class ChatViewModel @Inject constructor(
 
     fun speakMessageSlowly(text: String) {
         voiceManager.speak(text, speed = 0.7f)
+    }
+
+    fun playVoice(recordingId: Long) {
+        viewModelScope.launch {
+            val rec = voiceRecordingRepository.getById(recordingId)
+            if (rec != null) {
+                voicePlaybackManager.playFile(rec.filePath)
+            } else {
+                _uiState.update { it.copy(error = "음성 파일을 찾을 수 없습니다") }
+            }
+        }
+    }
+    
+    fun toggleVoiceBookmark(recordingId: Long) {
+        viewModelScope.launch {
+            try {
+                voiceRecordingRepository.toggleBookmark(recordingId)
+                // Bookmark updated - recordings will be reloaded on next message update
+            } catch (e: Exception) {
+                _uiState.update { it.copy(error = "북마크 변경 실패: ${e.message}") }
+            }
+        }
     }
 
     fun toggleAutoSpeak() {
@@ -1575,7 +1688,8 @@ class ChatViewModel @Inject constructor(
             )
         }
 
-        // Release voice manager resources
+        // Stop playback and release voice manager resources
+        try { voicePlaybackManager.stop() } catch (_: Exception) {}
         voiceManager.release()
     }
 
