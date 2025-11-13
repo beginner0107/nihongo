@@ -45,7 +45,8 @@ fun MainScreen(
     onFlashcardClick: () -> Unit = {},
     onAddVocabularyClick: () -> Unit = {},
     onSettingsClick: () -> Unit = {},
-    onCreateScenarioClick: () -> Unit = {}
+    onCreateScenarioClick: () -> Unit = {},
+    onReviewClick: () -> Unit = {}
 ) {
     val navController = rememberNavController()
     val items = listOf(
@@ -93,7 +94,8 @@ fun MainScreen(
             composable(BottomNavItem.Home.route) {
                 HomeScreen(
                     onScenarioSelected = onScenarioSelected,
-                    onSettingsClick = onSettingsClick  // Phase 12: 설정 버튼 추가
+                    onSettingsClick = onSettingsClick,  // Phase 12: 설정 버튼 추가
+                    onReviewClick = onReviewClick
                 )
             }
 

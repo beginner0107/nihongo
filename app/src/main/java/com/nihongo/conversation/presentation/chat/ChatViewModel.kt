@@ -59,6 +59,7 @@ data class KoreanToJapaneseResult(
  * Using immutable wrappers ensures Compose treats the state as stable
  */
 data class ChatUiState(
+    val conversationId: Long? = null, // Current conversation ID
     val messages: ImmutableList<Message> = ImmutableList.empty(),
     val inputText: String = "",
     val isLoading: Boolean = false,
@@ -303,6 +304,7 @@ class ChatViewModel @Inject constructor(
                 if (existingConversationId != null) {
                     // Resume existing conversation
                     currentConversationId = existingConversationId
+                    _uiState.update { it.copy(conversationId = existingConversationId) }
 
                     // Load messages with memory limit
                     messagesFlowJob = viewModelScope.launch {
@@ -392,6 +394,7 @@ class ChatViewModel @Inject constructor(
             // Create conversation on first message if it doesn't exist
             if (currentConversationId == null) {
                 currentConversationId = repository.getOrCreateConversation(currentUserId, currentScenarioId)
+                _uiState.update { it.copy(conversationId = currentConversationId) }
 
                 // Set up message flow for the newly created conversation
                 val newConversationId = currentConversationId

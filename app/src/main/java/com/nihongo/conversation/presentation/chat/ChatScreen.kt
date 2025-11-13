@@ -52,7 +52,7 @@ fun ChatScreen(
     userId: Long,
     scenarioId: Long,
     onBackClick: () -> Unit = {},
-    onReviewClick: () -> Unit = {},
+    onReviewClick: (conversationId: Long) -> Unit = {},
     viewModel: ChatViewModel = hiltViewModel()
 ) {
     val uiState by viewModel.uiState.collectAsState()
@@ -230,7 +230,12 @@ fun ChatScreen(
                             )
                         }
                     }
-                    IconButton(onClick = onReviewClick) {
+                    IconButton(
+                        onClick = {
+                            uiState.conversationId?.let { onReviewClick(it) }
+                        },
+                        enabled = uiState.conversationId != null
+                    ) {
                         Icon(
                             imageVector = Icons.Default.HistoryEdu,
                             contentDescription = stringResource(R.string.review)
