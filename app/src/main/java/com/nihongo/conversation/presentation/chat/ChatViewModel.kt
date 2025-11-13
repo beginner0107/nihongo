@@ -175,6 +175,11 @@ class ChatViewModel @Inject constructor(
     @Suppress("DEPRECATION")
     private val memoryConfig = memoryManager.getMemoryConfig()
 
+    // Auto-retry configuration for temporary API errors
+    companion object {
+        private const val MAX_RETRIES = 2  // Maximum 2 retries (3 total attempts)
+    }
+
     init {
         observeVoiceEvents()
         observeSettings()
@@ -330,12 +335,28 @@ class ChatViewModel @Inject constructor(
     /**
      * Send Japanese message (extracted from original sendMessage)
      * Made public to be called from Korean→Japanese dialog
+     *
+     * @param message Japanese text to send
+     * @param retryCount Current retry attempt (0 = first try)
      */
-    fun sendJapaneseMessage(message: String) {
+    fun sendJapaneseMessage(message: String, retryCount: Int = 0) {
         val scenario = _uiState.value.scenario ?: return
 
         viewModelScope.launch {
-            _uiState.update { it.copy(inputText = "", isLoading = true, error = null) }
+            // Only clear input on first attempt (not on retries)
+            val errorMessage = if (retryCount > 0) {
+                "再試行中... (${retryCount}/$MAX_RETRIES)"
+            } else {
+                null
+            }
+
+            _uiState.update {
+                it.copy(
+                    inputText = if (retryCount == 0) "" else it.inputText,
+                    isLoading = true,
+                    error = errorMessage
+                )
+            }
 
             // Create conversation on first message if it doesn't exist
             if (currentConversationId == null) {
@@ -423,14 +444,45 @@ class ChatViewModel @Inject constructor(
                         _uiState.update { it.copy(isLoading = false) }
                     }
                     is Result.Error -> {
-                        _uiState.update {
-                            it.copy(
-                                isLoading = false,
-                                error = result.exception.message
+                        // Check if this is a temporary error that should be retried
+                        val isTemporary = isTemporaryError(result.exception)
+
+                        if (retryCount < MAX_RETRIES && isTemporary) {
+                            // Log retry attempt
+                            android.util.Log.w(
+                                "ChatViewModel",
+                                "Temporary API error detected, retrying (${retryCount + 1}/$MAX_RETRIES): ${result.exception.message}"
                             )
+
+                            // Wait before retrying (exponential backoff: 1s, 2s, 4s)
+                            val delayMs = 1000L * (1 shl retryCount)  // 2^retryCount seconds
+                            kotlinx.coroutines.delay(delayMs)
+
+                            // Retry the message
+                            sendJapaneseMessage(message, retryCount + 1)
+                        } else {
+                            // Max retries reached or permanent error
+                            val errorMessage = if (retryCount >= MAX_RETRIES) {
+                                "送信に失敗しました。後でもう一度お試しください。"
+                            } else {
+                                result.exception.message ?: "エラーが発生しました"
+                            }
+
+                            android.util.Log.e(
+                                "ChatViewModel",
+                                "Message send failed after $retryCount retries: ${result.exception.message}",
+                                result.exception
+                            )
+
+                            _uiState.update {
+                                it.copy(
+                                    isLoading = false,
+                                    error = errorMessage
+                                )
+                            }
+                            // Reset voice state on error
+                            voiceManager.setIdle()
                         }
-                        // Reset voice state on error
-                        voiceManager.setIdle()
                     }
                 }
             }
@@ -469,6 +521,27 @@ class ChatViewModel @Inject constructor(
                 )
             }
         }
+    }
+
+    /**
+     * Determine if an error is temporary and should be retried
+     * Temporary errors include: network issues, timeouts, deserialization errors, and server overload
+     */
+    private fun isTemporaryError(exception: Throwable): Boolean {
+        val message = exception.message?.lowercase() ?: ""
+        return message.contains("deserialize") ||
+                message.contains("timeout") ||
+                message.contains("timed out") ||
+                message.contains("network") ||
+                message.contains("failed to get response") ||
+                message.contains("unable to resolve host") ||
+                message.contains("connection") ||
+                message.contains("socket") ||
+                message.contains("deadline_exceeded") ||
+                message.contains("unavailable") ||
+                message.contains("503") ||  // Service Unavailable
+                message.contains("502") ||  // Bad Gateway
+                message.contains("500")     // Internal Server Error
     }
 
     private fun observeVoiceEvents() {
