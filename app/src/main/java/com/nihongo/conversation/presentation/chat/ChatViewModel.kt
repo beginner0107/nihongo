@@ -34,6 +34,8 @@ import com.nihongo.conversation.domain.model.Scenario
 import com.nihongo.conversation.domain.model.TranscriptEntry
 import com.nihongo.conversation.domain.model.User
 import com.nihongo.conversation.domain.model.VoiceOnlySession
+import com.nihongo.conversation.domain.model.PersonalityType
+import com.nihongo.conversation.domain.model.ScenarioFlexibility
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.flow.*
@@ -120,7 +122,10 @@ data class ChatUiState(
 
     // Snackbar/feedback messages
     val snackbarMessage: String? = null,
-    val errorMessage: String? = null
+    val errorMessage: String? = null,
+
+    // Personality selection for flexible scenarios
+    val selectedPersonality: String? = null
 ) {
     /**
      * Computed property using derivedStateOf pattern
@@ -394,6 +399,23 @@ class ChatViewModel @Inject constructor(
             // Get personalized prompt prefix
             val personalizedPrefix = profileRepository.getPersonalizedPromptPrefix()
 
+            // Get personality based on scenario flexibility
+            val personalityPrompt = if (scenario != null) {
+                val flexibility = ScenarioFlexibility.fromString(scenario.flexibility)
+                if (flexibility == ScenarioFlexibility.FLEXIBLE) {
+                    // For flexible scenarios, use selected personality or user's preference
+                    val selectedPersonality = _uiState.value.selectedPersonality
+                        ?: profileRepository.getCurrentUserImmediate()?.preferredPersonality
+                        ?: scenario.defaultPersonality
+                    PersonalityType.fromString(selectedPersonality).promptModifier
+                } else {
+                    // For fixed scenarios, always use default friendly personality
+                    ""  // No personality modifier for fixed roles
+                }
+            } else {
+                ""
+            }
+
             // Get difficulty-specific guidelines from scenario (using compact version for token efficiency)
             val difficultyLevel = DifficultyLevel.fromInt(scenario.difficulty)
             val difficultyPrompt = difficultyManager.getCompactDifficultyPrompt(difficultyLevel)
@@ -407,8 +429,8 @@ class ChatViewModel @Inject constructor(
             }
 
             // Combine all prompts (optimized by API service to ~500 chars)
-            // Adaptive nudge is very short (8 chars max), so minimal token impact
-            val enhancedPrompt = scenario.systemPrompt + personalizedPrefix + difficultyPrompt + adaptiveNudge
+            // Now includes personality modifier for AI character variation
+            val enhancedPrompt = scenario.systemPrompt + personalityPrompt + personalizedPrefix + difficultyPrompt + adaptiveNudge
 
             // Use streaming API for instant response feel
             var userMessageId: Long? = null
@@ -610,6 +632,15 @@ class ChatViewModel @Inject constructor(
         viewModelScope.launch {
             settingsDataStore.updateAutoSpeak(!_uiState.value.autoSpeak)
         }
+    }
+
+    /**
+     * Update selected personality for flexible scenarios
+     *
+     * @param personality The personality type (FRIENDLY, STRICT, or HUMOROUS)
+     */
+    fun updateSelectedPersonality(personality: String) {
+        _uiState.update { it.copy(selectedPersonality = personality) }
     }
 
     /**

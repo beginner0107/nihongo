@@ -92,7 +92,9 @@ $FORMAT_RULES
                 """.trimIndent()),
                 slug = "restaurant_ordering",
                 category = "DAILY_LIFE",
-                promptVersion = 3
+                promptVersion = 3,
+                flexibility = "FIXED",  // 서비스업 - 고정 역할
+                defaultPersonality = "FRIENDLY"
             ),
             Scenario(
                 title = "쇼핑",
@@ -109,7 +111,9 @@ $FORMAT_RULES
                 ),
                 slug = "shopping",
                 category = "DAILY_LIFE",
-                promptVersion = 3
+                promptVersion = 3,
+                flexibility = "FIXED",  // 서비스업 - 고정 역할
+                defaultPersonality = "FRIENDLY"
             ),
             Scenario(
                 title = "호텔에서 체크인",
@@ -126,7 +130,9 @@ $FORMAT_RULES
                 ),
                 slug = "hotel_checkin",
                 category = "TRAVEL",
-                promptVersion = 4
+                promptVersion = 4,
+                flexibility = "FIXED",  // 호텔 직원 - 고정 역할
+                defaultPersonality = "FRIENDLY"
             ),
             Scenario(
                 title = "친구 사귀기",
@@ -144,7 +150,10 @@ $FORMAT_RULES
                 ),
                 slug = "making_friends",
                 category = "DAILY_CONVERSATION",
-                promptVersion = 4
+                promptVersion = 4,
+                flexibility = "FLEXIBLE",  // 친구 관계 - 성격 선택 가능
+                availablePersonalities = "FRIENDLY,HUMOROUS,STRICT",  // 3가지 성격 선택 가능
+                defaultPersonality = "FRIENDLY"
             ),
             Scenario(
                 title = "전화로 예약하기",
@@ -162,7 +171,9 @@ $FORMAT_RULES
                 ),
                 slug = "phone_reservation",
                 category = "DAILY_LIFE",
-                promptVersion = 4
+                promptVersion = 4,
+                flexibility = "FIXED",  // 레스토랑/살롱 접수 직원 - 고정 역할
+                defaultPersonality = "FRIENDLY"
             ),
             Scenario(
                 title = "병원에서",
@@ -180,7 +191,9 @@ $FORMAT_RULES
                 ),
                 slug = "hospital_visit",
                 category = "HEALTH",
-                promptVersion = 4
+                promptVersion = 4,
+                flexibility = "FIXED",  // 의사/간호사 - 고정 역할
+                defaultPersonality = "FRIENDLY"
             ),
 
             // ========== GOAL-BASED ROLE-PLAY SCENARIOS ==========
@@ -218,7 +231,9 @@ $FORMAT_RULES
                     """.trimIndent(),
                 ),
                 slug = "job_interview",
-                promptVersion = 4
+                promptVersion = 4,
+                flexibility = "FIXED",  // 면접관 - 고정 역할
+                defaultPersonality = "FRIENDLY"
             ),
 
             Scenario(
@@ -254,7 +269,9 @@ $FORMAT_RULES
                     """.trimIndent(),
                 ),
                 slug = "complaint_handling",
-                promptVersion = 4
+                promptVersion = 4,
+                flexibility = "FIXED",  // 불만 고객 역할 - 고정
+                defaultPersonality = "FRIENDLY"
             ),
 
             Scenario(
@@ -290,7 +307,10 @@ $FORMAT_RULES
                     """.trimIndent(),
                 ),
                 slug = "emergency_help",
-                promptVersion = 4
+                promptVersion = 4,
+                flexibility = "FLEXIBLE",  // 친절한 일본인 - 성격 선택 가능
+                availablePersonalities = "FRIENDLY,STRICT,HUMOROUS",
+                defaultPersonality = "FRIENDLY"
             ),
 
             Scenario(
@@ -327,7 +347,10 @@ $FORMAT_RULES
                     """.trimIndent(),
                 ),
                 slug = "dating_invite",
-                promptVersion = 4
+                promptVersion = 4,
+                flexibility = "FLEXIBLE",  // 대학생 친구 - 성격 선택 가능
+                availablePersonalities = "FRIENDLY,STRICT,HUMOROUS",
+                defaultPersonality = "FRIENDLY"
             ),
 
             Scenario(
@@ -364,7 +387,10 @@ $FORMAT_RULES
                     """.trimIndent(),
                 ),
                 slug = "business_presentation",
-                promptVersion = 4
+                promptVersion = 4,
+                flexibility = "FLEXIBLE",  // 비즈니스 동료 - 성격 선택 가능
+                availablePersonalities = "FRIENDLY,STRICT,HUMOROUS",
+                defaultPersonality = "FRIENDLY"
             ),
 
             Scenario(
@@ -393,7 +419,10 @@ $FORMAT_RULES
                     """.trimIndent(),
                 ),
                 slug = "girlfriend_conversation",
-                promptVersion = 5
+                promptVersion = 5,
+                flexibility = "FLEXIBLE",  // 여자친구 - 성격 선택 가능
+                availablePersonalities = "FRIENDLY,STRICT,HUMOROUS",
+                defaultPersonality = "FRIENDLY"
             ),
 
             // Custom Scenario: Technical Interview for Backend Engineer
@@ -417,7 +446,9 @@ $FORMAT_RULES
                     """.trimIndent(),
                 ),
                 slug = "technical_interview_custom",
-                promptVersion = 2
+                promptVersion = 2,
+                flexibility = "FIXED",  // 면접관 - 고정 역할
+                defaultPersonality = "FRIENDLY"
             ),
 
             // ========== TRAVEL SCENARIOS (일본 여행) ==========
@@ -442,7 +473,9 @@ $FORMAT_RULES
                     """.trimIndent(),
                 ),
                 slug = "airport_immigration",
-                promptVersion = 1
+                promptVersion = 1,
+                flexibility = "FIXED",  // 입국 심사관 - 고정 역할
+                defaultPersonality = "FRIENDLY"
             ),
 
             Scenario(
@@ -464,7 +497,10 @@ $FORMAT_RULES
                     """.trimIndent(),
                 ),
                 slug = "train_navigation",
-                promptVersion = 1
+                promptVersion = 1,
+                flexibility = "FLEXIBLE",  // 역 직원 또는 친절한 일본인 - 성격 선택 가능
+                availablePersonalities = "FRIENDLY,STRICT,HUMOROUS",
+                defaultPersonality = "FRIENDLY"
             ),
 
             Scenario(
@@ -486,7 +522,9 @@ $FORMAT_RULES
                     """.trimIndent(),
                 ),
                 slug = "tourist_spot",
-                promptVersion = 1
+                promptVersion = 1,
+                flexibility = "FIXED",  // 관광 안내소 직원 - 고정 역할
+                defaultPersonality = "FRIENDLY"
             ),
 
             Scenario(
@@ -509,7 +547,9 @@ $FORMAT_RULES
                     """.trimIndent(),
                 ),
                 slug = "ramen_izakaya",
-                promptVersion = 1
+                promptVersion = 1,
+                flexibility = "FIXED",  // 라멘집/이자카야 직원 - 고정 역할
+                defaultPersonality = "FRIENDLY"
             ),
 
             Scenario(
@@ -532,7 +572,9 @@ $FORMAT_RULES
                     """.trimIndent(),
                 ),
                 slug = "onsen_ryokan",
-                promptVersion = 1
+                promptVersion = 1,
+                flexibility = "FIXED",  // 료칸 나카이 - 고정 역할
+                defaultPersonality = "FRIENDLY"
             ),
 
             Scenario(
@@ -555,7 +597,9 @@ $FORMAT_RULES
                     """.trimIndent(),
                 ),
                 slug = "souvenir_shop",
-                promptVersion = 1
+                promptVersion = 1,
+                flexibility = "FIXED",  // 기념품 가게 직원 - 고정 역할
+                defaultPersonality = "FRIENDLY"
             ),
 
             Scenario(
@@ -579,7 +623,9 @@ $FORMAT_RULES
                     """.trimIndent(),
                 ),
                 slug = "taxi_ride",
-                promptVersion = 1
+                promptVersion = 1,
+                flexibility = "FIXED",  // 택시 기사 - 고정 역할
+                defaultPersonality = "FRIENDLY"
             ),
 
             // ========== JLPT PRACTICE SCENARIOS (JLPT 레벨별 연습) ==========
@@ -607,7 +653,10 @@ $FORMAT_RULES
                     """.trimIndent(),
                 ),
                 slug = "jlpt_n5",
-                promptVersion = 1
+                promptVersion = 1,
+                flexibility = "FLEXIBLE",  // 일본어 선생님 - 성격 선택 가능
+                availablePersonalities = "FRIENDLY,STRICT,HUMOROUS",
+                defaultPersonality = "FRIENDLY"
             ),
 
             Scenario(
@@ -633,7 +682,10 @@ $FORMAT_RULES
                     """.trimIndent(),
                 ),
                 slug = "jlpt_n4",
-                promptVersion = 1
+                promptVersion = 1,
+                flexibility = "FLEXIBLE",  // 일본인 친구 - 성격 선택 가능
+                availablePersonalities = "FRIENDLY,STRICT,HUMOROUS",
+                defaultPersonality = "FRIENDLY"
             ),
 
             Scenario(
@@ -659,7 +711,10 @@ $FORMAT_RULES
                     """.trimIndent(),
                 ),
                 slug = "jlpt_n3",
-                promptVersion = 1
+                promptVersion = 1,
+                flexibility = "FLEXIBLE",  // 회사 선배 - 성격 선택 가능
+                availablePersonalities = "FRIENDLY,STRICT,HUMOROUS",
+                defaultPersonality = "FRIENDLY"
             ),
 
             Scenario(
@@ -685,7 +740,10 @@ $FORMAT_RULES
                     """.trimIndent(),
                 ),
                 slug = "jlpt_n2",
-                promptVersion = 1
+                promptVersion = 1,
+                flexibility = "FLEXIBLE",  // 회사 상사 - 성격 선택 가능
+                availablePersonalities = "FRIENDLY,STRICT,HUMOROUS",
+                defaultPersonality = "FRIENDLY"
             ),
 
             Scenario(
@@ -711,7 +769,10 @@ $FORMAT_RULES
                     """.trimIndent(),
                 ),
                 slug = "jlpt_n1",
-                promptVersion = 1
+                promptVersion = 1,
+                flexibility = "FLEXIBLE",  // 교수/임원 - 성격 선택 가능
+                availablePersonalities = "FRIENDLY,STRICT,HUMOROUS",
+                defaultPersonality = "FRIENDLY"
             ),
 
             // ========== CULTURE & THEME SCENARIOS (문화/테마) ==========
@@ -739,7 +800,10 @@ $FORMAT_RULES
                     """.trimIndent(),
                 ),
                 slug = "anime_otaku",
-                promptVersion = 1
+                promptVersion = 1,
+                flexibility = "FLEXIBLE",  // 오타쿠 친구 - 성격 선택 가능
+                availablePersonalities = "FRIENDLY,STRICT,HUMOROUS",
+                defaultPersonality = "FRIENDLY"
             ),
 
             Scenario(
@@ -768,7 +832,9 @@ $FORMAT_RULES
                     """.trimIndent(),
                 ),
                 slug = "university_interview",
-                promptVersion = 1
+                promptVersion = 1,
+                flexibility = "FIXED",  // 대학 면접관 - 고정 역할
+                defaultPersonality = "FRIENDLY"
             ),
 
             Scenario(
@@ -797,7 +863,9 @@ $FORMAT_RULES
                     """.trimIndent(),
                 ),
                 slug = "real_estate",
-                promptVersion = 1
+                promptVersion = 1,
+                flexibility = "FIXED",  // 부동산 영업 - 고정 역할
+                defaultPersonality = "FRIENDLY"
             ),
 
             // 생활/행정 카테고리 추가 시나리오
@@ -820,7 +888,9 @@ $FORMAT_RULES
                 """.trimIndent()),
                 slug = "waste_sorting",
                 category = "DAILY_LIFE",
-                promptVersion = 1
+                promptVersion = 1,
+                flexibility = "FIXED",  // 청소센터 직원 - 고정 역할
+                defaultPersonality = "FRIENDLY"
             ),
             Scenario(
                 title = "인터넷 설치 예약",
@@ -840,7 +910,9 @@ $FORMAT_RULES
                 """.trimIndent()),
                 slug = "internet_installation",
                 category = "DAILY_LIFE",
-                promptVersion = 1
+                promptVersion = 1,
+                flexibility = "FIXED",  // 인터넷 회선 접수 - 고정 역할
+                defaultPersonality = "FRIENDLY"
             ),
             Scenario(
                 title = "전기/가스 개통 전화",
@@ -860,7 +932,9 @@ $FORMAT_RULES
                 """.trimIndent()),
                 slug = "utility_activation",
                 category = "DAILY_LIFE",
-                promptVersion = 1
+                promptVersion = 1,
+                flexibility = "FIXED",  // 전력/가스 회사 직원 - 고정 역할
+                defaultPersonality = "FRIENDLY"
             ),
             Scenario(
                 title = "자전거 등록·방치 스티커 대응",
@@ -880,7 +954,9 @@ $FORMAT_RULES
                 """.trimIndent()),
                 slug = "bicycle_registration",
                 category = "DAILY_LIFE",
-                promptVersion = 1
+                promptVersion = 1,
+                flexibility = "FIXED",  // 경찰서 담당자 - 고정 역할
+                defaultPersonality = "FRIENDLY"
             ),
             Scenario(
                 title = "분실물 신고(지갑/휴대폰)",
@@ -901,7 +977,9 @@ $FORMAT_RULES
                 """.trimIndent()),
                 slug = "lost_item_report",
                 category = "DAILY_LIFE",
-                promptVersion = 1
+                promptVersion = 1,
+                flexibility = "FIXED",  // 경찰서 담당자 - 고정 역할
+                defaultPersonality = "FRIENDLY"
             ),
             Scenario(
                 title = "이웃 소음 상담",
@@ -921,7 +999,9 @@ $FORMAT_RULES
                 """.trimIndent()),
                 slug = "noise_complaint",
                 category = "HOUSING",
-                promptVersion = 1
+                promptVersion = 1,
+                flexibility = "FIXED",  // 관리회사 담당자 - 고정 역할
+                defaultPersonality = "FRIENDLY"
             ),
             Scenario(
                 title = "제품 반품/교환",
@@ -941,7 +1021,9 @@ $FORMAT_RULES
                 """.trimIndent()),
                 slug = "product_return",
                 category = "DAILY_LIFE",
-                promptVersion = 1
+                promptVersion = 1,
+                flexibility = "FIXED",  // 가전 매장 직원 - 고정 역할
+                defaultPersonality = "FRIENDLY"
             ),
             Scenario(
                 title = "도서관 회원증 발급",
@@ -961,7 +1043,9 @@ $FORMAT_RULES
                 """.trimIndent()),
                 slug = "library_card",
                 category = "STUDY",
-                promptVersion = 1
+                promptVersion = 1,
+                flexibility = "FIXED",  // 도서관 직원 - 고정 역할
+                defaultPersonality = "FRIENDLY"
             ),
             Scenario(
                 title = "헬스장 회원 등록",
@@ -982,7 +1066,9 @@ $FORMAT_RULES
                 """.trimIndent()),
                 slug = "gym_membership",
                 category = "HEALTH",
-                promptVersion = 1
+                promptVersion = 1,
+                flexibility = "FIXED",  // 헬스장 직원 - 고정 역할
+                defaultPersonality = "FRIENDLY"
             ),
             Scenario(
                 title = "리사이클·대형폐기물 신청",
@@ -1002,7 +1088,9 @@ $FORMAT_RULES
                 """.trimIndent()),
                 slug = "bulky_waste",
                 category = "DAILY_LIFE",
-                promptVersion = 1
+                promptVersion = 1,
+                flexibility = "FIXED",  // 청소센터 직원 - 고정 역할
+                defaultPersonality = "FRIENDLY"
             ),
 
             // 여행 카테고리 추가 시나리오
@@ -1024,7 +1112,9 @@ $FORMAT_RULES
                 """.trimIndent()),
                 slug = "shinkansen_reservation",
                 category = "TRAVEL",
-                promptVersion = 1
+                promptVersion = 1,
+                flexibility = "FIXED",  // 신칸센 직원 - 고정 역할
+                defaultPersonality = "FRIENDLY"
             ),
             Scenario(
                 title = "테마파크 패스 상담",
@@ -1044,7 +1134,9 @@ $FORMAT_RULES
                 """.trimIndent()),
                 slug = "theme_park_pass",
                 category = "ENTERTAINMENT",
-                promptVersion = 1
+                promptVersion = 1,
+                flexibility = "FIXED",  // 테마파크 직원 - 고정 역할
+                defaultPersonality = "FRIENDLY"
             ),
             Scenario(
                 title = "전자제품 면세 구매",
@@ -1064,7 +1156,9 @@ $FORMAT_RULES
                 """.trimIndent()),
                 slug = "duty_free_shopping",
                 category = "TRAVEL",
-                promptVersion = 1
+                promptVersion = 1,
+                flexibility = "FIXED",  // 면세점 직원 - 고정 역할
+                defaultPersonality = "FRIENDLY"
             ),
             Scenario(
                 title = "스키 리조트 렌탈/강습",
@@ -1084,7 +1178,9 @@ $FORMAT_RULES
                 """.trimIndent()),
                 slug = "ski_resort_rental",
                 category = "TRAVEL",
-                promptVersion = 1
+                promptVersion = 1,
+                flexibility = "FIXED",  // 스키 리조트 직원 - 고정 역할
+                defaultPersonality = "FRIENDLY"
             ),
             Scenario(
                 title = "렌터카 계약",
@@ -1105,7 +1201,9 @@ $FORMAT_RULES
                 """.trimIndent()),
                 slug = "car_rental",
                 category = "TRAVEL",
-                promptVersion = 1
+                promptVersion = 1,
+                flexibility = "FIXED",  // 렌터카 직원 - 고정 역할
+                defaultPersonality = "FRIENDLY"
             ),
             Scenario(
                 title = "게스트하우스 공유규칙",
@@ -1126,7 +1224,10 @@ $FORMAT_RULES
                 """.trimIndent()),
                 slug = "guesthouse_rules",
                 category = "TRAVEL",
-                promptVersion = 1
+                promptVersion = 1,
+                flexibility = "FLEXIBLE",  // 게스트하우스 매니저/여행자 - 성격 선택 가능
+                availablePersonalities = "FRIENDLY,STRICT,HUMOROUS",
+                defaultPersonality = "FRIENDLY"
             ),
 
             // 비즈니스 카테고리 추가 시나리오
@@ -1148,7 +1249,10 @@ $FORMAT_RULES
                 """.trimIndent()),
                 slug = "meeting_scheduling",
                 category = "WORK",
-                promptVersion = 1
+                promptVersion = 1,
+                flexibility = "FLEXIBLE",  // 비즈니스 동료 - 성격 선택 가능
+                availablePersonalities = "FRIENDLY,STRICT,HUMOROUS",
+                defaultPersonality = "FRIENDLY"
             ),
             Scenario(
                 title = "요구사항 확인 미팅",
@@ -1169,7 +1273,10 @@ $FORMAT_RULES
                 """.trimIndent()),
                 slug = "requirements_gathering",
                 category = "WORK",
-                promptVersion = 1
+                promptVersion = 1,
+                flexibility = "FLEXIBLE",  // 비즈니스 동료 - 성격 선택 가능
+                availablePersonalities = "FRIENDLY,STRICT,HUMOROUS",
+                defaultPersonality = "FRIENDLY"
             ),
             Scenario(
                 title = "장애 보고/사고 공유",
@@ -1190,7 +1297,10 @@ $FORMAT_RULES
                 """.trimIndent()),
                 slug = "incident_report",
                 category = "TECH",
-                promptVersion = 1
+                promptVersion = 1,
+                flexibility = "FLEXIBLE",  // 비즈니스 동료 - 성격 선택 가능
+                availablePersonalities = "FRIENDLY,STRICT,HUMOROUS",
+                defaultPersonality = "FRIENDLY"
             ),
             Scenario(
                 title = "회식 장소/예산 조율",
@@ -1211,7 +1321,10 @@ $FORMAT_RULES
                 """.trimIndent()),
                 slug = "team_dinner_planning",
                 category = "WORK",
-                promptVersion = 1
+                promptVersion = 1,
+                flexibility = "FLEXIBLE",  // 비즈니스 동료 - 성격 선택 가능
+                availablePersonalities = "FRIENDLY,STRICT,HUMOROUS",
+                defaultPersonality = "FRIENDLY"
             ),
             Scenario(
                 title = "발주·재고 문의",
@@ -1231,7 +1344,10 @@ $FORMAT_RULES
                 """.trimIndent()),
                 slug = "procurement_inquiry",
                 category = "WORK",
-                promptVersion = 1
+                promptVersion = 1,
+                flexibility = "FLEXIBLE",  // 비즈니스 동료 - 성격 선택 가능
+                availablePersonalities = "FRIENDLY,STRICT,HUMOROUS",
+                defaultPersonality = "FRIENDLY"
             ),
             Scenario(
                 title = "IT 헬프데스크",
@@ -1252,7 +1368,10 @@ $FORMAT_RULES
                 """.trimIndent()),
                 slug = "it_helpdesk",
                 category = "TECH",
-                promptVersion = 1
+                promptVersion = 1,
+                flexibility = "FLEXIBLE",  // IT 담당자 - 성격 선택 가능
+                availablePersonalities = "FRIENDLY,STRICT,HUMOROUS",
+                defaultPersonality = "FRIENDLY"
             ),
 
             // 학업/커뮤니티 카테고리 추가 시나리오
@@ -1275,7 +1394,10 @@ $FORMAT_RULES
                 """.trimIndent()),
                 slug = "language_exchange",
                 category = "STUDY",
-                promptVersion = 1
+                promptVersion = 1,
+                flexibility = "FLEXIBLE",  // 언어 교환 친구 - 성격 선택 가능
+                availablePersonalities = "FRIENDLY,STRICT,HUMOROUS",
+                defaultPersonality = "FRIENDLY"
             ),
             Scenario(
                 title = "서점에서 교재 찾기",
@@ -1296,7 +1418,10 @@ $FORMAT_RULES
                 """.trimIndent()),
                 slug = "bookstore_textbook",
                 category = "STUDY",
-                promptVersion = 1
+                promptVersion = 1,
+                flexibility = "FLEXIBLE",  // 서점 직원/학생 - 성격 선택 가능
+                availablePersonalities = "FRIENDLY,STRICT,HUMOROUS",
+                defaultPersonality = "FRIENDLY"
             ),
             Scenario(
                 title = "JLPT 시험일 문의",
@@ -1316,7 +1441,10 @@ $FORMAT_RULES
                 """.trimIndent()),
                 slug = "jlpt_exam_day",
                 category = "STUDY",
-                promptVersion = 1
+                promptVersion = 1,
+                flexibility = "FLEXIBLE",  // 시험장 친구 - 성격 선택 가능
+                availablePersonalities = "FRIENDLY,STRICT,HUMOROUS",
+                defaultPersonality = "FRIENDLY"
             ),
             Scenario(
                 title = "동아리 가입 상담",
@@ -1336,7 +1464,10 @@ $FORMAT_RULES
                 """.trimIndent()),
                 slug = "club_inquiry",
                 category = "STUDY",
-                promptVersion = 1
+                promptVersion = 1,
+                flexibility = "FLEXIBLE",  // 동아리 선배 - 성격 선택 가능
+                availablePersonalities = "FRIENDLY,STRICT,HUMOROUS",
+                defaultPersonality = "FRIENDLY"
             ),
 
             // 건강 카테고리 추가 시나리오
@@ -1359,7 +1490,9 @@ $FORMAT_RULES
                 """.trimIndent()),
                 slug = "dental_appointment",
                 category = "HEALTH",
-                promptVersion = 1
+                promptVersion = 1,
+                flexibility = "FIXED",  // 치과 직원 - 고정 역할
+                defaultPersonality = "FRIENDLY"
             ),
             Scenario(
                 title = "정신건강 상담 첫 문의",
@@ -1379,7 +1512,9 @@ $FORMAT_RULES
                 """.trimIndent()),
                 slug = "mental_health_consultation",
                 category = "HEALTH",
-                promptVersion = 1
+                promptVersion = 1,
+                flexibility = "FIXED",  // 상담사 - 고정 역할
+                defaultPersonality = "FRIENDLY"
             ),
             Scenario(
                 title = "물리치료/재활 예약",
@@ -1399,7 +1534,9 @@ $FORMAT_RULES
                 """.trimIndent()),
                 slug = "physical_therapy",
                 category = "HEALTH",
-                promptVersion = 1
+                promptVersion = 1,
+                flexibility = "FIXED",  // 물리치료사 - 고정 역할
+                defaultPersonality = "FRIENDLY"
             ),
             Scenario(
                 title = "예방접종/건강검진 예약",
@@ -1419,7 +1556,9 @@ $FORMAT_RULES
                 """.trimIndent()),
                 slug = "vaccination_checkup",
                 category = "HEALTH",
-                promptVersion = 1
+                promptVersion = 1,
+                flexibility = "FIXED",  // 병원 직원 - 고정 역할
+                defaultPersonality = "FRIENDLY"
             ),
 
             // e스포츠/LoL 카테고리
@@ -1441,7 +1580,10 @@ $FORMAT_RULES
                 """.trimIndent()),
                 slug = "lck_watch_party",
                 category = "ESPORTS",
-                promptVersion = 1
+                promptVersion = 1,
+                flexibility = "FLEXIBLE",  // e스포츠 팬 친구 - 성격 선택 가능
+                availablePersonalities = "FRIENDLY,STRICT,HUMOROUS",
+                defaultPersonality = "FRIENDLY"
             ),
             Scenario(
                 title = "경기 후 분석 토론",
@@ -1461,7 +1603,10 @@ $FORMAT_RULES
                 """.trimIndent()),
                 slug = "lol_post_game_analysis",
                 category = "ESPORTS",
-                promptVersion = 1
+                promptVersion = 1,
+                flexibility = "FLEXIBLE",  // LoL 친구 - 성격 선택 가능
+                availablePersonalities = "FRIENDLY,STRICT,HUMOROUS",
+                defaultPersonality = "FRIENDLY"
             ),
             Scenario(
                 title = "듀오 구인/매칭 대화",
@@ -1481,7 +1626,10 @@ $FORMAT_RULES
                 """.trimIndent()),
                 slug = "lol_duo_search",
                 category = "ESPORTS",
-                promptVersion = 1
+                promptVersion = 1,
+                flexibility = "FLEXIBLE",  // LoL 듀오 파트너 - 성격 선택 가능
+                availablePersonalities = "FRIENDLY,STRICT,HUMOROUS",
+                defaultPersonality = "FRIENDLY"
             ),
             Scenario(
                 title = "코칭 피드백",
@@ -1501,7 +1649,10 @@ $FORMAT_RULES
                 """.trimIndent()),
                 slug = "lol_coaching",
                 category = "ESPORTS",
-                promptVersion = 1
+                promptVersion = 1,
+                flexibility = "FLEXIBLE",  // LoL 코치 - 성격 선택 가능
+                availablePersonalities = "FRIENDLY,STRICT,HUMOROUS",
+                defaultPersonality = "FRIENDLY"
             ),
             Scenario(
                 title = "현장 굿즈 구매",
@@ -1521,7 +1672,9 @@ $FORMAT_RULES
                 """.trimIndent()),
                 slug = "esports_merch_shop",
                 category = "ESPORTS",
-                promptVersion = 1
+                promptVersion = 1,
+                flexibility = "FIXED",  // e스포츠 굿즈 매장 - 고정 역할
+                defaultPersonality = "FRIENDLY"
             ),
             Scenario(
                 title = "팬싸·사인회 매너 설명",
@@ -1541,7 +1694,9 @@ $FORMAT_RULES
                 """.trimIndent()),
                 slug = "fan_meeting_rules",
                 category = "ENTERTAINMENT",
-                promptVersion = 1
+                promptVersion = 1,
+                flexibility = "FIXED",  // 팬미팅 스태프 - 고정 역할
+                defaultPersonality = "FRIENDLY"
             ),
 
             // K-POP/J-POP 팬활동 카테고리
@@ -1563,7 +1718,10 @@ $FORMAT_RULES
                 """.trimIndent()),
                 slug = "kpop_ticketing_tips",
                 category = "ENTERTAINMENT",
-                promptVersion = 1
+                promptVersion = 1,
+                flexibility = "FLEXIBLE",  // K-pop 팬 친구 - 성격 선택 가능
+                availablePersonalities = "FRIENDLY,STRICT,HUMOROUS",
+                defaultPersonality = "FRIENDLY"
             ),
             Scenario(
                 title = "하이터치 준비 멘트",
@@ -1583,7 +1741,10 @@ $FORMAT_RULES
                 """.trimIndent()),
                 slug = "hi_touch_phrases",
                 category = "ENTERTAINMENT",
-                promptVersion = 1
+                promptVersion = 1,
+                flexibility = "FLEXIBLE",  // K-pop 팬 친구 - 성격 선택 가능
+                availablePersonalities = "FRIENDLY,STRICT,HUMOROUS",
+                defaultPersonality = "FRIENDLY"
             ),
             Scenario(
                 title = "앨범 구매·응모 러프 계산",
@@ -1603,7 +1764,10 @@ $FORMAT_RULES
                 """.trimIndent()),
                 slug = "album_purchase_lottery",
                 category = "ENTERTAINMENT",
-                promptVersion = 1
+                promptVersion = 1,
+                flexibility = "FLEXIBLE",  // K-pop 팬 친구 - 성격 선택 가능
+                availablePersonalities = "FRIENDLY,STRICT,HUMOROUS",
+                defaultPersonality = "FRIENDLY"
             ),
             Scenario(
                 title = "공항 에티켓 안내",
@@ -1623,7 +1787,9 @@ $FORMAT_RULES
                 """.trimIndent()),
                 slug = "airport_fan_etiquette",
                 category = "ENTERTAINMENT",
-                promptVersion = 1
+                promptVersion = 1,
+                flexibility = "FIXED",  // 공항 스태프 - 고정 역할
+                defaultPersonality = "FRIENDLY"
             ),
             Scenario(
                 title = "일본 친구에게 한류 용어 설명",
@@ -1643,7 +1809,10 @@ $FORMAT_RULES
                 """.trimIndent()),
                 slug = "hallyu_terms_explanation",
                 category = "ENTERTAINMENT",
-                promptVersion = 1
+                promptVersion = 1,
+                flexibility = "FLEXIBLE",  // 일본인 친구 - 성격 선택 가능
+                availablePersonalities = "FRIENDLY,STRICT,HUMOROUS",
+                defaultPersonality = "FRIENDLY"
             ),
             Scenario(
                 title = "서울 성지순례 코스 추천",
@@ -1663,7 +1832,10 @@ $FORMAT_RULES
                 """.trimIndent()),
                 slug = "seoul_kpop_tour",
                 category = "ENTERTAINMENT",
-                promptVersion = 1
+                promptVersion = 1,
+                flexibility = "FLEXIBLE",  // 한국 K-pop 팬 - 성격 선택 가능
+                availablePersonalities = "FRIENDLY,STRICT,HUMOROUS",
+                defaultPersonality = "FRIENDLY"
             ),
             Scenario(
                 title = "J-POP 라이브 하우스 첫경험",
@@ -1684,7 +1856,9 @@ $FORMAT_RULES
                 """.trimIndent()),
                 slug = "jpop_live_house",
                 category = "ENTERTAINMENT",
-                promptVersion = 1
+                promptVersion = 1,
+                flexibility = "FIXED",  // 라이브 하우스 직원 - 고정 역할
+                defaultPersonality = "FRIENDLY"
             ),
             Scenario(
                 title = "굿즈 트레이드 교섭",
@@ -1704,7 +1878,10 @@ $FORMAT_RULES
                 """.trimIndent()),
                 slug = "merch_trading",
                 category = "ENTERTAINMENT",
-                promptVersion = 1
+                promptVersion = 1,
+                flexibility = "FLEXIBLE",  // 굿즈 트레이더 - 성격 선택 가능
+                availablePersonalities = "FRIENDLY,STRICT,HUMOROUS",
+                defaultPersonality = "FRIENDLY"
             ),
 
             // 힙합 카테고리
@@ -1726,7 +1903,9 @@ $FORMAT_RULES
                 """.trimIndent()),
                 slug = "club_entry_dresscode",
                 category = "CULTURE",
-                promptVersion = 1
+                promptVersion = 1,
+                flexibility = "FIXED",  // 클럽 스태프 - 고정 역할
+                defaultPersonality = "FRIENDLY"
             ),
             Scenario(
                 title = "사이퍼 합류 인사",
@@ -1746,7 +1925,10 @@ $FORMAT_RULES
                 """.trimIndent()),
                 slug = "cypher_joining",
                 category = "CULTURE",
-                promptVersion = 1
+                promptVersion = 1,
+                flexibility = "FLEXIBLE",  // 랩 서클 멤버 - 성격 선택 가능
+                availablePersonalities = "FRIENDLY,STRICT,HUMOROUS",
+                defaultPersonality = "FRIENDLY"
             ),
             Scenario(
                 title = "레코드숍 디깅",
@@ -1766,7 +1948,9 @@ $FORMAT_RULES
                 """.trimIndent()),
                 slug = "record_digging",
                 category = "CULTURE",
-                promptVersion = 1
+                promptVersion = 1,
+                flexibility = "FIXED",  // 레코드숍 직원 - 고정 역할
+                defaultPersonality = "FRIENDLY"
             ),
             Scenario(
                 title = "스튜디오 시간 예약",
@@ -1786,7 +1970,9 @@ $FORMAT_RULES
                 """.trimIndent()),
                 slug = "studio_booking",
                 category = "CULTURE",
-                promptVersion = 1
+                promptVersion = 1,
+                flexibility = "FIXED",  // 스튜디오 접수 - 고정 역할
+                defaultPersonality = "FRIENDLY"
             ),
             Scenario(
                 title = "가사 해석·표현 토론",
@@ -1806,7 +1992,10 @@ $FORMAT_RULES
                 """.trimIndent()),
                 slug = "lyrics_discussion",
                 category = "CULTURE",
-                promptVersion = 1
+                promptVersion = 1,
+                flexibility = "FLEXIBLE",  // 음악 친구 - 성격 선택 가능
+                availablePersonalities = "FRIENDLY,STRICT,HUMOROUS",
+                defaultPersonality = "FRIENDLY"
             ),
 
             // 일본 백엔드/AI 실무 카테고리
@@ -1828,7 +2017,10 @@ $FORMAT_RULES
                 """.trimIndent()),
                 slug = "code_review_backend",
                 category = "TECH",
-                promptVersion = 1
+                promptVersion = 1,
+                flexibility = "FLEXIBLE",  // 개발자 동료 - 성격 선택 가능
+                availablePersonalities = "FRIENDLY,STRICT,HUMOROUS",
+                defaultPersonality = "FRIENDLY"
             ),
             Scenario(
                 title = "장애 핫픽스 보고",
@@ -1848,7 +2040,10 @@ $FORMAT_RULES
                 """.trimIndent()),
                 slug = "incident_hotfix",
                 category = "TECH",
-                promptVersion = 1
+                promptVersion = 1,
+                flexibility = "FLEXIBLE",  // 개발자 동료 - 성격 선택 가능
+                availablePersonalities = "FRIENDLY,STRICT,HUMOROUS",
+                defaultPersonality = "FRIENDLY"
             ),
             Scenario(
                 title = "성능 튜닝 회의",
@@ -1868,7 +2063,10 @@ $FORMAT_RULES
                 """.trimIndent()),
                 slug = "performance_tuning",
                 category = "TECH",
-                promptVersion = 1
+                promptVersion = 1,
+                flexibility = "FLEXIBLE",  // 개발자 동료 - 성격 선택 가능
+                availablePersonalities = "FRIENDLY,STRICT,HUMOROUS",
+                defaultPersonality = "FRIENDLY"
             ),
             Scenario(
                 title = "1on1 목표·성장 피드백",
@@ -1888,7 +2086,10 @@ $FORMAT_RULES
                 """.trimIndent()),
                 slug = "one_on_one_feedback",
                 category = "WORK",
-                promptVersion = 1
+                promptVersion = 1,
+                flexibility = "FLEXIBLE",  // 팀 리더 - 성격 선택 가능
+                availablePersonalities = "FRIENDLY,STRICT,HUMOROUS",
+                defaultPersonality = "FRIENDLY"
             ),
             Scenario(
                 title = "AI 기능 제안·개인정보 논의",
@@ -1908,7 +2109,10 @@ $FORMAT_RULES
                 """.trimIndent()),
                 slug = "ai_privacy_discussion",
                 category = "TECH",
-                promptVersion = 1
+                promptVersion = 1,
+                flexibility = "FLEXIBLE",  // 개발자 동료 - 성격 선택 가능
+                availablePersonalities = "FRIENDLY,STRICT,HUMOROUS",
+                defaultPersonality = "FRIENDLY"
             ),
             Scenario(
                 title = "日系 고객 미팅(요건정의)",
@@ -1928,7 +2132,10 @@ $FORMAT_RULES
                 """.trimIndent()),
                 slug = "client_requirements_meeting",
                 category = "WORK",
-                promptVersion = 1
+                promptVersion = 1,
+                flexibility = "FLEXIBLE",  // 클라이언트 - 성격 선택 가능
+                availablePersonalities = "FRIENDLY,STRICT,HUMOROUS",
+                defaultPersonality = "FRIENDLY"
             ),
             Scenario(
                 title = "사내 LT(라이트닝 토크)",
@@ -1947,7 +2154,10 @@ $FORMAT_RULES
                 """.trimIndent()),
                 slug = "lightning_talk",
                 category = "TECH",
-                promptVersion = 1
+                promptVersion = 1,
+                flexibility = "FLEXIBLE",  // 개발자 동료 - 성격 선택 가능
+                availablePersonalities = "FRIENDLY,STRICT,HUMOROUS",
+                defaultPersonality = "FRIENDLY"
             ),
 
             // 미국 주식/재테크 카테고리
@@ -1969,7 +2179,9 @@ $FORMAT_RULES
                 """.trimIndent()),
                 slug = "securities_foreign_stocks",
                 category = "FINANCE",
-                promptVersion = 1
+                promptVersion = 1,
+                flexibility = "FIXED",  // 증권사 직원 - 고정 역할
+                defaultPersonality = "FRIENDLY"
             ),
             Scenario(
                 title = "실적 발표 같이 보기",
@@ -1989,7 +2201,10 @@ $FORMAT_RULES
                 """.trimIndent()),
                 slug = "earnings_call_watch",
                 category = "FINANCE",
-                promptVersion = 1
+                promptVersion = 1,
+                flexibility = "FLEXIBLE",  // 투자 친구 - 성격 선택 가능
+                availablePersonalities = "FRIENDLY,STRICT,HUMOROUS",
+                defaultPersonality = "FRIENDLY"
             ),
             Scenario(
                 title = "ETF DCA 전략 토론",
@@ -2009,7 +2224,10 @@ $FORMAT_RULES
                 """.trimIndent()),
                 slug = "etf_dca_strategy",
                 category = "FINANCE",
-                promptVersion = 1
+                promptVersion = 1,
+                flexibility = "FLEXIBLE",  // 투자 친구 - 성격 선택 가능
+                availablePersonalities = "FRIENDLY,STRICT,HUMOROUS",
+                defaultPersonality = "FRIENDLY"
             ),
             Scenario(
                 title = "FOMC·CPI 쉽게 설명",
@@ -2029,7 +2247,10 @@ $FORMAT_RULES
                 """.trimIndent()),
                 slug = "fomc_cpi_explanation",
                 category = "FINANCE",
-                promptVersion = 1
+                promptVersion = 1,
+                flexibility = "FLEXIBLE",  // 투자 친구 - 성격 선택 가능
+                availablePersonalities = "FRIENDLY,STRICT,HUMOROUS",
+                defaultPersonality = "FRIENDLY"
             ),
 
             // A. 이주·정착 행정 카테고리
@@ -2051,7 +2272,9 @@ $FORMAT_RULES
                 """.trimIndent()),
                 slug = "ward_office_registration",
                 category = "DAILY_LIFE",
-                promptVersion = 1
+                promptVersion = 1,
+                flexibility = "FIXED",  // 구청 직원 - 고정 역할
+                defaultPersonality = "FRIENDLY"
             ),
             Scenario(
                 title = "사회보험(건강보험/연금) 가입",
@@ -2072,7 +2295,9 @@ $FORMAT_RULES
                 """.trimIndent()),
                 slug = "social_insurance_enrollment",
                 category = "WORK",
-                promptVersion = 1
+                promptVersion = 1,
+                flexibility = "FIXED",  // 보험 담당자 - 고정 역할
+                defaultPersonality = "FRIENDLY"
             ),
             Scenario(
                 title = "급여계좌 은행 개설",
@@ -2093,7 +2318,9 @@ $FORMAT_RULES
                 """.trimIndent()),
                 slug = "bank_account_opening",
                 category = "FINANCE",
-                promptVersion = 1
+                promptVersion = 1,
+                flexibility = "FIXED",  // 은행 직원 - 고정 역할
+                defaultPersonality = "FRIENDLY"
             ),
             Scenario(
                 title = "통신사 요금제 계약",
@@ -2114,7 +2341,9 @@ $FORMAT_RULES
                 """.trimIndent()),
                 slug = "mobile_plan_contract",
                 category = "DAILY_LIFE",
-                promptVersion = 1
+                promptVersion = 1,
+                flexibility = "FIXED",  // 통신사 직원 - 고정 역할
+                defaultPersonality = "FRIENDLY"
             ),
             Scenario(
                 title = "집 보기 & 임대 계약(보증회사)",
@@ -2135,7 +2364,9 @@ $FORMAT_RULES
                 """.trimIndent()),
                 slug = "apartment_rental_contract",
                 category = "HOUSING",
-                promptVersion = 1
+                promptVersion = 1,
+                flexibility = "FIXED",  // 부동산 직원 - 고정 역할
+                defaultPersonality = "FRIENDLY"
             ),
             Scenario(
                 title = "택배 재배달/부재표 대응",
@@ -2156,7 +2387,9 @@ $FORMAT_RULES
                 """.trimIndent()),
                 slug = "parcel_redelivery",
                 category = "DAILY_LIFE",
-                promptVersion = 1
+                promptVersion = 1,
+                flexibility = "FIXED",  // 택배 기사 - 고정 역할
+                defaultPersonality = "FRIENDLY"
             ),
             Scenario(
                 title = "동네 병원 초기 등록 & 검진 예약",
@@ -2177,7 +2410,9 @@ $FORMAT_RULES
                 """.trimIndent()),
                 slug = "clinic_initial_registration",
                 category = "HEALTH",
-                promptVersion = 1
+                promptVersion = 1,
+                flexibility = "FIXED",  // 병원 접수 - 고정 역할
+                defaultPersonality = "FRIENDLY"
             ),
 
             // B. 첫 출근·회사 생활 카테고리
@@ -2200,7 +2435,10 @@ $FORMAT_RULES
                 """.trimIndent()),
                 slug = "first_day_orientation",
                 category = "WORK",
-                promptVersion = 1
+                promptVersion = 1,
+                flexibility = "FLEXIBLE",  // 회사 선배 - 성격 선택 가능
+                availablePersonalities = "FRIENDLY,STRICT,HUMOROUS",
+                defaultPersonality = "FRIENDLY"
             ),
             Scenario(
                 title = "아침 데일리 스탠드업",
@@ -2220,7 +2458,10 @@ $FORMAT_RULES
                 """.trimIndent()),
                 slug = "daily_standup",
                 category = "WORK",
-                promptVersion = 1
+                promptVersion = 1,
+                flexibility = "FLEXIBLE",  // 팀원 - 성격 선택 가능
+                availablePersonalities = "FRIENDLY,STRICT,HUMOROUS",
+                defaultPersonality = "FRIENDLY"
             ),
             Scenario(
                 title = "일본식 비즈니스 메일 매너",
@@ -2241,7 +2482,10 @@ $FORMAT_RULES
                 """.trimIndent()),
                 slug = "business_email_etiquette",
                 category = "WORK",
-                promptVersion = 1
+                promptVersion = 1,
+                flexibility = "FLEXIBLE",  // 회사 선배 - 성격 선택 가능
+                availablePersonalities = "FRIENDLY,STRICT,HUMOROUS",
+                defaultPersonality = "FRIENDLY"
             ),
             Scenario(
                 title = "코드리뷰 요청하기(겸양)",
@@ -2262,7 +2506,10 @@ $FORMAT_RULES
                 """.trimIndent()),
                 slug = "code_review_request",
                 category = "TECH",
-                promptVersion = 1
+                promptVersion = 1,
+                flexibility = "FLEXIBLE",  // 개발자 동료 - 성격 선택 가능
+                availablePersonalities = "FRIENDLY,STRICT,HUMOROUS",
+                defaultPersonality = "FRIENDLY"
             ),
             Scenario(
                 title = "견적·일정 협의(스코프 조정)",
@@ -2283,7 +2530,10 @@ $FORMAT_RULES
                 """.trimIndent()),
                 slug = "estimation_negotiation",
                 category = "WORK",
-                promptVersion = 1
+                promptVersion = 1,
+                flexibility = "FLEXIBLE",  // 프로젝트 매니저 - 성격 선택 가능
+                availablePersonalities = "FRIENDLY,STRICT,HUMOROUS",
+                defaultPersonality = "FRIENDLY"
             ),
             Scenario(
                 title = "잔업·36협정·근무시간 합의",
@@ -2304,7 +2554,10 @@ $FORMAT_RULES
                 """.trimIndent()),
                 slug = "overtime_agreement",
                 category = "WORK",
-                promptVersion = 1
+                promptVersion = 1,
+                flexibility = "FLEXIBLE",  // 팀 리더 - 성격 선택 가능
+                availablePersonalities = "FRIENDLY,STRICT,HUMOROUS",
+                defaultPersonality = "FRIENDLY"
             ),
             Scenario(
                 title = "유급휴가 신청 & 인수인계",
@@ -2325,7 +2578,10 @@ $FORMAT_RULES
                 """.trimIndent()),
                 slug = "paid_leave_handover",
                 category = "WORK",
-                promptVersion = 1
+                promptVersion = 1,
+                flexibility = "FLEXIBLE",  // 팀원 - 성격 선택 가능
+                availablePersonalities = "FRIENDLY,STRICT,HUMOROUS",
+                defaultPersonality = "FRIENDLY"
             ),
             Scenario(
                 title = "경비 정산(영수증/교통비)",
@@ -2346,7 +2602,10 @@ $FORMAT_RULES
                 """.trimIndent()),
                 slug = "expense_reimbursement",
                 category = "WORK",
-                promptVersion = 1
+                promptVersion = 1,
+                flexibility = "FLEXIBLE",  // 경리팀 - 성격 선택 가능
+                availablePersonalities = "FRIENDLY,STRICT,HUMOROUS",
+                defaultPersonality = "FRIENDLY"
             ),
 
             // C. 금융·세금·생활 유지 카테고리
@@ -2369,7 +2628,9 @@ $FORMAT_RULES
                 """.trimIndent()),
                 slug = "commuter_pass",
                 category = "DAILY_LIFE",
-                promptVersion = 1
+                promptVersion = 1,
+                flexibility = "FIXED",  // 역 직원 - 고정 역할
+                defaultPersonality = "FRIENDLY"
             ),
             Scenario(
                 title = "월세 자동이체 설정(계좌이체)",
@@ -2390,7 +2651,9 @@ $FORMAT_RULES
                 """.trimIndent()),
                 slug = "rent_auto_transfer",
                 category = "HOUSING",
-                promptVersion = 1
+                promptVersion = 1,
+                flexibility = "FIXED",  // 은행 직원 - 고정 역할
+                defaultPersonality = "FRIENDLY"
             ),
             Scenario(
                 title = "연말정산 서류 제출(年末調整)",
@@ -2411,7 +2674,9 @@ $FORMAT_RULES
                 """.trimIndent()),
                 slug = "year_end_tax_adjustment",
                 category = "FINANCE",
-                promptVersion = 1
+                promptVersion = 1,
+                flexibility = "FIXED",  // 회사 인사팀 - 고정 역할
+                defaultPersonality = "FRIENDLY"
             ),
 
             // D. 문화·네트워킹·비상 카테고리
@@ -2434,7 +2699,10 @@ $FORMAT_RULES
                 """.trimIndent()),
                 slug = "tech_meetup_networking",
                 category = "TECH",
-                promptVersion = 1
+                promptVersion = 1,
+                flexibility = "FLEXIBLE",  // 개발자 친구 - 성격 선택 가능
+                availablePersonalities = "FRIENDLY,STRICT,HUMOROUS",
+                defaultPersonality = "FRIENDLY"
             ),
             Scenario(
                 title = "지진 대비·대피 안내",
@@ -2455,7 +2723,9 @@ $FORMAT_RULES
                 """.trimIndent()),
                 slug = "earthquake_evacuation",
                 category = "DAILY_LIFE",
-                promptVersion = 1
+                promptVersion = 1,
+                flexibility = "FIXED",  // 피난소 담당자 - 고정 역할
+                defaultPersonality = "FRIENDLY"
             ),
 
             // J-POP 팬 활동 카테고리 (King Gnu/米津玄師/ヨルシカ)
@@ -2478,7 +2748,9 @@ $FORMAT_RULES
                 """.trimIndent()),
                 slug = "jpop_ticket_lottery",
                 category = "ENTERTAINMENT",
-                promptVersion = 1
+                promptVersion = 1,
+                flexibility = "FIXED",  // 티켓 업체 - 고정 역할
+                defaultPersonality = "FRIENDLY"
             ),
             Scenario(
                 title = "라이브 세트리스트 예측 회의",
@@ -2499,7 +2771,10 @@ $FORMAT_RULES
                 """.trimIndent()),
                 slug = "setlist_prediction",
                 category = "ENTERTAINMENT",
-                promptVersion = 1
+                promptVersion = 1,
+                flexibility = "FLEXIBLE",  // J-pop 팬 친구 - 성격 선택 가능
+                availablePersonalities = "FRIENDLY,STRICT,HUMOROUS",
+                defaultPersonality = "FRIENDLY"
             ),
             Scenario(
                 title = "가사 해석 모임(스포 금지)",
@@ -2520,7 +2795,10 @@ $FORMAT_RULES
                 """.trimIndent()),
                 slug = "lyrics_interpretation",
                 category = "ENTERTAINMENT",
-                promptVersion = 1
+                promptVersion = 1,
+                flexibility = "FLEXIBLE",  // J-pop 팬 친구 - 성격 선택 가능
+                availablePersonalities = "FRIENDLY,STRICT,HUMOROUS",
+                defaultPersonality = "FRIENDLY"
             ),
             Scenario(
                 title = "MV 로케지(성지) 순례 플래닝",
@@ -2541,7 +2819,10 @@ $FORMAT_RULES
                 """.trimIndent()),
                 slug = "mv_location_pilgrimage",
                 category = "ENTERTAINMENT",
-                promptVersion = 1
+                promptVersion = 1,
+                flexibility = "FLEXIBLE",  // J-pop 팬 친구 - 성격 선택 가능
+                availablePersonalities = "FRIENDLY,STRICT,HUMOROUS",
+                defaultPersonality = "FRIENDLY"
             ),
             Scenario(
                 title = "노래방 키·하모니·애드립 맞추기",
@@ -2562,7 +2843,10 @@ $FORMAT_RULES
                 """.trimIndent()),
                 slug = "karaoke_harmony_practice",
                 category = "ENTERTAINMENT",
-                promptVersion = 1
+                promptVersion = 1,
+                flexibility = "FLEXIBLE",  // 노래방 친구 - 성격 선택 가능
+                availablePersonalities = "FRIENDLY,STRICT,HUMOROUS",
+                defaultPersonality = "FRIENDLY"
             ),
             Scenario(
                 title = "콜라보 루머 vs 공식 확인",
@@ -2583,7 +2867,10 @@ $FORMAT_RULES
                 """.trimIndent()),
                 slug = "collab_rumor_verification",
                 category = "ENTERTAINMENT",
-                promptVersion = 1
+                promptVersion = 1,
+                flexibility = "FLEXIBLE",  // J-pop 팬 친구 - 성격 선택 가능
+                availablePersonalities = "FRIENDLY,STRICT,HUMOROUS",
+                defaultPersonality = "FRIENDLY"
             ),
             Scenario(
                 title = "하이레조/LP 음원 비교 토론",
@@ -2604,7 +2891,10 @@ $FORMAT_RULES
                 """.trimIndent()),
                 slug = "hires_audio_comparison",
                 category = "CULTURE",
-                promptVersion = 1
+                promptVersion = 1,
+                flexibility = "FLEXIBLE",  // 오디오파일 친구 - 성격 선택 가능
+                availablePersonalities = "FRIENDLY,STRICT,HUMOROUS",
+                defaultPersonality = "FRIENDLY"
             ),
             Scenario(
                 title = "요루시카풍 '감상 일기' 공유",
@@ -2625,7 +2915,10 @@ $FORMAT_RULES
                 """.trimIndent()),
                 slug = "yorushika_listening_diary",
                 category = "ENTERTAINMENT",
-                promptVersion = 1
+                promptVersion = 1,
+                flexibility = "FLEXIBLE",  // ヨルシカ 팬 - 성격 선택 가능
+                availablePersonalities = "FRIENDLY,STRICT,HUMOROUS",
+                defaultPersonality = "FRIENDLY"
             ),
             Scenario(
                 title = "라이브 레포 작성 & 커뮤 매너",
@@ -2646,7 +2939,10 @@ $FORMAT_RULES
                 """.trimIndent()),
                 slug = "live_report_etiquette",
                 category = "ENTERTAINMENT",
-                promptVersion = 1
+                promptVersion = 1,
+                flexibility = "FLEXIBLE",  // 라이브 친구 - 성격 선택 가능
+                availablePersonalities = "FRIENDLY,STRICT,HUMOROUS",
+                defaultPersonality = "FRIENDLY"
             ),
 
             // 애니/드라마 카테고리
@@ -2669,7 +2965,10 @@ $FORMAT_RULES
                 """.trimIndent()),
                 slug = "chainsaw_man_discussion",
                 category = "ENTERTAINMENT",
-                promptVersion = 1
+                promptVersion = 1,
+                flexibility = "FLEXIBLE",  // 애니메이션 친구 - 성격 선택 가능
+                availablePersonalities = "FRIENDLY,STRICT,HUMOROUS",
+                defaultPersonality = "FRIENDLY"
             ),
             Scenario(
                 title = "귀멸 상영/전시 예매 & 특전 안내",
@@ -2690,7 +2989,9 @@ $FORMAT_RULES
                 """.trimIndent()),
                 slug = "demon_slayer_screening",
                 category = "ENTERTAINMENT",
-                promptVersion = 1
+                promptVersion = 1,
+                flexibility = "FIXED",  // 영화관 직원 - 고정 역할
+                defaultPersonality = "FRIENDLY"
             ),
             Scenario(
                 title = "원피스 입문 추천 아크 고르기",
@@ -2711,7 +3012,10 @@ $FORMAT_RULES
                 """.trimIndent()),
                 slug = "one_piece_beginner_guide",
                 category = "ENTERTAINMENT",
-                promptVersion = 1
+                promptVersion = 1,
+                flexibility = "FLEXIBLE",  // 원피스 팬 - 성격 선택 가능
+                availablePersonalities = "FRIENDLY,STRICT,HUMOROUS",
+                defaultPersonality = "FRIENDLY"
             ),
             Scenario(
                 title = "주술회전 콜라보 카페 에티켓",
@@ -2732,7 +3036,10 @@ $FORMAT_RULES
                 """.trimIndent()),
                 slug = "jujutsu_collab_cafe",
                 category = "ENTERTAINMENT",
-                promptVersion = 1
+                promptVersion = 1,
+                flexibility = "FLEXIBLE",  // 애니메이션 친구 - 성격 선택 가능
+                availablePersonalities = "FRIENDLY,STRICT,HUMOROUS",
+                defaultPersonality = "FRIENDLY"
             ),
             Scenario(
                 title = "만화책 초판/중고/전자 비교",
@@ -2753,7 +3060,9 @@ $FORMAT_RULES
                 """.trimIndent()),
                 slug = "manga_edition_comparison",
                 category = "ENTERTAINMENT",
-                promptVersion = 1
+                promptVersion = 1,
+                flexibility = "FIXED",  // 서점 직원 - 고정 역할
+                defaultPersonality = "FRIENDLY"
             ),
             Scenario(
                 title = "코스프레 행사 드레스코드",
@@ -2774,7 +3083,9 @@ $FORMAT_RULES
                 """.trimIndent()),
                 slug = "cosplay_event_rules",
                 category = "ENTERTAINMENT",
-                promptVersion = 1
+                promptVersion = 1,
+                flexibility = "FIXED",  // 코스프레 이벤트 스태프 - 고정 역할
+                defaultPersonality = "FRIENDLY"
             ),
             Scenario(
                 title = "피규어 예약/발송 일정 상담",
@@ -2795,7 +3106,9 @@ $FORMAT_RULES
                 """.trimIndent()),
                 slug = "figure_preorder_schedule",
                 category = "ENTERTAINMENT",
-                promptVersion = 1
+                promptVersion = 1,
+                flexibility = "FIXED",  // 피규어 샵 직원 - 고정 역할
+                defaultPersonality = "FRIENDLY"
             ),
             Scenario(
                 title = "OP/ED 노래방 공략(랩·고음 파트)",
@@ -2816,7 +3129,10 @@ $FORMAT_RULES
                 """.trimIndent()),
                 slug = "anime_op_karaoke_tips",
                 category = "ENTERTAINMENT",
-                promptVersion = 1
+                promptVersion = 1,
+                flexibility = "FLEXIBLE",  // 애니메이션 친구 - 성격 선택 가능
+                availablePersonalities = "FRIENDLY,STRICT,HUMOROUS",
+                defaultPersonality = "FRIENDLY"
             ),
             Scenario(
                 title = "'도망치는 건…' 연애·직장 현실 토크",
@@ -2837,7 +3153,10 @@ $FORMAT_RULES
                 """.trimIndent()),
                 slug = "nigeru_relationship_talk",
                 category = "ENTERTAINMENT",
-                promptVersion = 1
+                promptVersion = 1,
+                flexibility = "FLEXIBLE",  // 친구 - 성격 선택 가능
+                availablePersonalities = "FRIENDLY,STRICT,HUMOROUS",
+                defaultPersonality = "FRIENDLY"
             ),
 
             // ========== Phase 5단계 난이도 테스트 시나리오 (2025-11-12) ==========
@@ -2866,7 +3185,10 @@ $FORMAT_RULES
                 slug = "test_very_beginner_greetings",
                 category = "DAILY_CONVERSATION",
                 thumbnailEmoji = "👋",
-                promptVersion = 2
+                promptVersion = 2,
+                flexibility = "FLEXIBLE",  // 일본어 선생님 - 성격 선택 가능
+                availablePersonalities = "FRIENDLY,STRICT,HUMOROUS",
+                defaultPersonality = "FRIENDLY"
             ),
 
             Scenario(
@@ -2893,7 +3215,10 @@ $FORMAT_RULES
                 slug = "test_beginner_self_intro",
                 category = "DAILY_CONVERSATION",
                 thumbnailEmoji = "😊",
-                promptVersion = 2
+                promptVersion = 2,
+                flexibility = "FLEXIBLE",  // 일본어 선생님 - 성격 선택 가능
+                availablePersonalities = "FRIENDLY,STRICT,HUMOROUS",
+                defaultPersonality = "FRIENDLY"
             ),
 
             Scenario(
@@ -2914,7 +3239,10 @@ $FORMAT_RULES
                 slug = "test_intermediate_weekend_plan",
                 category = "DAILY_CONVERSATION",
                 thumbnailEmoji = "📅",
-                promptVersion = 1
+                promptVersion = 1,
+                flexibility = "FLEXIBLE",  // 일본인 친구 - 성격 선택 가능
+                availablePersonalities = "FRIENDLY,STRICT,HUMOROUS",
+                defaultPersonality = "FRIENDLY"
             ),
 
             Scenario(
@@ -2935,7 +3263,10 @@ $FORMAT_RULES
                 slug = "test_advanced_project_proposal",
                 category = "WORK",
                 thumbnailEmoji = "💼",
-                promptVersion = 1
+                promptVersion = 1,
+                flexibility = "FLEXIBLE",  // 비즈니스 동료 - 성격 선택 가능
+                availablePersonalities = "FRIENDLY,STRICT,HUMOROUS",
+                defaultPersonality = "FRIENDLY"
             ),
 
             Scenario(
@@ -2956,7 +3287,10 @@ $FORMAT_RULES
                 slug = "test_very_advanced_business_strategy",
                 category = "WORK",
                 thumbnailEmoji = "📈",
-                promptVersion = 1
+                promptVersion = 1,
+                flexibility = "FLEXIBLE",  // 비즈니스 임원 - 성격 선택 가능
+                availablePersonalities = "FRIENDLY,STRICT,HUMOROUS",
+                defaultPersonality = "FRIENDLY"
             )
 
     )

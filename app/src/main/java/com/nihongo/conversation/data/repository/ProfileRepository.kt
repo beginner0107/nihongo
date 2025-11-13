@@ -41,7 +41,8 @@ class ProfileRepository @Inject constructor(
         learningGoal: String,
         favoriteScenarios: List<Long>,
         nativeLanguage: String,
-        bio: String
+        bio: String,
+        preferredPersonality: String = "FRIENDLY"
     ): Long {
         val currentUser = getCurrentUserImmediate()
 
@@ -52,7 +53,8 @@ class ProfileRepository @Inject constructor(
                 learningGoal = learningGoal,
                 favoriteScenarios = favoriteScenarios.joinToString(","),
                 nativeLanguage = nativeLanguage,
-                bio = bio
+                bio = bio,
+                preferredPersonality = preferredPersonality
             )
         } else {
             User(
@@ -62,7 +64,8 @@ class ProfileRepository @Inject constructor(
                 learningGoal = learningGoal,
                 favoriteScenarios = favoriteScenarios.joinToString(","),
                 nativeLanguage = nativeLanguage,
-                bio = bio
+                bio = bio,
+                preferredPersonality = preferredPersonality
             )
         }
 

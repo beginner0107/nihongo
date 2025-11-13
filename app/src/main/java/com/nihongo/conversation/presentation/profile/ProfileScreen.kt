@@ -1,5 +1,6 @@
 package com.nihongo.conversation.presentation.profile
 
+import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.material.icons.Icons
@@ -178,6 +179,47 @@ fun ProfileScreen(
                     }
                 }
 
+                // AI Personality Section
+                item {
+                    ProfileSection(
+                        title = "AI 성격 선택",
+                        icon = Icons.Default.Psychology
+                    ) {
+                        Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
+                            Text(
+                                text = "대화할 AI의 성격을 선택하세요",
+                                style = MaterialTheme.typography.bodyMedium,
+                                color = MaterialTheme.colorScheme.onSurfaceVariant
+                            )
+
+                            // Personality options
+                            PersonalityOption(
+                                emoji = "😊",
+                                title = "친절한",
+                                description = "항상 격려하고 도와주는 따뜻한 선생님",
+                                isSelected = uiState.preferredPersonality == "FRIENDLY",
+                                onClick = { viewModel.updatePreferredPersonality("FRIENDLY") }
+                            )
+
+                            PersonalityOption(
+                                emoji = "👨‍🏫",
+                                title = "엄격한",
+                                description = "정확한 일본어를 가르치는 전문적인 교수님",
+                                isSelected = uiState.preferredPersonality == "STRICT",
+                                onClick = { viewModel.updatePreferredPersonality("STRICT") }
+                            )
+
+                            PersonalityOption(
+                                emoji = "😄",
+                                title = "유머러스한",
+                                description = "재미있고 유쾌한 일본인 친구",
+                                isSelected = uiState.preferredPersonality == "HUMOROUS",
+                                onClick = { viewModel.updatePreferredPersonality("HUMOROUS") }
+                            )
+                        }
+                    }
+                }
+
                 // Native Language Section
                 item {
                     ProfileSection(
@@ -228,6 +270,69 @@ fun ProfileScreen(
                         }
                     }
                 }
+            }
+        }
+    }
+}
+
+@Composable
+fun PersonalityOption(
+    emoji: String,
+    title: String,
+    description: String,
+    isSelected: Boolean,
+    onClick: () -> Unit
+) {
+    Card(
+        onClick = onClick,
+        modifier = Modifier.fillMaxWidth(),
+        colors = CardDefaults.cardColors(
+            containerColor = if (isSelected) {
+                MaterialTheme.colorScheme.primaryContainer
+            } else {
+                MaterialTheme.colorScheme.surface
+            }
+        ),
+        border = if (isSelected) {
+            BorderStroke(2.dp, MaterialTheme.colorScheme.primary)
+        } else {
+            BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant)
+        }
+    ) {
+        Row(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(16.dp),
+            horizontalArrangement = Arrangement.spacedBy(12.dp),
+            verticalAlignment = Alignment.CenterVertically
+        ) {
+            Text(
+                text = emoji,
+                style = MaterialTheme.typography.headlineMedium
+            )
+
+            Column(
+                modifier = Modifier.weight(1f),
+                verticalArrangement = Arrangement.spacedBy(4.dp)
+            ) {
+                Text(
+                    text = title,
+                    style = MaterialTheme.typography.titleMedium,
+                    fontWeight = FontWeight.Bold
+                )
+                Text(
+                    text = description,
+                    style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                )
+            }
+
+            if (isSelected) {
+                Icon(
+                    imageVector = Icons.Default.CheckCircle,
+                    contentDescription = "선택됨",
+                    tint = MaterialTheme.colorScheme.primary
+                )
             }
         }
     }

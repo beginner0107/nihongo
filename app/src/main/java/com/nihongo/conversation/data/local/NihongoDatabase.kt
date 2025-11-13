@@ -52,7 +52,7 @@ import com.nihongo.conversation.data.local.SavedMessageDao
     views = [
         ConversationStats::class
     ],
-    version = 18,  // Phase 5단계 난이도 세분화: difficulty 범위 1-3 → 1-5 확장
+    version = 20,  // 시나리오별 성격 유연성 추가
     exportSchema = false
 )
 abstract class NihongoDatabase : RoomDatabase() {
@@ -638,6 +638,32 @@ abstract class NihongoDatabase : RoomDatabase() {
                         ELSE difficulty
                     END
                 """.trimIndent())
+            }
+        }
+
+        val MIGRATION_18_19 = object : Migration(18, 19) {
+            override fun migrate(database: SupportSQLiteDatabase) {
+                // AI 성격 선택 기능 추가
+                // users 테이블에 preferredPersonality 컬럼 추가
+                database.execSQL(
+                    "ALTER TABLE users ADD COLUMN preferredPersonality TEXT NOT NULL DEFAULT 'FRIENDLY'"
+                )
+            }
+        }
+
+        val MIGRATION_19_20 = object : Migration(19, 20) {
+            override fun migrate(database: SupportSQLiteDatabase) {
+                // 시나리오별 성격 유연성 추가
+                // scenarios 테이블에 flexibility, availablePersonalities, defaultPersonality 컬럼 추가
+                database.execSQL(
+                    "ALTER TABLE scenarios ADD COLUMN flexibility TEXT NOT NULL DEFAULT 'FIXED'"
+                )
+                database.execSQL(
+                    "ALTER TABLE scenarios ADD COLUMN availablePersonalities TEXT"
+                )
+                database.execSQL(
+                    "ALTER TABLE scenarios ADD COLUMN defaultPersonality TEXT NOT NULL DEFAULT 'FRIENDLY'"
+                )
             }
         }
     }

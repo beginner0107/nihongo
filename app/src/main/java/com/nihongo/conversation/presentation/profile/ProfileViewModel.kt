@@ -17,6 +17,7 @@ data class ProfileUiState(
     val learningGoal: String = "",
     val nativeLanguage: String = "Korean",
     val bio: String = "",
+    val preferredPersonality: String = "FRIENDLY",  // AI 성격 선택
     val isLoading: Boolean = false,
     val isSaving: Boolean = false,
     val error: String? = null,
@@ -50,6 +51,7 @@ class ProfileViewModel @Inject constructor(
                                 learningGoal = user.learningGoal,
                                 nativeLanguage = user.nativeLanguage,
                                 bio = user.bio,
+                                preferredPersonality = user.preferredPersonality,
                                 isLoading = false
                             )
                         }
@@ -88,6 +90,10 @@ class ProfileViewModel @Inject constructor(
         _uiState.update { it.copy(bio = bio) }
     }
 
+    fun updatePreferredPersonality(personality: String) {
+        _uiState.update { it.copy(preferredPersonality = personality) }
+    }
+
     fun saveProfile() {
         viewModelScope.launch {
             _uiState.update { it.copy(isSaving = true, error = null, saveSuccess = false) }
@@ -116,7 +122,8 @@ class ProfileViewModel @Inject constructor(
                     learningGoal = state.learningGoal,
                     favoriteScenarios = currentFavorites,  // Keep existing favorites
                     nativeLanguage = state.nativeLanguage,
-                    bio = state.bio
+                    bio = state.bio,
+                    preferredPersonality = state.preferredPersonality
                 )
 
                 _uiState.update {

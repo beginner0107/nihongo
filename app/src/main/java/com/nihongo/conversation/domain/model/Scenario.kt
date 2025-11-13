@@ -30,5 +30,10 @@ data class Scenario(
     val hasBranching: Boolean = false,            // Whether this has multiple paths
     val replayValue: Int = 1,                     // 1-5 stars for replay value
     val thumbnailEmoji: String = "💬",            // Emoji for UI display
-    val isCustom: Boolean = false                 // Whether this is a user-created custom scenario (deletable)
+    val isCustom: Boolean = false,                // Whether this is a user-created custom scenario (deletable)
+
+    // AI 성격 유연성 설정
+    val flexibility: String = "FIXED",            // ScenarioFlexibility enum as string (FIXED/FLEXIBLE)
+    val availablePersonalities: String? = null,   // 쉼표로 구분된 PersonalityType 목록 (FLEXIBLE일 때만)
+    val defaultPersonality: String = "FRIENDLY"   // 기본 AI 성격
 )

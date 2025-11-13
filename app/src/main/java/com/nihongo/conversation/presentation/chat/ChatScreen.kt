@@ -15,10 +15,12 @@ import androidx.compose.animation.slideOutVertically
 import androidx.compose.foundation.ExperimentalFoundationApi
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.combinedClickable
+import androidx.compose.foundation.horizontalScroll
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.lazy.rememberLazyListState
+import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.KeyboardActions
 import androidx.compose.foundation.text.KeyboardOptions
@@ -256,6 +258,29 @@ fun ChatScreen(
                 .fillMaxSize()
                 .padding(padding)
         ) {
+            // Show personality selection for flexible scenarios
+            val scenario = uiState.scenario
+            if (scenario != null) {
+                val flexibility = com.nihongo.conversation.domain.model.ScenarioFlexibility.fromString(scenario.flexibility)
+                if (flexibility == com.nihongo.conversation.domain.model.ScenarioFlexibility.FLEXIBLE) {
+                    val availablePersonalities = scenario.availablePersonalities
+                        ?.split(",")
+                        ?.mapNotNull { it.trim().takeIf { it.isNotEmpty() } }
+                        ?: emptyList()
+
+                    if (availablePersonalities.isNotEmpty()) {
+                        PersonalitySelector(
+                            availablePersonalities = availablePersonalities,
+                            selectedPersonality = uiState.selectedPersonality
+                                ?: uiState.user?.preferredPersonality
+                                ?: scenario.defaultPersonality,
+                            onPersonalitySelected = { viewModel.updateSelectedPersonality(it) },
+                            modifier = Modifier.padding(horizontal = 16.dp, vertical = 8.dp)
+                        )
+                    }
+                }
+            }
+
             LazyColumn(
                 modifier = Modifier
                     .weight(1f)
@@ -1781,6 +1806,74 @@ fun VoiceLanguageToggle(
                 imageVector = Icons.Default.SwapHoriz,
                 contentDescription = "언어 전환",
                 modifier = Modifier.size(14.dp)
+            )
+        }
+    }
+}
+
+/**
+ * Personality selector for flexible scenarios
+ * Shows chips for available personality options
+ */
+@Composable
+fun PersonalitySelector(
+    availablePersonalities: List<String>,
+    selectedPersonality: String,
+    onPersonalitySelected: (String) -> Unit,
+    modifier: Modifier = Modifier
+) {
+    Card(
+        modifier = modifier.fillMaxWidth(),
+        elevation = CardDefaults.cardElevation(defaultElevation = 2.dp)
+    ) {
+        Column(
+            modifier = Modifier.padding(12.dp),
+            verticalArrangement = Arrangement.spacedBy(8.dp)
+        ) {
+            Text(
+                text = "AI 성격 선택",
+                style = MaterialTheme.typography.labelMedium,
+                color = MaterialTheme.colorScheme.onSurfaceVariant
+            )
+
+            Row(
+                horizontalArrangement = Arrangement.spacedBy(8.dp),
+                modifier = Modifier.horizontalScroll(rememberScrollState())
+            ) {
+                availablePersonalities.forEach { personalityString ->
+                    val personality = com.nihongo.conversation.domain.model.PersonalityType.fromString(personalityString)
+                    val isSelected = personalityString == selectedPersonality
+
+                    FilterChip(
+                        selected = isSelected,
+                        onClick = { onPersonalitySelected(personalityString) },
+                        label = {
+                            Row(
+                                horizontalArrangement = Arrangement.spacedBy(4.dp),
+                                verticalAlignment = Alignment.CenterVertically
+                            ) {
+                                Text(personality.emoji)
+                                Text(personality.displayName)
+                            }
+                        },
+                        leadingIcon = if (isSelected) {
+                            {
+                                Icon(
+                                    imageVector = Icons.Default.Check,
+                                    contentDescription = null,
+                                    modifier = Modifier.size(16.dp)
+                                )
+                            }
+                        } else null
+                    )
+                }
+            }
+
+            // Show description of selected personality
+            Text(
+                text = com.nihongo.conversation.domain.model.PersonalityType.fromString(selectedPersonality).description,
+                style = MaterialTheme.typography.bodySmall,
+                color = MaterialTheme.colorScheme.onSurfaceVariant
             )
         }
     }

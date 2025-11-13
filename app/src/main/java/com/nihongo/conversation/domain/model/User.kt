@@ -14,5 +14,6 @@ data class User(
     val nativeLanguage: String = "Korean",
     val bio: String = "", // Short self-introduction
     val studyStartDate: Long = System.currentTimeMillis(),
-    val createdAt: Long = System.currentTimeMillis()
+    val createdAt: Long = System.currentTimeMillis(),
+    val preferredPersonality: String = "FRIENDLY" // AI 성격: FRIENDLY, STRICT, HUMOROUS
 )

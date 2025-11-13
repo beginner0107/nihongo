@@ -43,11 +43,13 @@ object DatabaseModule {
                 NihongoDatabase.MIGRATION_14_15,  // Grammar feedback cache
                 NihongoDatabase.MIGRATION_15_16,  // Quest system
                 NihongoDatabase.MIGRATION_16_17,  // Phase 5: Message bookmarking
-                NihongoDatabase.MIGRATION_17_18   // Phase 5단계 난이도 세분화
+                NihongoDatabase.MIGRATION_17_18,  // Phase 5단계 난이도 세분화
+                NihongoDatabase.MIGRATION_18_19,  // AI 성격 선택 기능
+                NihongoDatabase.MIGRATION_19_20   // 시나리오별 성격 유연성
             )
             // All migrations provided - no destructive migration needed
             // This prevents user data loss in production
-            // Complete migration path: 1→2→3→4→5→6→7→8→9→10→11→12→13→14→15→16→17→18
+            // Complete migration path: 1→2→3→4→5→6→7→8→9→10→11→12→13→14→15→16→17→18→19→20
             .build()
     }
 
