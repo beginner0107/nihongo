@@ -45,6 +45,7 @@ import androidx.compose.ui.unit.sp
 import androidx.hilt.navigation.compose.hiltViewModel
 import com.nihongo.conversation.domain.model.Message
 import com.nihongo.conversation.R
+import com.nihongo.conversation.presentation.components.DifficultyBadge
 
 @OptIn(ExperimentalMaterial3Api::class, ExperimentalFoundationApi::class)
 @Composable
@@ -169,7 +170,7 @@ fun ChatScreen(
                                 )
                             }
 
-                            if (uiState.scenarioCategory != null && uiState.scenarioDifficulty != null) {
+                            if (uiState.scenarioCategory != null && uiState.scenarioDifficultyLevel != null) {
                                 Text(
                                     text = "·",
                                     style = MaterialTheme.typography.labelSmall,
@@ -177,28 +178,8 @@ fun ChatScreen(
                                 )
                             }
 
-                            uiState.scenarioDifficulty?.let { difficulty ->
-                                Surface(
-                                    color = when (difficulty) {
-                                        "초급" -> MaterialTheme.colorScheme.primaryContainer
-                                        "중급" -> MaterialTheme.colorScheme.tertiaryContainer
-                                        "고급" -> MaterialTheme.colorScheme.errorContainer
-                                        else -> MaterialTheme.colorScheme.surfaceVariant
-                                    },
-                                    shape = RoundedCornerShape(4.dp)
-                                ) {
-                                    Text(
-                                        text = difficulty,
-                                        style = MaterialTheme.typography.labelSmall,
-                                        modifier = Modifier.padding(horizontal = 6.dp, vertical = 2.dp),
-                                        color = when (difficulty) {
-                                            "초급" -> MaterialTheme.colorScheme.onPrimaryContainer
-                                            "중급" -> MaterialTheme.colorScheme.onTertiaryContainer
-                                            "고급" -> MaterialTheme.colorScheme.onErrorContainer
-                                            else -> MaterialTheme.colorScheme.onSurfaceVariant
-                                        }
-                                    )
-                                }
+                            uiState.scenarioDifficultyLevel?.let { difficultyLevel ->
+                                DifficultyBadge(difficulty = difficultyLevel)
                             }
                         }
                     }

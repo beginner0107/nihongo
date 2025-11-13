@@ -196,7 +196,112 @@ Refactor [컴포넌트]:
 
 ## 🆕 최근 업데이트 (2025-11)
 
-### 시나리오 관리 UI/UX 대폭 개선 (2025-11-02) ⭐ **NEW**
+### 난이도 표시 불일치 버그 수정 (2025-11-13) ⭐ **NEW**
+**DifficultyBadge 컴포넌트 통일로 일관성 확보**
+
+#### 문제 발견
+- **증상**: "레스토랑 주문" 시나리오가 목록에서는 "입문", 채팅 화면에서는 "초급"으로 표시됨
+- **사용자 혼란**: 동일 시나리오에 대해 화면마다 난이도가 다르게 보임
+
+#### 원인 분석
+**Phase 5 난이도 세분화 리팩토링 시 일부 코드 미갱신**:
+
+1. **데이터베이스 (ScenarioSeeds.kt)**:
+   - "레스토랑 주문" 시나리오: `difficulty = 1`
+
+2. **DifficultyBadge.kt (Phase 5 시스템 - 올바름)**:
+   ```kotlin
+   1 → 입문    // Introductory
+   2 → 초급    // Beginner
+   3 → 중급    // Intermediate
+   4 → 고급    // Advanced
+   5 → 최상급  // Expert
+   ```
+
+3. **ChatViewModel.kt (구 3단계 시스템 - 잘못됨)**:
+   ```kotlin
+   1 → 초급 ❌  // Should be 입문
+   2 → 중급 ❌  // Should be 초급
+   3 → 고급 ❌  // Should be 중급
+   ```
+
+4. **결과**:
+   - ScenarioListScreen → DifficultyBadge 사용 → "입문" 표시 ✅
+   - ChatScreen → ChatViewModel 하드코딩 → "초급" 표시 ❌
+
+#### 해결 방법
+**Option A: DifficultyBadge 컴포넌트 통일 (채택)**
+
+**변경 파일**:
+
+1. **ChatViewModel.kt**
+   ```kotlin
+   // Before
+   data class ChatUiState(
+       val scenarioDifficulty: String? = null,  // "초급", "중급", "고급"
+   )
+
+   fun initConversation() {
+       val difficultyLabel = when (scenario.difficulty) {
+           1 -> "초급"  // ❌ Wrong mapping
+           2 -> "중급"
+           3 -> "고급"
+           else -> "초급"
+       }
+       _uiState.update { it.copy(scenarioDifficulty = difficultyLabel) }
+   }
+
+   // After
+   data class ChatUiState(
+       val scenarioDifficultyLevel: Int? = null,  // 1-5 integer
+   )
+
+   fun initConversation() {
+       _uiState.update { it.copy(scenarioDifficultyLevel = scenario.difficulty) }
+   }
+   ```
+
+2. **ChatScreen.kt**
+   ```kotlin
+   // Before: Hardcoded difficulty badge (32 lines)
+   uiState.scenarioDifficulty?.let { difficulty ->
+       Surface(
+           color = when (difficulty) {
+               "초급" -> MaterialTheme.colorScheme.primaryContainer
+               "중급" -> MaterialTheme.colorScheme.tertiaryContainer
+               "고급" -> MaterialTheme.colorScheme.errorContainer
+               else -> MaterialTheme.colorScheme.surfaceVariant
+           }
+       ) {
+           Text(text = difficulty, ...)
+       }
+   }
+
+   // After: DifficultyBadge component (3 lines)
+   uiState.scenarioDifficultyLevel?.let { difficultyLevel ->
+       DifficultyBadge(difficulty = difficultyLevel)
+   }
+   ```
+
+#### 효과
+- ✅ **일관성**: 모든 화면에서 동일한 난이도 표시
+- ✅ **유지보수성**: DifficultyBadge.kt만 수정하면 전체 앱 반영
+- ✅ **코드 간결화**: ChatScreen 32줄 → 3줄 (90% 감소)
+- ✅ **버그 제거**: "레스토랑 주문" 목록/채팅 모두 "입문" 표시
+
+#### Single Source of Truth 확립
+**DifficultyBadge.kt를 난이도 표시의 유일한 진실**:
+- ScenarioListScreen ✅
+- ChatScreen ✅
+- ProfileScreen ✅
+- StatsScreen ✅
+- ReviewScreen ✅
+
+**향후 난이도 시스템 변경 시 DifficultyBadge.kt 하나만 수정하면 전체 앱 동기화**
+
+---
+
+### 시나리오 관리 UI/UX 대폭 개선 (2025-11-02)
 **검색, 필터, 모바일 최적화로 시나리오 탐색 경험 혁신**
 
 #### 배경

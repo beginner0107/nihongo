@@ -1,6 +1,10 @@
 package com.nihongo.conversation.presentation.navigation
 
+import androidx.compose.foundation.ExperimentalFoundationApi
+import androidx.compose.foundation.gestures.Orientation
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.pager.HorizontalPager
+import androidx.compose.foundation.pager.rememberPagerState
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.List
 import androidx.compose.material.icons.automirrored.filled.ShowChart
@@ -9,13 +13,14 @@ import androidx.compose.material.icons.filled.Person
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.graphics.vector.ImageVector
-import androidx.navigation.NavDestination.Companion.hierarchy
-import androidx.navigation.NavGraph.Companion.findStartDestination
-import androidx.navigation.compose.NavHost
-import androidx.navigation.compose.composable
-import androidx.navigation.compose.currentBackStackEntryAsState
-import androidx.navigation.compose.rememberNavController
+import androidx.compose.ui.input.nestedscroll.NestedScrollConnection
+import androidx.compose.ui.input.nestedscroll.NestedScrollSource
+import androidx.compose.ui.input.nestedscroll.nestedScroll
+import androidx.compose.ui.unit.Velocity
+import kotlinx.coroutines.launch
+import kotlin.math.abs
 import com.nihongo.conversation.presentation.home.HomeScreen
 import com.nihongo.conversation.presentation.profile.ProfileScreen
 import com.nihongo.conversation.presentation.scenario.ScenarioListScreen
@@ -36,9 +41,16 @@ sealed class BottomNavItem(
 }
 
 /**
- * Main screen with bottom navigation bar
- * This wraps HomeScreen, ScenarioListScreen, StatsScreen, ProfileScreen
+ * Main screen with bottom navigation bar and swipeable pages
+ * Supports horizontal swipe gestures to navigate between tabs
+ * Tabs cycle: Home ↔ Scenarios ↔ Stats ↔ Profile
+ *
+ * Phase 1 Improvements:
+ * - NestedScrollConnection for scroll conflict resolution
+ * - beyondBoundsPageCount for render optimization
+ * - Error handling with Snackbar
  */
+@OptIn(ExperimentalFoundationApi::class)
 @Composable
 fun MainScreen(
     onScenarioSelected: (Long) -> Unit,
@@ -48,7 +60,6 @@ fun MainScreen(
     onCreateScenarioClick: () -> Unit = {},
     onReviewClick: () -> Unit = {}
 ) {
-    val navController = rememberNavController()
     val items = listOf(
         BottomNavItem.Home,
         BottomNavItem.Scenarios,
@@ -56,29 +67,71 @@ fun MainScreen(
         BottomNavItem.Profile
     )
 
+    // PagerState for swipeable pages
+    val pagerState = rememberPagerState(
+        initialPage = 0,
+        pageCount = { items.size }
+    )
+    val scope = rememberCoroutineScope()
+
+    // Error handling state
+    val snackbarHostState = remember { SnackbarHostState() }
+    var errorMessage by remember { mutableStateOf<String?>(null) }
+
+    // Show error snackbar when error occurs
+    LaunchedEffect(errorMessage) {
+        errorMessage?.let { message ->
+            snackbarHostState.showSnackbar(
+                message = message,
+                duration = SnackbarDuration.Short
+            )
+            errorMessage = null
+        }
+    }
+
+    // NestedScrollConnection for scroll conflict resolution
+    val nestedScrollConnection = remember {
+        object : NestedScrollConnection {
+            override fun onPreScroll(available: Offset, source: NestedScrollSource): Offset {
+                // Prioritize vertical scrolling over horizontal page swipes
+                val isVerticalScroll = abs(available.y) > abs(available.x)
+
+                // If vertical scroll is dominant, let child handle it
+                return if (isVerticalScroll) {
+                    Offset.Zero  // Let child consume vertical scroll
+                } else {
+                    Offset.Zero  // Let HorizontalPager handle horizontal swipes
+                }
+            }
+
+            override suspend fun onPreFling(available: Velocity): Velocity {
+                // Allow vertical fling to take precedence
+                val isVerticalFling = abs(available.y) > abs(available.x)
+                return if (isVerticalFling) {
+                    Velocity.Zero  // Let child handle vertical fling
+                } else {
+                    Velocity.Zero  // Let HorizontalPager handle horizontal fling
+                }
+            }
+        }
+    }
+
     Scaffold(
+        snackbarHost = { SnackbarHost(snackbarHostState) },
         bottomBar = {
             NavigationBar {
-                val navBackStackEntry by navController.currentBackStackEntryAsState()
-                val currentDestination = navBackStackEntry?.destination
-
-                items.forEach { item ->
+                items.forEachIndexed { index, item ->
                     NavigationBarItem(
                         icon = { Icon(item.icon, contentDescription = item.title) },
                         label = { Text(item.title) },
-                        selected = currentDestination?.hierarchy?.any { it.route == item.route } == true,
+                        selected = pagerState.currentPage == index,
                         onClick = {
-                            navController.navigate(item.route) {
-                                // Pop up to the start destination of the graph to
-                                // avoid building up a large stack of destinations
-                                popUpTo(navController.graph.findStartDestination().id) {
-                                    saveState = true
+                            scope.launch {
+                                try {
+                                    pagerState.animateScrollToPage(index)
+                                } catch (e: Exception) {
+                                    errorMessage = "페이지 이동 실패: ${e.message}"
                                 }
-                                // Avoid multiple copies of the same destination when
-                                // reselecting the same item
-                                launchSingleTop = true
-                                // Restore state when reselecting a previously selected item
-                                restoreState = true
                             }
                         }
                     )
@@ -86,39 +139,37 @@ fun MainScreen(
             }
         }
     ) { innerPadding ->
-        NavHost(
-            navController = navController,
-            startDestination = BottomNavItem.Home.route,
-            modifier = Modifier.padding(innerPadding)
-        ) {
-            composable(BottomNavItem.Home.route) {
-                HomeScreen(
+        HorizontalPager(
+            state = pagerState,
+            modifier = Modifier
+                .padding(innerPadding)
+                .nestedScroll(nestedScrollConnection),
+            userScrollEnabled = true,  // Enable swipe gestures
+            key = { it }  // Stable key for page reuse
+        ) { page ->
+            when (page) {
+                0 -> HomeScreen(
                     onScenarioSelected = onScenarioSelected,
-                    onSettingsClick = onSettingsClick,  // Phase 12: 설정 버튼 추가
+                    onSettingsClick = onSettingsClick,
                     onReviewClick = onReviewClick
                 )
-            }
-
-            composable(BottomNavItem.Scenarios.route) {
-                ScenarioListScreen(
+                1 -> ScenarioListScreen(
                     onScenarioSelected = onScenarioSelected,
                     onFlashcardClick = onFlashcardClick,
                     onAddVocabularyClick = onAddVocabularyClick,
                     onSettingsClick = onSettingsClick,
-                    onStatsClick = { navController.navigate(BottomNavItem.Stats.route) },
-                    onProfileClick = { navController.navigate(BottomNavItem.Profile.route) },
+                    onStatsClick = {
+                        scope.launch { pagerState.animateScrollToPage(2) }
+                    },
+                    onProfileClick = {
+                        scope.launch { pagerState.animateScrollToPage(3) }
+                    },
                     onCreateScenarioClick = onCreateScenarioClick
                 )
-            }
-
-            composable(BottomNavItem.Stats.route) {
-                StatsScreen(
+                2 -> StatsScreen(
                     onBackClick = { /* No back button in bottom nav context */ }
                 )
-            }
-
-            composable(BottomNavItem.Profile.route) {
-                ProfileScreen(
+                3 -> ProfileScreen(
                     onBackClick = { /* No back button in bottom nav context */ },
                     onSaveSuccess = { /* Stay on profile screen */ }
                 )

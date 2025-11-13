@@ -66,7 +66,7 @@ data class ChatUiState(
     val error: String? = null,
     val scenario: Scenario? = null,
     val scenarioCategory: String? = null, // e.g., "🏠 일상 생활"
-    val scenarioDifficulty: String? = null, // e.g., "초급"
+    val scenarioDifficultyLevel: Int? = null, // Difficulty level (1-5)
     val isFavoriteScenario: Boolean = false, // Is current scenario favorited
     val user: User? = null,
     val autoSpeak: Boolean = true,
@@ -280,19 +280,11 @@ class ChatViewModel @Inject constructor(
                 // Get category label
                 val categoryLabel = getCategoryLabel(scenario.category)
 
-                // Get difficulty label
-                val difficultyLabel = when (scenario.difficulty) {
-                    1 -> "초급"
-                    2 -> "중급"
-                    3 -> "고급"
-                    else -> "초급"
-                }
-
                 _uiState.update {
                     it.copy(
                         scenario = scenario,
                         scenarioCategory = categoryLabel,
-                        scenarioDifficulty = difficultyLabel,
+                        scenarioDifficultyLevel = scenario.difficulty,
                         isFavoriteScenario = isFavorite,
                         user = user
                     )

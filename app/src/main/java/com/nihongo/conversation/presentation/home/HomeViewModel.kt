@@ -127,6 +127,11 @@ class HomeViewModel @Inject constructor(
             }
         }
     }
+
+    fun retry() {
+        _uiState.update { it.copy(isLoading = true, error = null) }
+        loadHomeData()
+    }
 }
 
 data class HomeUiState(
