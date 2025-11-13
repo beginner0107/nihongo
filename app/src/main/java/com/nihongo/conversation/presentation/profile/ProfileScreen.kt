@@ -228,23 +228,6 @@ fun ProfileScreen(
                         }
                     }
                 }
-
-                // Save button (bottom)
-                item {
-                    Button(
-                        onClick = { viewModel.saveProfile() },
-                        modifier = Modifier.fillMaxWidth(),
-                        enabled = !uiState.isSaving
-                    ) {
-                        Icon(
-                            imageVector = Icons.Default.Save,
-                            contentDescription = null,
-                            modifier = Modifier.size(20.dp)
-                        )
-                        Spacer(modifier = Modifier.width(8.dp))
-                        Text(if (uiState.isSaving) "저장 중..." else "저장하기")
-                    }
-                }
             }
         }
     }
