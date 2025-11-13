@@ -450,7 +450,9 @@ fun ChatScreen(
                     }
                 },
                 onStopRecording = viewModel::stopVoiceRecording,
-                onRequestHint = viewModel::requestHints
+                onRequestHint = viewModel::requestHints,
+                selectedVoiceLanguage = uiState.selectedVoiceLanguage,
+                onToggleVoiceLanguage = viewModel::toggleVoiceLanguage
             )
         }
 
@@ -1473,11 +1475,20 @@ fun MessageInput(
     voiceState: com.nihongo.conversation.core.voice.VoiceState,
     onStartRecording: () -> Unit,
     onStopRecording: () -> Unit,
-    onRequestHint: () -> Unit = {}
+    onRequestHint: () -> Unit = {},
+    selectedVoiceLanguage: com.nihongo.conversation.core.voice.VoiceLanguage = com.nihongo.conversation.core.voice.VoiceLanguage.JAPANESE,
+    onToggleVoiceLanguage: () -> Unit = {}
 ) {
     Column(
         modifier = Modifier.fillMaxWidth()
     ) {
+        // Voice language toggle button
+        VoiceLanguageToggle(
+            selectedLanguage = selectedVoiceLanguage,
+            onToggle = onToggleVoiceLanguage,
+            modifier = Modifier.padding(start = 8.dp, bottom = 4.dp)
+        )
+
         Row(
             modifier = Modifier
                 .fillMaxWidth()
@@ -1728,6 +1739,49 @@ fun GrammarFeedbackCard(feedback: com.nihongo.conversation.domain.model.GrammarF
                     fontStyle = FontStyle.Italic
                 )
             }
+        }
+    }
+}
+
+/**
+ * Voice Language Toggle Button
+ * Allows users to switch between Japanese and Korean voice input
+ */
+@Composable
+fun VoiceLanguageToggle(
+    selectedLanguage: com.nihongo.conversation.core.voice.VoiceLanguage,
+    onToggle: () -> Unit,
+    modifier: Modifier = Modifier
+) {
+    Surface(
+        modifier = modifier.clickable { onToggle() },
+        shape = MaterialTheme.shapes.small,
+        color = MaterialTheme.colorScheme.surfaceVariant
+    ) {
+        Row(
+            modifier = Modifier.padding(horizontal = 8.dp, vertical = 4.dp),
+            verticalAlignment = Alignment.CenterVertically,
+            horizontalArrangement = Arrangement.spacedBy(4.dp)
+        ) {
+            Icon(
+                imageVector = Icons.Default.Language,
+                contentDescription = null,
+                modifier = Modifier.size(16.dp)
+            )
+            Text(
+                text = when (selectedLanguage) {
+                    com.nihongo.conversation.core.voice.VoiceLanguage.JAPANESE -> "🎤 일본어"
+                    com.nihongo.conversation.core.voice.VoiceLanguage.KOREAN -> "🎤 한국어"
+                },
+                style = MaterialTheme.typography.labelMedium,
+                fontWeight = FontWeight.Bold,
+                color = MaterialTheme.colorScheme.primary
+            )
+            Icon(
+                imageVector = Icons.Default.SwapHoriz,
+                contentDescription = "언어 전환",
+                modifier = Modifier.size(14.dp)
+            )
         }
     }
 }
