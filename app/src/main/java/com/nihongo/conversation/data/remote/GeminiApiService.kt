@@ -27,9 +27,9 @@ class GeminiApiService @Inject constructor(
     private val memoryManager: com.nihongo.conversation.core.memory.MemoryManager  // Phase 6A
 ) {
 
-    // Request options with 10 second timeout
+    // Request options with 15 second timeout (increased from 10s for better stability)
     private val requestOptions = RequestOptions(
-        timeout = 10.seconds
+        timeout = 15.seconds
     )
 
     private val apiKey = BuildConfig.GEMINI_API_KEY
