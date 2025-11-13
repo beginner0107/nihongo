@@ -13,6 +13,7 @@ import androidx.compose.animation.fadeIn
 import androidx.compose.animation.fadeOut
 import androidx.compose.animation.slideInVertically
 import androidx.compose.animation.slideOutVertically
+import androidx.compose.animation.AnimatedContent
 import androidx.compose.foundation.ExperimentalFoundationApi
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.combinedClickable
@@ -33,6 +34,8 @@ import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.rotate
+import androidx.compose.foundation.background
+import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalClipboardManager
@@ -1497,35 +1500,76 @@ fun MessageInput(
     onShowLanguageSheet: () -> Unit = {}
 ) {
     Column(
-        modifier = Modifier.fillMaxWidth()
+        modifier = Modifier
+            .fillMaxWidth()
+            .padding(horizontal = 8.dp, vertical = 4.dp)
     ) {
+        // Top row: Language selection and hint (secondary functions)
         Row(
             modifier = Modifier
                 .fillMaxWidth()
-                .padding(8.dp),
-            verticalAlignment = Alignment.CenterVertically,
+                .padding(bottom = 4.dp),
             horizontalArrangement = Arrangement.spacedBy(8.dp)
         ) {
-            // Language selection button (independent)
-            IconButton(
+            // Language selection chip
+            AssistChip(
                 onClick = onShowLanguageSheet,
-                modifier = Modifier.size(48.dp)
-            ) {
-                Text(
-                    text = when (selectedVoiceLanguage) {
-                        com.nihongo.conversation.core.voice.VoiceLanguage.JAPANESE -> "🇯🇵"
-                        com.nihongo.conversation.core.voice.VoiceLanguage.KOREAN -> "🇰🇷"
-                    },
-                    fontSize = 24.sp
-                )
-            }
+                label = {
+                    Row(verticalAlignment = Alignment.CenterVertically) {
+                        Text(
+                            text = when (selectedVoiceLanguage) {
+                                com.nihongo.conversation.core.voice.VoiceLanguage.JAPANESE -> "🇯🇵"
+                                com.nihongo.conversation.core.voice.VoiceLanguage.KOREAN -> "🇰🇷"
+                            },
+                            fontSize = 16.sp
+                        )
+                        Spacer(Modifier.width(4.dp))
+                        Text(
+                            text = when (selectedVoiceLanguage) {
+                                com.nihongo.conversation.core.voice.VoiceLanguage.JAPANESE -> "일본어"
+                                com.nihongo.conversation.core.voice.VoiceLanguage.KOREAN -> "한국어"
+                            },
+                            fontSize = 13.sp
+                        )
+                        Icon(
+                            imageVector = Icons.Default.ArrowDropDown,
+                            contentDescription = null,
+                            modifier = Modifier.size(18.dp)
+                        )
+                    }
+                }
+            )
 
-            // Text input
+            // Hint button
+            AssistChip(
+                onClick = onRequestHint,
+                enabled = enabled,
+                label = {
+                    Row(verticalAlignment = Alignment.CenterVertically) {
+                        Icon(
+                            imageVector = Icons.Default.Lightbulb,
+                            contentDescription = null,
+                            modifier = Modifier.size(16.dp)
+                        )
+                        Spacer(Modifier.width(4.dp))
+                        Text("힌트", fontSize = 13.sp)
+                    }
+                }
+            )
+        }
+
+        // Main input row: Input field + dynamic button (mic/send)
+        Row(
+            modifier = Modifier.fillMaxWidth(),
+            verticalAlignment = Alignment.Bottom,
+            horizontalArrangement = Arrangement.spacedBy(8.dp)
+        ) {
+            // Text input (takes most of the width)
             OutlinedTextField(
                 value = text,
                 onValueChange = onTextChange,
                 modifier = Modifier.weight(1f),
-                placeholder = { Text("일본어 또는 한국어로 입력하세요 💬") },
+                placeholder = { Text("메시지 입력...") },
                 enabled = enabled,
                 maxLines = 4,
                 keyboardOptions = KeyboardOptions(imeAction = ImeAction.Send),
@@ -1538,32 +1582,76 @@ fun MessageInput(
                 )
             )
 
-            // Hint button
-            IconButton(
-                onClick = onRequestHint,
-                enabled = enabled,
-                modifier = Modifier.size(48.dp)
-            ) {
-                Icon(
-                    imageVector = Icons.Default.Lightbulb,
-                    contentDescription = "힌트",
-                    modifier = Modifier.size(24.dp)
-                )
-            }
-
-            // Voice button (simplified - no badge)
-            VoiceInputButton(
-                onStartRecording = onStartRecording,
-                onStopRecording = onStopRecording,
-                voiceState = voiceState
-            )
-
-            // Send button
-            Button(
-                onClick = onSend,
-                enabled = enabled && text.isNotBlank()
-            ) {
-                Text("전송")
+            // Dynamic button: Mic when no text, Send when text exists
+            AnimatedContent(
+                targetState = text.isNotBlank(),
+                label = "send-mic-toggle"
+            ) { hasText ->
+                if (hasText) {
+                    // Send button
+                    IconButton(
+                        onClick = onSend,
+                        enabled = enabled,
+                        modifier = Modifier.size(48.dp)
+                    ) {
+                        Icon(
+                            imageVector = Icons.Default.Send,
+                            contentDescription = "전송",
+                            tint = MaterialTheme.colorScheme.primary,
+                            modifier = Modifier.size(24.dp)
+                        )
+                    }
+                } else {
+                    // Voice recording button
+                    IconButton(
+                        onClick = {
+                            when (voiceState) {
+                                is com.nihongo.conversation.core.voice.VoiceState.Listening -> onStopRecording()
+                                else -> onStartRecording()
+                            }
+                        },
+                        enabled = enabled,
+                        modifier = Modifier
+                            .size(48.dp)
+                            .then(
+                                if (voiceState is com.nihongo.conversation.core.voice.VoiceState.Listening) {
+                                    Modifier.background(
+                                        color = MaterialTheme.colorScheme.error.copy(alpha = 0.1f),
+                                        shape = CircleShape
+                                    )
+                                } else Modifier
+                            )
+                    ) {
+                        Icon(
+                            imageVector = when (voiceState) {
+                                is com.nihongo.conversation.core.voice.VoiceState.Listening -> Icons.Default.Stop
+                                is com.nihongo.conversation.core.voice.VoiceState.Processing -> Icons.Default.Sync
+                                else -> Icons.Default.Mic
+                            },
+                            contentDescription = if (voiceState is com.nihongo.conversation.core.voice.VoiceState.Listening) "녹음 중지" else "음성 입력",
+                            tint = when (voiceState) {
+                                is com.nihongo.conversation.core.voice.VoiceState.Listening -> MaterialTheme.colorScheme.error
+                                else -> MaterialTheme.colorScheme.onSurfaceVariant
+                            },
+                            modifier = when (voiceState) {
+                                is com.nihongo.conversation.core.voice.VoiceState.Processing -> {
+                                    val infiniteTransition = rememberInfiniteTransition(label = "processing")
+                                    val rotation by infiniteTransition.animateFloat(
+                                        initialValue = 0f,
+                                        targetValue = 360f,
+                                        animationSpec = infiniteRepeatable(
+                                            animation = tween(1000, easing = LinearEasing),
+                                            repeatMode = RepeatMode.Restart
+                                        ),
+                                        label = "rotation"
+                                    )
+                                    Modifier.size(24.dp).rotate(rotation)
+                                }
+                                else -> Modifier.size(24.dp)
+                            }
+                        )
+                    }
+                }
             }
         }
     }
@@ -1769,6 +1857,9 @@ fun GrammarFeedbackCard(feedback: com.nihongo.conversation.domain.model.GrammarF
  * Voice Input Button (Simplified)
  * Simple mic button without language badge
  */
+// VoiceInputButton is no longer used - integrated into MessageInput with AnimatedContent
+// Kept for reference in case needed later
+/*
 @Composable
 fun VoiceInputButton(
     onStartRecording: () -> Unit,
@@ -1811,6 +1902,7 @@ fun VoiceInputButton(
         }
     }
 }
+*/
 
 @Composable
 private fun infiniteAnimation(): Float {
