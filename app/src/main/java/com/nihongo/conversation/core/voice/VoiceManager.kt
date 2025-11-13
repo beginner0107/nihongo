@@ -19,6 +19,14 @@ import javax.inject.Inject
 import javax.inject.Singleton
 
 /**
+ * Supported languages for voice recognition
+ */
+enum class VoiceLanguage(val locale: String, val displayName: String) {
+    JAPANESE("ja-JP", "日本語"),
+    KOREAN("ko-KR", "한국어")
+}
+
+/**
  * Unified voice state for both engine and UI
  * Covers the complete lifecycle of voice interaction
  */
@@ -144,7 +152,7 @@ class VoiceManager @Inject constructor(
         }
     }
 
-    fun startListening() {
+    fun startListening(language: VoiceLanguage = VoiceLanguage.JAPANESE) {
         if (!SpeechRecognizer.isRecognitionAvailable(context)) {
             _events.trySend(VoiceEvent.Error("音声認識が利用できません"))
             return
@@ -203,9 +211,9 @@ class VoiceManager @Inject constructor(
 
         val intent = Intent(RecognizerIntent.ACTION_RECOGNIZE_SPEECH).apply {
             putExtra(RecognizerIntent.EXTRA_LANGUAGE_MODEL, RecognizerIntent.LANGUAGE_MODEL_FREE_FORM)
-            putExtra(RecognizerIntent.EXTRA_LANGUAGE, "ja-JP")
-            putExtra(RecognizerIntent.EXTRA_LANGUAGE_PREFERENCE, "ja-JP")
-            putExtra(RecognizerIntent.EXTRA_ONLY_RETURN_LANGUAGE_PREFERENCE, "ja-JP")
+            putExtra(RecognizerIntent.EXTRA_LANGUAGE, language.locale)
+            putExtra(RecognizerIntent.EXTRA_LANGUAGE_PREFERENCE, language.locale)
+            putExtra(RecognizerIntent.EXTRA_ONLY_RETURN_LANGUAGE_PREFERENCE, language.locale)
             putExtra(RecognizerIntent.EXTRA_PARTIAL_RESULTS, false)
         }
 
