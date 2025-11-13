@@ -34,6 +34,7 @@ class SettingsDataStore @Inject constructor(
         val IS_FIRST_LAUNCH = booleanPreferencesKey("is_first_launch")
         val SHOW_FURIGANA = booleanPreferencesKey("show_furigana")
         val FURIGANA_TYPE = stringPreferencesKey("furigana_type")
+        val ENABLE_VOICE_RECORDING = booleanPreferencesKey("enable_voice_recording")
     }
 
     val userSettings: Flow<UserSettings> = context.dataStore.data
@@ -71,7 +72,8 @@ class SettingsDataStore @Inject constructor(
                 furiganaType = preferences[PreferencesKeys.FURIGANA_TYPE]?.let {
                     try { FuriganaType.valueOf(it) }
                     catch (e: Exception) { FuriganaType.HIRAGANA }
-                } ?: FuriganaType.HIRAGANA
+                } ?: FuriganaType.HIRAGANA,
+                enableVoiceRecording = preferences[PreferencesKeys.ENABLE_VOICE_RECORDING] ?: true
             )
         }
 
@@ -147,6 +149,12 @@ class SettingsDataStore @Inject constructor(
     suspend fun updateFuriganaType(type: FuriganaType) {
         context.dataStore.edit { preferences ->
             preferences[PreferencesKeys.FURIGANA_TYPE] = type.name
+        }
+    }
+
+    suspend fun updateEnableVoiceRecording(enabled: Boolean) {
+        context.dataStore.edit { preferences ->
+            preferences[PreferencesKeys.ENABLE_VOICE_RECORDING] = enabled
         }
     }
 }
