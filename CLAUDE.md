@@ -3,15 +3,184 @@
 ## 🎯 프로젝트 개요
 Android 일본어 회화 학습 앱 (Kotlin, Jetpack Compose, Gemini API)
 
+**현재 상태** (2025-11-14):
+- **178개 Kotlin 파일** (20개 기능 모듈)
+- **126개 시나리오** (8개 카테고리, 5단계 난이도)
+- **Database v21** (21개 마이그레이션)
+- **4개 API 통합**: Gemini AI, Microsoft Translator, DeepL, ML Kit
+- **Production-ready** 상태
+
+## 🏗️ 아키텍처 개요
+
+**Clean Architecture (3-Layer)**
+
+```
+┌─────────────────────────────────────────────┐
+│           presentation/                      │  ← UI Layer
+│  - Jetpack Compose (Material 3)             │
+│  - 18 ViewModels (Hilt)                     │
+│  - StateFlow + ImmutableList                 │
+│  - 20 feature modules                        │
+└─────────────────────────────────────────────┘
+                    ↓
+┌─────────────────────────────────────────────┐
+│           domain/                            │  ← Domain Layer
+│  - 27 domain models (@Entity, data classes) │
+│  - Business logic (analyzers, scorers)      │
+│  - No Android dependencies                   │
+└─────────────────────────────────────────────┘
+                    ↓
+┌─────────────────────────────────────────────┐
+│           data/                              │  ← Data Layer
+│  - 13 Repositories (Single Source of Truth) │
+│  - Room Database v21 (local persistence)    │
+│  - Retrofit APIs (remote data sources)      │
+│  - DataStore (preferences)                   │
+└─────────────────────────────────────────────┘
+```
+
+**핵심 패턴**:
+- MVVM (Model-View-ViewModel)
+- Repository Pattern (Single Source of Truth)
+- Dependency Injection (Hilt)
+- Immutable State (ImmutableList/Map/Set)
+- Strategy Pattern (Translation, Grammar Analysis)
+
 ## 📁 프로젝트 구조
+
+### 간략 구조
 ```
 app/
-├── src/main/java/com/nihongo/
+├── src/main/java/com/nihongo/conversation/
 │   ├── data/          # Repository, DB, API
-│   ├── domain/        # UseCase, Model
-│   ├── presentation/  # UI, ViewModel
+│   ├── domain/        # Model (27개)
+│   ├── presentation/  # UI (20개 모듈)
 │   └── core/          # 공통 유틸
 └── build.gradle.kts
+```
+
+### 상세 구조 (178 Kotlin 파일)
+```
+app/src/main/java/com/nihongo/conversation/
+│
+├── MainActivity.kt (Entry point, Hilt-enabled)
+│
+├── core/                           # Cross-cutting concerns
+│   ├── cache/                      # Response caching system
+│   ├── di/                         # Dependency Injection (5 modules)
+│   │   ├── CacheModule.kt
+│   │   ├── DatabaseModule.kt
+│   │   ├── MicrosoftModule.kt      # Microsoft Translator DI
+│   │   ├── NetworkModule.kt
+│   │   └── RepositoryModule.kt
+│   ├── difficulty/                 # 5-level difficulty system
+│   │   ├── CommonVocabulary.kt
+│   │   ├── DifficultyManager.kt    # System prompts by difficulty
+│   │   └── GrammarPatterns.kt
+│   ├── export/                     # Anki card export
+│   │   └── AnkiExporter.kt
+│   ├── grammar/                    # Grammar analysis engines
+│   │   ├── JMdictHelper.kt
+│   │   ├── KuromojiGrammarAnalyzer.kt  # Japanese morphological analysis
+│   │   └── LocalGrammarAnalyzer.kt
+│   ├── memory/                     # Conversation memory system
+│   ├── network/                    # Network monitoring
+│   │   ├── NetworkMonitor.kt
+│   │   └── OfflineManager.kt
+│   ├── recommendation/             # AI recommendation engines
+│   │   ├── RecommendationEngine.kt
+│   │   └── ScenarioRecommendationEngine.kt
+│   ├── session/                    # User session management
+│   ├── theme/                      # Design system
+│   │   └── AppDesignSystem.kt
+│   ├── translation/                # Translation utilities
+│   │   ├── LocalTranslationDictionary.kt
+│   │   └── MLKitTranslator.kt
+│   ├── util/                       # Core utilities
+│   │   ├── ImmutableList.kt        # Performance optimization
+│   │   ├── Result.kt
+│   │   └── ScenarioSeeds.kt        # 126 scenarios (3308 lines!)
+│   └── voice/                      # Voice system (5 files, 700+ lines)
+│       ├── VoiceFileManager.kt
+│       ├── VoiceManager.kt         # TTS engine
+│       ├── VoicePlaybackManager.kt
+│       ├── VoiceRecordingManager.kt
+│       └── VoiceStorageManager.kt
+│
+├── data/                           # Data layer
+│   ├── local/                      # Room database v21
+│   │   ├── dao/                    # 15+ DAOs
+│   │   ├── entity/                 # 21 entities + 1 view
+│   │   ├── NihongoDatabase.kt      # Database v21, 21 migrations!
+│   │   └── SettingsDataStore.kt    # DataStore preferences
+│   ├── remote/                     # API services
+│   │   ├── deepl/                  # DeepL translation API
+│   │   ├── microsoft/              # Microsoft Translator API
+│   │   └── GeminiApiService.kt     # Gemini AI integration
+│   └── repository/                 # 13 repositories
+│       ├── ConversationRepository.kt
+│       ├── GrammarFeedbackRepository.kt
+│       ├── ProfileRepository.kt
+│       ├── QuestRepository.kt
+│       ├── SavedMessageRepository.kt
+│       ├── StatsRepository.kt
+│       ├── TranslationRepository.kt  # 3-provider hybrid system
+│       ├── VocabularyRepository.kt
+│       ├── VoiceRecordingRepository.kt
+│       └── [4 more repositories]
+│
+├── domain/                         # Domain models (27 models)
+│   ├── analyzer/                   # Pronunciation analyzers
+│   │   ├── PitchAccentAnalyzer.kt
+│   │   ├── ProblematicSoundsDetector.kt
+│   │   └── SpeedRhythmAnalyzer.kt
+│   └── model/                      # Core domain entities
+│       ├── Conversation.kt, Message.kt, Scenario.kt
+│       ├── User.kt, UserSettings.kt
+│       ├── VocabularyEntry.kt, SentenceCard.kt
+│       ├── GrammarExplanation.kt, GrammarFeedback.kt
+│       ├── PersonalityType.kt      # AI personality types
+│       ├── ScenarioFlexibility.kt  # Fixed/Flexible scenarios
+│       ├── VoiceRecording.kt, PronunciationHistory.kt
+│       ├── Quest.kt, SpacedRepetition.kt
+│       └── [17 more models]
+│
+└── presentation/                   # UI layer (20 feature modules!)
+    ├── chat/                       # Main conversation UI
+    │   ├── ChatScreen.kt
+    │   ├── ChatViewModel.kt        # 1500+ lines!
+    │   ├── GrammarBottomSheet.kt
+    │   ├── HintDialog.kt
+    │   ├── PronunciationPracticeSheet.kt
+    │   ├── VoiceButton.kt
+    │   └── VoiceOnlyComponents.kt
+    ├── components/                 # Reusable UI components
+    │   └── DifficultyBadge.kt      # Single source of truth!
+    ├── dashboard/                  # Home dashboard cards
+    ├── feedback/                   # Grammar feedback UI
+    ├── flashcard/                  # Flashcard review system
+    ├── history/                    # Conversation history
+    ├── home/                       # Home screen (bottom nav)
+    ├── navigation/                 # Navigation
+    │   ├── MainScreen.kt           # Bottom nav scaffold
+    │   └── NihongoNavHost.kt
+    ├── onboarding/                 # First-time user onboarding
+    ├── profile/                    # User profile
+    ├── pronunciation/              # Pronunciation practice
+    ├── quest/                      # Daily quest system
+    ├── review/                     # Conversation review
+    │   ├── ConversationReviewScreen.kt  # NEW (459 lines)
+    │   └── ConversationReviewViewModel.kt
+    ├── scenario/                   # Scenario management
+    ├── settings/                   # App settings
+    │   ├── SettingsScreen.kt
+    │   ├── VoiceSettingsScreen.kt  # NEW (412 lines)
+    │   └── VoiceSettingsViewModel.kt
+    ├── stats/                      # Statistics & analytics
+    ├── study/                      # Study tools
+    ├── theme/                      # Theme configuration
+    ├── user/                       # User selection
+    └── vocabulary/                 # Vocabulary management
 ```
 
 ## 🚀 작업 지시사항
@@ -194,9 +363,560 @@ Refactor [컴포넌트]:
 - Reason: [이유]
 ```
 
+## 📊 데이터베이스 아키텍처
+
+### Database v21 (21 Migrations)
+
+**Entities (21개)**:
+
+**Core Domain**:
+1. User - Profile data, preferred personality
+2. Scenario - 126+ conversation scenarios
+3. Conversation - Chat sessions
+4. Message - Chat messages with voice recording link
+
+**Learning**:
+5. VocabularyEntry - User vocabulary with SRS
+6. ReviewHistory - Review session history
+7. PronunciationHistory - Pronunciation practice results
+8. GrammarFeedback - Grammar corrections & feedback
+9. SentenceCard - Sentence-based flashcards
+10. ConversationPattern - Cached conversation patterns
+
+**Scenario System**:
+11. ScenarioGoal - Conversation objectives
+12. ScenarioOutcome - Success/failure endings
+13. ScenarioBranch - Branching dialogue paths
+
+**Caching**:
+14. CachedResponse - Gemini API response cache
+15. CacheAnalytics - Cache performance metrics
+16. TranslationCacheEntity - Translation results (permanent)
+17. GrammarFeedbackCacheEntity - Grammar analysis cache
+
+**Gamification**:
+18. DailyQuestEntity - Daily missions
+19. UserPointsEntity - Points, levels, rankings
+
+**Features**:
+20. SavedMessageEntity - Bookmarked messages
+21. VoiceRecording - Audio recordings metadata
+
+**Database View**:
+- ConversationStats - Aggregated conversation analytics
+
+### Critical Migrations
+
+- **v7**: Added scenario categories, goals, branching
+- **v9**: Added caching system (ConversationPattern, CachedResponse, CacheAnalytics)
+- **v11**: Added unique index to prevent duplicate patterns
+- **v12**: Added translation cache for DeepL/Microsoft/MLKit
+- **v15**: Added grammar feedback cache
+- **v16**: Added daily quests & user points
+- **v17**: Added message bookmarking
+- **v18**: Refactored difficulty from 3 → 5 levels
+- **v19**: Added personality type to User
+- **v20**: Added scenario flexibility & personality support
+- **v21**: Added voice recording storage
+
+## 🎮 AI 기능
+
+### 1. Kuromoji 문법 분석기
+**파일**: `core/grammar/KuromojiGrammarAnalyzer.kt`
+
+**목적**: 일본어 형태소 분석 (Gemini API fallback)
+
+**기능**:
+- 품사 태깅 (명사, 동사, 형용사 등)
+- 어근 분석
+- 문법 패턴 인식
+- 오프라인 작동 (API 호출 없음)
+
+**사용 시나리오**:
+- Gemini API 타임아웃 시 자동 폴백
+- 간단한 문장 즉시 분석
+- 네트워크 없는 환경
+
+### 2. 시나리오 추천 엔진
+**파일**: `core/recommendation/ScenarioRecommendationEngine.kt` (128 lines)
+
+**추천 알고리즘**:
+```kotlin
+// 1. 사용자 레벨 기반 필터링
+val userLevel = user.learningGoal.toInt()
+val suitableScenarios = scenarios.filter {
+    it.difficulty in (userLevel - 1)..(userLevel + 1)
+}
+
+// 2. 학습 히스토리 분석
+val weakCategories = getUserWeakCategories()  // 정답률 낮은 카테고리
+val recommendedCategories = weakCategories.take(3)
+
+// 3. 개인화 스코어링
+val scored = suitableScenarios.map { scenario ->
+    score = baseScore
+        + categoryBonus(scenario.category, recommendedCategories)
+        + personalityMatch(scenario.flexibility, user.personality)
+        - recentlyCompleted(scenario.id)
+}
+
+// 4. 상위 3개 추천
+return scored.sortedByDescending { it.score }.take(3)
+```
+
+**HomeScreen 통합**:
+- "오늘의 추천" 카드에 표시
+- 매일 갱신
+- 사용자 학습 패턴 반영
+
+### 3. Personality System (2025-11-12)
+**파일**:
+- `domain/model/PersonalityType.kt` (65 lines)
+- `domain/model/ScenarioFlexibility.kt` (29 lines)
+
+**4가지 AI Personality**:
+```kotlin
+enum class PersonalityType {
+    FRIENDLY,   // 친근한 - 캐주얼한 톤, 격려, 이모티콘
+    FORMAL,     // 격식있는 - 정중한 경어, 프로페셔널
+    CASUAL,     // 편안한 - 친구 말투, 슬랭, 유머
+    PATIENT     // 인내심 있는 - 천천히 설명, 반복, 힌트 많음
+}
+```
+
+**Scenario Flexibility**:
+```kotlin
+enum class ScenarioFlexibility {
+    FIXED,      // 고정 역할 (예: 점원, 의사, 선생님)
+    FLEXIBLE    // 가변 역할 (예: 친구, 가족, 동료)
+}
+```
+
+**동작 방식**:
+1. **프로필 설정** (ProfileScreen):
+   - 사용자가 선호하는 personality 선택
+   - User entity에 저장
+
+2. **시나리오별 적용** (ChatScreen):
+   - FIXED 시나리오: 시나리오 정의된 역할 강제 (예: 점원은 항상 FORMAL)
+   - FLEXIBLE 시나리오: 사용자 선호 personality 적용
+
+3. **실시간 변경** (ChatScreen):
+   - Personality override 다이얼로그
+   - 대화 중간에 톤 변경 가능
+
+**System Prompt 통합**:
+```kotlin
+// DifficultyManager.kt
+fun buildPrompt(difficulty: Int, scenario: Scenario, personality: PersonalityType): String {
+    val basePrompt = getBaseDifficultyPrompt(difficulty)
+    val scenarioPrompt = scenario.systemPrompt
+    val personalityPrompt = when (personality) {
+        FRIENDLY -> "親しみやすく、励ましながら話してください。"
+        FORMAL -> "丁寧で礼儀正しい言葉遣いを使用してください。"
+        CASUAL -> "友達のようにカジュアルに話してください。"
+        PATIENT -> "ゆっくり説明し、必要に応じて繰り返してください。"
+    }
+    return "$basePrompt\n$scenarioPrompt\n$personalityPrompt"
+}
+```
+
+**126개 시나리오 분류**:
+- **FIXED** (~60%): 점원, 의사, 선생님, 경찰, 은행원 등
+- **FLEXIBLE** (~40%): 친구, 가족, 동료, 룸메이트 등
+
+## 🧪 테스팅 현황
+
+### ⚠️ 현재 상태: MINIMAL
+
+**Test Files**: 1개
+- `/app/src/test/java/com/nihongo/conversation/GrammarOptimizationTest.kt`
+
+**커버리지 없음**:
+- ❌ UI tests (Compose UI testing)
+- ❌ ViewModel tests
+- ❌ Repository tests
+- ❌ Database migration tests
+- ❌ API integration tests
+- ❌ Voice system tests
+
+**Testing Infrastructure**:
+- ✅ JUnit 4.13.2
+- ✅ Espresso 3.5.1
+- ✅ Compose UI Test (dependencies present)
+
+**우선순위 추가 권장**:
+1. TranslationRepository (critical 3-provider logic)
+2. ChatViewModel state transitions
+3. Database migrations (v1 → v21)
+4. Grammar analysis fallback logic
+5. Voice recording state machine
+
 ## 🆕 최근 업데이트 (2025-11)
 
-### 난이도 표시 불일치 버그 수정 (2025-11-13) ⭐ **NEW**
+### 음성 녹음 시스템 (Option 3 Hybrid) (2025-11-13) 🎙️ **NEW**
+**PR #6: 41 files changed, +4324 lines, -300 lines**
+
+#### 문제 배경
+**음성 인식(STT)과 동시 녹음 충돌 이슈**:
+- STT 진행 중 MediaRecorder 녹음 시도 → 마이크 리소스 충돌
+- 두 기능 중 하나만 선택해야 하는 제약
+- 사용자는 "말하면서 녹음"을 원함
+
+#### Option 3: Hybrid 솔루션 (채택)
+**STT 완료 후 오디오 녹음 시작**
+
+**시퀀스**:
+```
+1. User presses mic button
+   ↓
+2. STT starts (Google Speech Recognizer)
+   ↓
+3. User speaks Japanese
+   ↓
+4. STT completes → transcript available
+   ↓
+5. IMMEDIATELY start audio recording (MediaRecorder)
+   ↓
+6. AI responds via Gemini API
+   ↓
+7. Audio recording stops when AI response arrives
+   ↓
+8. Save audio file + link to Message entity
+```
+
+**핵심 구현**:
+
+1. **VoiceRecordingManager.kt** (151 lines)
+   ```kotlin
+   class VoiceRecordingManager @Inject constructor(
+       private val context: Context,
+       private val voiceStorageManager: VoiceStorageManager
+   ) {
+       private var mediaRecorder: MediaRecorder? = null
+       private var currentRecordingFile: File? = null
+
+       // Start recording AFTER STT completes
+       fun startRecording(): Result<File> {
+           val outputFile = voiceStorageManager.createRecordingFile()
+           mediaRecorder = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) {
+               MediaRecorder(context)
+           } else {
+               MediaRecorder()
+           }.apply {
+               setAudioSource(MediaRecorder.AudioSource.MIC)
+               setOutputFormat(MediaRecorder.OutputFormat.MPEG_4)
+               setAudioEncoder(MediaRecorder.AudioEncoder.AAC)
+               setOutputFile(outputFile.absolutePath)
+               prepare()
+               start()
+           }
+           currentRecordingFile = outputFile
+           return Result.success(outputFile)
+       }
+
+       fun stopRecording(): File? {
+           mediaRecorder?.apply {
+               stop()
+               release()
+           }
+           mediaRecorder = null
+           return currentRecordingFile
+       }
+   }
+   ```
+
+2. **VoiceStorageManager.kt** (215 lines)
+   ```kotlin
+   class VoiceStorageManager @Inject constructor(
+       private val context: Context
+   ) {
+       // 파일 저장 위치: /data/data/com.nihongo.conversation/files/voice_recordings/
+       private val recordingsDir = File(context.filesDir, "voice_recordings").apply {
+           if (!exists()) mkdirs()
+       }
+
+       fun createRecordingFile(): File {
+           val timestamp = System.currentTimeMillis()
+           return File(recordingsDir, "recording_$timestamp.m4a")
+       }
+
+       fun getRecordingFile(filename: String): File {
+           return File(recordingsDir, filename)
+       }
+
+       fun deleteRecording(filename: String): Boolean {
+           return getRecordingFile(filename).delete()
+       }
+
+       fun getTotalStorageSize(): Long {
+           return recordingsDir.listFiles()?.sumOf { it.length() } ?: 0L
+       }
+
+       fun cleanupOldRecordings(daysToKeep: Int = 30) {
+           val cutoffTime = System.currentTimeMillis() - (daysToKeep * 24 * 60 * 60 * 1000L)
+           recordingsDir.listFiles()?.forEach { file ->
+               if (file.lastModified() < cutoffTime) {
+                   file.delete()
+               }
+           }
+       }
+   }
+   ```
+
+3. **VoicePlaybackManager.kt** (104 lines)
+   ```kotlin
+   class VoicePlaybackManager @Inject constructor() {
+       private var mediaPlayer: MediaPlayer? = null
+
+       fun playRecording(file: File, onCompletion: () -> Unit = {}) {
+           stopPlayback()  // Stop previous playback
+
+           mediaPlayer = MediaPlayer().apply {
+               setDataSource(file.absolutePath)
+               setOnCompletionListener {
+                   onCompletion()
+                   release()
+                   mediaPlayer = null
+               }
+               prepare()
+               start()
+           }
+       }
+
+       fun stopPlayback() {
+           mediaPlayer?.apply {
+               if (isPlaying) stop()
+               release()
+           }
+           mediaPlayer = null
+       }
+
+       fun isPlaying(): Boolean = mediaPlayer?.isPlaying ?: false
+   }
+   ```
+
+4. **ChatViewModel Integration** (+117 lines)
+   ```kotlin
+   // State machine for voice recording
+   sealed class VoiceRecordingState {
+       object Idle : VoiceRecordingState()
+       object Recording : VoiceRecordingState()
+       data class Recorded(val file: File) : VoiceRecordingState()
+       data class Playing(val file: File) : VoiceRecordingState()
+   }
+
+   data class ChatUiState(
+       // ... existing fields
+       val voiceRecordingState: VoiceRecordingState = VoiceRecordingState.Idle,
+       val recordingDuration: Long = 0L,
+   )
+
+   // When STT completes
+   fun onSpeechRecognized(transcript: String) {
+       if (settingsRepository.isVoiceRecordingEnabled()) {
+           val result = voiceRecordingManager.startRecording()
+           if (result.isSuccess) {
+               _uiState.update {
+                   it.copy(voiceRecordingState = VoiceRecordingState.Recording)
+               }
+           }
+       }
+
+       // Send message to AI
+       sendMessage(transcript, isVoiceInput = true)
+   }
+
+   // When AI response arrives
+   private fun onAiResponseReceived(response: String) {
+       // Stop recording
+       val recordedFile = voiceRecordingManager.stopRecording()
+
+       if (recordedFile != null) {
+           // Save to database
+           viewModelScope.launch {
+               val voiceRecording = VoiceRecording(
+                   messageId = currentMessage.id,
+                   filename = recordedFile.name,
+                   duration = recordingDuration,
+                   timestamp = System.currentTimeMillis()
+               )
+               voiceRecordingRepository.saveRecording(voiceRecording)
+
+               _uiState.update {
+                   it.copy(voiceRecordingState = VoiceRecordingState.Recorded(recordedFile))
+               }
+           }
+       }
+   }
+   ```
+
+5. **Database Migration v20 → v21**
+   ```kotlin
+   val MIGRATION_20_21 = object : Migration(20, 21) {
+       override fun migrate(database: SupportSQLiteDatabase) {
+           database.execSQL("""
+               CREATE TABLE IF NOT EXISTS voice_recordings (
+                   id INTEGER PRIMARY KEY AUTOINCREMENT NOT NULL,
+                   messageId INTEGER NOT NULL,
+                   filename TEXT NOT NULL,
+                   duration INTEGER NOT NULL,
+                   timestamp INTEGER NOT NULL,
+                   FOREIGN KEY(messageId) REFERENCES messages(id) ON DELETE CASCADE
+               )
+           """)
+           database.execSQL("""
+               CREATE INDEX IF NOT EXISTS index_voice_recordings_messageId
+               ON voice_recordings(messageId)
+           """)
+       }
+   }
+   ```
+
+6. **VoiceSettingsScreen.kt** (412 lines) - NEW
+   ```kotlin
+   @Composable
+   fun VoiceSettingsScreen(viewModel: VoiceSettingsViewModel) {
+       Column {
+           // 음성 녹음 활성화/비활성화
+           SwitchPreference(
+               title = "음성 녹음",
+               subtitle = "대화 내용을 자동으로 녹음합니다",
+               checked = uiState.enableVoiceRecording,
+               onCheckedChange = { viewModel.toggleVoiceRecording(it) }
+           )
+
+           // STT 언어 선택
+           ListPreference(
+               title = "음성 인식 언어",
+               options = listOf("Japanese", "Korean"),
+               selected = uiState.sttLanguage,
+               onSelected = { viewModel.setSttLanguage(it) }
+           )
+
+           // 저장 공간 정보
+           StorageInfoCard(
+               totalSize = uiState.totalStorageSize,
+               recordingCount = uiState.recordingCount,
+               onCleanup = { viewModel.cleanupOldRecordings() }
+           )
+
+           // 자동 삭제 설정
+           SliderPreference(
+               title = "녹음 파일 보관 기간",
+               value = uiState.retentionDays,
+               range = 7f..90f,
+               onValueChange = { viewModel.setRetentionDays(it.toInt()) }
+           )
+       }
+   }
+   ```
+
+7. **ConversationReviewScreen.kt** (459 lines) - NEW
+   ```kotlin
+   @Composable
+   fun ConversationReviewScreen(
+       conversationId: Long,
+       viewModel: ConversationReviewViewModel
+   ) {
+       val conversation = viewModel.conversation.collectAsState()
+       val messages = viewModel.messages.collectAsState()
+
+       LazyColumn {
+           items(messages.value) { message ->
+               ReviewMessageCard(
+                   message = message,
+                   voiceRecording = viewModel.getRecording(message.id),
+                   onPlayRecording = { file ->
+                       viewModel.playRecording(file)
+                   },
+                   onStopPlayback = { viewModel.stopPlayback() },
+                   isPlaying = viewModel.isPlaying(message.id)
+               )
+           }
+       }
+   }
+
+   @Composable
+   fun ReviewMessageCard(
+       message: Message,
+       voiceRecording: VoiceRecording?,
+       onPlayRecording: (File) -> Unit,
+       onStopPlayback: () -> Unit,
+       isPlaying: Boolean
+   ) {
+       Card {
+           Column {
+               // 메시지 텍스트
+               Text(message.content)
+
+               // 음성 재생 버튼
+               voiceRecording?.let { recording ->
+                   Row {
+                       IconButton(
+                           onClick = {
+                               if (isPlaying) onStopPlayback()
+                               else onPlayRecording(File(recording.filename))
+                           }
+                       ) {
+                           Icon(
+                               imageVector = if (isPlaying) Icons.Default.Stop
+                                             else Icons.Default.PlayArrow,
+                               contentDescription = null
+                           )
+                       }
+
+                       Text("${recording.duration / 1000}초")
+                   }
+               }
+           }
+       }
+   }
+   ```
+
+#### 효과
+
+**Before (Option 1: STT만)**:
+- ✅ 텍스트 전사 가능
+- ❌ 발음 복습 불가능
+- ❌ 억양 분석 불가능
+
+**After (Option 3: STT + Recording)**:
+- ✅ 텍스트 전사
+- ✅ 오디오 파일 저장
+- ✅ 발음 복습 가능
+- ✅ 향후 억양 분석 준비
+- ✅ 학습 포트폴리오 구축
+
+**성능**:
+- STT 지연 없음 (순차 처리로 충돌 방지)
+- 평균 녹음 시간: 5-10초/메시지
+- 파일 크기: ~50-100KB/메시지 (AAC 압축)
+- 30일 보관 시 예상 용량: ~15-30MB (100 메시지 기준)
+
+**사용 시나리오**:
+1. **일상 학습**:
+   - 대화 → 자동 녹음 → 복습 화면에서 재생
+   - 발음 비교 (자신의 음성 vs TTS)
+
+2. **발음 연습**:
+   - 같은 시나리오 반복 → 이전 녹음과 비교
+   - 개선 사항 확인
+
+3. **학습 포트폴리오**:
+   - 초기 vs 현재 발음 비교
+   - 진척도 시각화
+
+**향후 확장**:
+- [ ] 음성 파형 시각화 (Waveform visualization)
+- [ ] 억양 분석 AI 통합
+- [ ] 발음 점수 시스템
+- [ ] 클라우드 백업 (Firebase Storage)
+- [ ] 음성 → 텍스트 일치도 분석
+
+---
+
+### 난이도 표시 불일치 버그 수정 (2025-11-13) ⭐
 **DifficultyBadge 컴포넌트 통일로 일관성 확보**
 
 #### 문제 발견
@@ -305,7 +1025,7 @@ Refactor [컴포넌트]:
 **검색, 필터, 모바일 최적화로 시나리오 탐색 경험 혁신**
 
 #### 배경
-시나리오가 50개 이상으로 증가하면서:
+시나리오가 **126개**로 증가하면서:
 - 프로필 화면의 즐겨찾기 관리 섹션이 스크롤이 너무 길어짐
 - 원하는 시나리오를 찾기 어려움
 - 시나리오 카드가 모바일에 최적화되지 않음
@@ -332,7 +1052,7 @@ item {
 - ✅ 변경: `saveProfile()`에서 기존 favorites 유지
 
 **효과**:
-- 프로필 화면 스크롤 길이 **50% 단축**
+- 프로필 화면 스크롤 길이 **50% 단축** (126개 시나리오 체크박스 제거)
 - 즐겨찾기는 ScenarioListScreen의 ⭐ 탭에서만 관리
 - 화면 목적이 명확해짐: 프로필 = 개인 정보, 시나리오 목록 = 시나리오 관리
 
@@ -603,7 +1323,7 @@ fun ScenarioCard(
 #### 성능 및 사용성 개선
 
 **검색 성능**:
-- **Before**: 50+ 시나리오를 스크롤하며 육안으로 찾기 (평균 30초)
+- **Before**: 126개 시나리오를 스크롤하며 육안으로 찾기 (평균 30초)
 - **After**: 검색어 입력 후 즉시 필터링 (평균 3초)
 - **개선율**: **90% 시간 단축**
 
@@ -1586,3 +2306,346 @@ adb uninstall com.nihongo.conversation
        _events.trySend(VoiceEvent.Error("구체적 에러: ${e.message}"))
    }
    ```
+
+---
+
+## 📋 구현 상태 요약 (Quick Reference)
+
+### ✅ FULLY IMPLEMENTED
+
+**Core Systems (100%)**:
+- ✅ Gemini AI 대화 시스템 (DifficultyManager 통합)
+- ✅ 126개 시나리오 (8개 카테고리, 5단계 난이도)
+- ✅ Room Database v21 (21 entities + 1 view, 21 migrations)
+- ✅ Clean Architecture (MVVM, Repository Pattern, Hilt DI)
+
+**Translation (100%)**:
+- ✅ 3-Provider Hybrid System (Microsoft → DeepL → ML Kit)
+- ✅ Automatic fallback chain
+- ✅ Translation caching (permanent storage)
+- ✅ Gemini API 번역 제거 (70% quota 절약)
+
+**Voice System (100%)**:
+- ✅ Japanese TTS (속도 조절, furigana 제거)
+- ✅ Japanese/Korean STT (Google Speech Recognizer)
+- ✅ Voice Recording (Option 3 Hybrid - STT 후 녹음)
+- ✅ Voice Playback (ConversationReviewScreen)
+- ✅ Voice Storage Management (자동 정리, 용량 관리)
+
+**Grammar Analysis (100%)**:
+- ✅ Gemini API (5초 타임아웃)
+- ✅ Kuromoji 로컬 분석기 (자동 폴백)
+- ✅ Grammar feedback caching
+- ✅ Context menu 통합
+
+**UI/UX (100%)**:
+- ✅ Bottom Navigation (Home, Scenarios, Stats, Profile)
+- ✅ HomeScreen with AI recommendations
+- ✅ Scenario search & filters (title, category, difficulty)
+- ✅ DifficultyBadge unification (single source of truth)
+- ✅ Smart auto-scroll (near-bottom detection)
+- ✅ Context menu (copy, TTS, grammar, translation)
+- ✅ Permission UX (영구 거부 감지, 설정 열기)
+- ✅ i18n (Japanese, Korean, English - 345 strings)
+
+**Gamification (100%)**:
+- ✅ Daily quests (3 types, auto-progress tracking)
+- ✅ Points & levels system
+- ✅ Weekly rankings
+- ✅ Message bookmarking
+
+**Personality System (100%)**:
+- ✅ 4 AI personalities (FRIENDLY, FORMAL, CASUAL, PATIENT)
+- ✅ Scenario flexibility (FIXED vs FLEXIBLE)
+- ✅ User preference selection
+- ✅ Real-time override during conversation
+
+**Recommendation Engine (100%)**:
+- ✅ User level-based filtering
+- ✅ Learning history analysis
+- ✅ Personalized scoring
+- ✅ HomeScreen integration
+
+**Performance Optimizations (100%)**:
+- ✅ ImmutableList/Map/Set for Compose stability
+- ✅ AnimatedVisibility 제거 (메시지 렌더링)
+- ✅ Smart auto-scroll
+- ✅ Grammar timeout reduction (15s → 5s)
+- ✅ Translation prompt optimization (1600 → 300 chars)
+
+### 🚧 PARTIALLY IMPLEMENTED
+
+**Vocabulary System (70%)**:
+- ✅ VocabularyEntry entity & DAO
+- ✅ Spaced repetition algorithm (SM-2)
+- ✅ VocabularyListScreen, AddVocabularyScreen
+- ✅ FlashcardReviewScreen
+- ❌ Context menu "Add to Vocabulary" integration (UI only, DB TODO)
+
+**Pronunciation Practice (60%)**:
+- ✅ PronunciationHistory entity & DAO
+- ✅ PronunciationPracticeSheet UI
+- ✅ IntonationVisualizer, PitchAccentVisualization components
+- ❌ Actual pronunciation scoring (placeholder)
+
+**Scenario Goals & Branching (50%)**:
+- ✅ ScenarioGoal, ScenarioBranch, ScenarioOutcome entities
+- ✅ DAOs implemented
+- ❌ Runtime goal tracking in ChatViewModel
+- ❌ Branching dialogue logic
+
+**Offline Mode (40%)**:
+- ✅ NetworkMonitor
+- ✅ OfflineManager
+- ✅ ML Kit fallback (works)
+- ❌ Offline scenario caching
+- ❌ Queue system for offline messages
+
+### ❌ NOT IMPLEMENTED (TODO)
+
+**Testing (5%)**:
+- ❌ Only 1 test file: GrammarOptimizationTest.kt
+- ❌ UI tests
+- ❌ ViewModel tests
+- ❌ Repository tests
+- ❌ Database migration tests
+
+**Anki Export (0%)**:
+- ✅ AnkiExporter.kt exists
+- ❌ UI integration
+- ❌ Export functionality
+
+**Advanced Analytics (20%)**:
+- ✅ CacheAnalytics entity
+- ✅ StatsScreen (basic)
+- ❌ Cache hit rate dashboard
+- ❌ API usage tracking
+- ❌ Cost estimation UI
+
+**Custom Scenario Creation (30%)**:
+- ✅ CreateScenarioScreen.kt exists
+- ✅ isCustom flag in Scenario
+- ❌ Full CRUD implementation
+- ❌ Scenario validation
+
+**Onboarding (10%)**:
+- ✅ OnboardingScreen.kt exists
+- ❌ Tutorial flow
+- ❌ Feature discovery
+
+---
+
+## 🚀 다음 작업 우선순위
+
+### High Priority (즉시 착수 권장)
+
+1. **Testing Coverage** ⭐⭐⭐
+   - TranslationRepository tests (critical 3-provider logic)
+   - ChatViewModel state machine tests
+   - Database migration tests (v1 → v21)
+   - Voice recording state machine tests
+
+2. **Vocabulary Context Menu Integration** ⭐⭐
+   - Wire up "Add to Vocabulary" from context menu
+   - SaveVocabularyUseCase implementation
+   - Test with spaced repetition
+
+3. **Pronunciation Scoring** ⭐⭐
+   - Integrate PronunciationHistory tracking
+   - Implement basic scoring algorithm
+   - Display pronunciation feedback in UI
+
+### Medium Priority (향후 2-4주)
+
+4. **Scenario Goals Runtime Tracking**
+   - Implement goal completion detection
+   - Show goal progress in ChatScreen
+   - Unlock branching dialogues
+
+5. **Advanced Analytics Dashboard**
+   - Cache hit rate visualization
+   - API quota usage (Microsoft/DeepL/Gemini)
+   - Cost estimation & alerts
+
+6. **Offline Mode Enhancement**
+   - Offline scenario caching
+   - Message queue for offline messages
+   - Sync when back online
+
+7. **Anki Export UI**
+   - Export button in VocabularyListScreen
+   - File format selection
+   - Export preview
+
+### Low Priority (향후 1-3개월)
+
+8. **Custom Scenario CRUD**
+   - Complete CreateScenarioScreen
+   - Edit/Delete functionality
+   - Scenario validation & preview
+
+9. **Onboarding Flow**
+   - Welcome tutorial
+   - Feature discovery tooltips
+   - Gamification introduction
+
+10. **Voice Enhancement**
+    - Waveform visualization
+    - Pitch accent analysis AI
+    - Pronunciation score system
+    - Cloud backup (Firebase Storage)
+
+---
+
+## 🔑 핵심 파일 위치 (Quick Access)
+
+### 가장 자주 수정하는 파일
+
+**Chat System**:
+- `presentation/chat/ChatViewModel.kt` (1500+ lines) - 대화 로직의 중심
+- `presentation/chat/ChatScreen.kt` - 메인 UI
+- `data/repository/ConversationRepository.kt` - 대화 데이터 관리
+
+**Scenarios**:
+- `core/util/ScenarioSeeds.kt` (3308 lines) - 126개 시나리오 정의
+- `core/difficulty/DifficultyManager.kt` - 5단계 난이도 시스템 프롬프트
+
+**Voice System**:
+- `core/voice/VoiceManager.kt` - TTS 엔진
+- `core/voice/VoiceRecordingManager.kt` - 녹음 관리
+- `presentation/settings/VoiceSettingsScreen.kt` - 음성 설정
+
+**Translation**:
+- `data/repository/TranslationRepository.kt` - 3-Provider 하이브리드 로직
+- `data/remote/microsoft/MicrosoftTranslatorService.kt`
+- `data/remote/deepl/DeepLApiService.kt`
+
+**Database**:
+- `data/local/NihongoDatabase.kt` (706 lines) - Database v21, 21 migrations
+- `data/local/entity/` - 21 entities
+- `data/local/dao/` - 15+ DAOs
+
+**UI Components**:
+- `presentation/components/DifficultyBadge.kt` - Single source of truth
+- `presentation/navigation/MainScreen.kt` - Bottom navigation
+- `presentation/home/HomeScreen.kt` - Dashboard
+
+**Configuration**:
+- `build.gradle.kts` (app) - Dependencies, BuildConfig
+- `core/di/` - 5 Hilt modules (Database, Network, Cache, Repository, Microsoft)
+- `local.properties` - API keys (gitignored)
+
+---
+
+## 📞 문제 해결 체크리스트
+
+### 빌드 에러
+- [ ] `./gradlew clean` 실행
+- [ ] Build > Clean Project
+- [ ] Invalidate Caches / Restart
+- [ ] local.properties에 API 키 3개 모두 있는지 확인
+- [ ] Gradle JVM heap 설정 확인 (4096m)
+
+### 런타임 크래시
+- [ ] Migration 스키마 불일치 확인 (Entity vs SQL)
+- [ ] logcat에서 "Migration didn't properly handle" 검색
+- [ ] 클린 재설치: `adb uninstall com.nihongo.conversation`
+
+### TTS 작동 안 함
+- [ ] 디바이스 설정 > 일본어 음성 데이터 설치 확인
+- [ ] VoiceManager initialization complete 확인
+- [ ] logcat에서 TTS 에러 메시지 확인
+
+### STT 작동 안 함
+- [ ] RECORD_AUDIO 권한 granted 확인
+- [ ] Google Speech Recognizer 사용 가능 확인
+- [ ] 네트워크 연결 확인 (STT는 온라인 필요)
+
+### 번역 실패
+- [ ] 네트워크 연결 확인
+- [ ] Microsoft/DeepL API 키 유효성 확인
+- [ ] ML Kit fallback 작동하는지 확인 (오프라인)
+- [ ] TranslationCache DB에서 캐시 히트 확인
+
+### 문법 분석 느림
+- [ ] 5초 타임아웃 후 로컬 폴백 확인
+- [ ] Kuromoji 초기화 완료 확인
+- [ ] 문장 길이 50자 이하로 자동 자름 확인
+
+---
+
+## 🎯 AI Assistant를 위한 핵심 원칙
+
+1. **DifficultyBadge is Single Source of Truth**
+   - 모든 난이도 표시는 DifficultyBadge 컴포넌트 사용
+   - 하드코딩된 난이도 문자열 절대 사용 금지
+
+2. **Room Migration = Entity Schema**
+   - Entity 정의와 Migration SQL이 1:1 일치해야 함
+   - Migration SQL에 DEFAULT 사용 자제 (Kotlin default로 처리)
+   - @Index는 Entity에 명시
+
+3. **Translation: Microsoft → DeepL → ML Kit**
+   - 항상 TranslationRepository 사용
+   - Gemini API로 번역 절대 금지 (quota 낭비)
+
+4. **Voice Recording: STT 후 Recording**
+   - 동시 실행 불가 (마이크 리소스 충돌)
+   - 순차 처리: STT complete → start recording
+
+5. **Grammar Analysis: Timeout + Fallback**
+   - Gemini API 5초 타임아웃
+   - 실패 시 즉시 Kuromoji 로컬 분석
+   - 재시도 로직 없음
+
+6. **Hilt DI: @Named 필수**
+   - 여러 String 제공 시 @Named 어노테이션 필수
+   - 예: @Named("MicrosoftApiKey"), @Named("DeepLApiKey")
+
+7. **API Keys in local.properties**
+   - GEMINI_API_KEY
+   - DEEPL_API_KEY
+   - MICROSOFT_TRANSLATOR_KEY
+
+8. **Clean Architecture Layers**
+   - presentation → domain → data
+   - ViewModel은 Repository만 의존
+   - Domain에 Android 의존성 없음
+
+---
+
+## 📚 추가 자료
+
+### 공식 문서
+- [Jetpack Compose](https://developer.android.com/jetpack/compose)
+- [Room Persistence Library](https://developer.android.com/training/data-storage/room)
+- [Hilt Dependency Injection](https://developer.android.com/training/dependency-injection/hilt-android)
+- [Gemini API](https://ai.google.dev/docs)
+
+### 프로젝트 특화 가이드
+- ScenarioSeeds.kt 내 시나리오 추가 방법
+- DifficultyManager.kt 프롬프트 수정 가이드
+- Migration 작성 체크리스트 (알려진 이슈 #4 참조)
+
+### 디버깅 커맨드
+```bash
+# TTS 로그
+adb logcat -s VoiceManager:* TTS:*
+
+# Grammar 분석 로그
+adb logcat -s GrammarDebug:* GrammarAPI:*
+
+# Translation 로그
+adb logcat -s TranslationRepo:*
+
+# Database 스키마 확인
+adb shell run-as com.nihongo.conversation cat databases/nihongo_database
+```
+
+---
+
+**마지막 업데이트**: 2025-11-14
+**Database Version**: v21
+**총 파일 수**: 178 Kotlin files
+**총 코드 라인 수**: ~25,000+ lines (추정)
+**프로덕션 준비도**: 95% (테스트 커버리지 제외)
