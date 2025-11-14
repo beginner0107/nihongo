@@ -19,7 +19,6 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
 import com.nihongo.conversation.domain.model.Message
-import com.nihongo.conversation.domain.model.VoiceRecording
 
 /**
  * Phase 2: 대화 복습 모드 화면
@@ -68,11 +67,11 @@ fun ConversationReviewScreen(
                 .fillMaxSize()
                 .padding(padding)
         ) {
-            // 복습 통계
+            // 복습 통계 (TTS-only version)
             ReviewStatistics(
                 totalMessages = uiState.messages.size,
-                voiceMessageCount = uiState.voiceMessageCount,
-                totalDuration = uiState.totalDuration,
+                userMessages = uiState.messages.count { it.isUser },
+                aiMessages = uiState.messages.count { !it.isUser },
                 modifier = Modifier.padding(16.dp)
             )
             
@@ -122,8 +121,8 @@ fun ConversationReviewScreen(
 @Composable
 private fun ReviewStatistics(
     totalMessages: Int,
-    voiceMessageCount: Int,
-    totalDuration: String,
+    userMessages: Int,
+    aiMessages: Int,
     modifier: Modifier = Modifier
 ) {
     Card(
@@ -144,14 +143,14 @@ private fun ReviewStatistics(
                 value = totalMessages.toString()
             )
             StatItem(
-                icon = Icons.Default.Mic,
-                label = "음성 녹음",
-                value = "$voiceMessageCount/${totalMessages / 2}"
+                icon = Icons.Default.Person,
+                label = "내 메시지",
+                value = userMessages.toString()
             )
             StatItem(
-                icon = Icons.Default.Timer,
-                label = "재생 시간",
-                value = totalDuration
+                icon = Icons.Default.SmartToy,
+                label = "AI 메시지",
+                value = aiMessages.toString()
             )
         }
     }
@@ -293,14 +292,14 @@ private fun PlaybackControlBar(
 
 @Composable
 private fun MessageReviewList(
-    messages: List<MessageWithRecording>,
+    messages: List<Message>,
     currentPlayingId: Long?,
     onPlayMessage: (Long) -> Unit,
     onStopMessage: () -> Unit,
     modifier: Modifier = Modifier
 ) {
     val listState = rememberLazyListState()
-    
+
     LazyColumn(
         state = listState,
         modifier = modifier,
@@ -309,12 +308,12 @@ private fun MessageReviewList(
     ) {
         items(
             items = messages,
-            key = { it.message.id }
-        ) { item ->
+            key = { it.id }
+        ) { message ->
             MessageReviewItem(
-                item = item,
-                isPlaying = currentPlayingId == item.message.id,
-                onPlay = { onPlayMessage(item.message.id) },
+                message = message,
+                isPlaying = currentPlayingId == message.id,
+                onPlay = { onPlayMessage(message.id) },
                 onStop = onStopMessage
             )
         }
@@ -323,7 +322,7 @@ private fun MessageReviewList(
 
 @Composable
 private fun MessageReviewItem(
-    item: MessageWithRecording,
+    message: Message,
     isPlaying: Boolean,
     onPlay: () -> Unit,
     onStop: () -> Unit
@@ -333,7 +332,7 @@ private fun MessageReviewItem(
         colors = CardDefaults.cardColors(
             containerColor = if (isPlaying) {
                 MaterialTheme.colorScheme.tertiaryContainer
-            } else if (item.message.isUser) {
+            } else if (message.isUser) {
                 MaterialTheme.colorScheme.primaryContainer
             } else {
                 MaterialTheme.colorScheme.secondaryContainer
@@ -349,62 +348,40 @@ private fun MessageReviewItem(
         ) {
             // 아이콘
             Icon(
-                imageVector = if (item.message.isUser) Icons.Default.Person else Icons.Default.SmartToy,
-                contentDescription = if (item.message.isUser) "사용자" else "AI",
-                tint = if (item.message.isUser) {
+                imageVector = if (message.isUser) Icons.Default.Person else Icons.Default.SmartToy,
+                contentDescription = if (message.isUser) "사용자" else "AI",
+                tint = if (message.isUser) {
                     MaterialTheme.colorScheme.onPrimaryContainer
                 } else {
                     MaterialTheme.colorScheme.onSecondaryContainer
                 }
             )
-            
+
             // 메시지 내용
             Column(
                 modifier = Modifier.weight(1f),
                 verticalArrangement = Arrangement.spacedBy(4.dp)
             ) {
                 Text(
-                    text = item.message.content,
+                    text = message.content,
                     style = MaterialTheme.typography.bodyMedium,
-                    color = if (item.message.isUser) {
+                    color = if (message.isUser) {
                         MaterialTheme.colorScheme.onPrimaryContainer
                     } else {
                         MaterialTheme.colorScheme.onSecondaryContainer
                     }
                 )
-                
-                // 녹음 정보
-                if (item.recording != null) {
-                    Row(
-                        horizontalArrangement = Arrangement.spacedBy(4.dp),
-                        verticalAlignment = Alignment.CenterVertically
-                    ) {
-                        Icon(
-                            imageVector = Icons.Default.Mic,
-                            contentDescription = "녹음됨",
-                            modifier = Modifier.size(14.dp),
-                            tint = MaterialTheme.colorScheme.onSurfaceVariant
-                        )
-                        Text(
-                            text = formatDuration(item.recording.durationMs),
-                            style = MaterialTheme.typography.labelSmall,
-                            color = MaterialTheme.colorScheme.onSurfaceVariant
-                        )
-                    }
-                }
             }
-            
-            // 재생 버튼
-            if (item.message.isUser && item.recording != null || !item.message.isUser) {
-                FilledIconButton(
-                    onClick = if (isPlaying) onStop else onPlay,
-                    modifier = Modifier.size(40.dp)
-                ) {
-                    Icon(
-                        imageVector = if (isPlaying) Icons.Default.Stop else Icons.Default.PlayArrow,
-                        contentDescription = if (isPlaying) "정지" else "재생"
-                    )
-                }
+
+            // 재생 버튼 (모든 메시지에 TTS 제공)
+            FilledIconButton(
+                onClick = if (isPlaying) onStop else onPlay,
+                modifier = Modifier.size(40.dp)
+            ) {
+                Icon(
+                    imageVector = if (isPlaying) Icons.Default.Stop else Icons.Default.PlayArrow,
+                    contentDescription = if (isPlaying) "정지" else "재생"
+                )
             }
         }
     }
@@ -445,15 +422,4 @@ private fun SpeedSelectionDialog(
             }
         }
     )
-}
-
-private fun formatDuration(durationMs: Long): String {
-    val seconds = (durationMs / 1000).toInt()
-    val minutes = seconds / 60
-    val remainingSeconds = seconds % 60
-    return if (minutes > 0) {
-        String.format("%d:%02d", minutes, remainingSeconds)
-    } else {
-        String.format("0:%02d", remainingSeconds)
-    }
 }

@@ -50,6 +50,5 @@ data class UserSettings(
     val contrastMode: ContrastMode = ContrastMode.NORMAL,
     val themeMode: ThemeMode = ThemeMode.SYSTEM,
     val showFurigana: Boolean = false,  // Show furigana on AI messages
-    val furiganaType: FuriganaType = FuriganaType.HIRAGANA,  // Hiragana or Katakana
-    val enableVoiceRecording: Boolean = true  // Auto-save voice recordings after STT (Japanese only)
+    val furiganaType: FuriganaType = FuriganaType.HIRAGANA  // Hiragana or Katakana
 )

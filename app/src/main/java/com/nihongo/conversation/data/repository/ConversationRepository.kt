@@ -119,15 +119,13 @@ class ConversationRepository @Inject constructor(
     suspend fun insertUserMessage(
         conversationId: Long,
         content: String,
-        inputType: String = "text",
-        voiceRecordingId: Long? = null
+        inputType: String = "text"
     ): Long {
         val userMsg = Message(
             conversationId = conversationId,
             content = content,
             isUser = true,
-            inputType = inputType,
-            voiceRecordingId = voiceRecordingId
+            inputType = inputType
         )
         return messageDao.insertMessage(userMsg)
     }
@@ -138,7 +136,6 @@ class ConversationRepository @Inject constructor(
         conversationHistory: List<Message>,
         systemPrompt: String,
         inputType: String = "text",
-        voiceRecordingId: Long? = null,
         preInsertedUserMessageId: Long? = null
     ): Flow<Result<Message>> = flow {
         emit(Result.Loading)
@@ -150,8 +147,7 @@ class ConversationRepository @Inject constructor(
                     conversationId = conversationId,
                     content = userMessage,
                     isUser = true,
-                    inputType = inputType,
-                    voiceRecordingId = voiceRecordingId
+                    inputType = inputType
                 )
                 messageDao.insertMessage(userMsg)
             }
@@ -195,7 +191,6 @@ class ConversationRepository @Inject constructor(
         conversationHistory: List<Message>,
         systemPrompt: String,
         inputType: String = "text",
-        voiceRecordingId: Long? = null,
         preInsertedUserMessageId: Long? = null
     ): Flow<Result<Message>> = flow {
         emit(Result.Loading)
@@ -207,8 +202,7 @@ class ConversationRepository @Inject constructor(
                     conversationId = conversationId,
                     content = userMessage,
                     isUser = true,
-                    inputType = inputType,
-                    voiceRecordingId = voiceRecordingId
+                    inputType = inputType
                 )
                 messageDao.insertMessage(userMsg)
             }

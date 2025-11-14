@@ -1,6 +1,7 @@
 package com.nihongo.conversation.presentation.chat
 
 import androidx.compose.animation.core.*
+import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.shape.CircleShape
@@ -16,12 +17,18 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.unit.dp
 import com.nihongo.conversation.core.voice.VoiceState
 
+enum class VoiceButtonStyle {
+    FILLED,   // Current style - filled background
+    OUTLINED  // New style - outline only, more subtle
+}
+
 @Composable
 fun VoiceButton(
     voiceState: VoiceState,
     onStartRecording: () -> Unit,
     onStopRecording: () -> Unit,
-    modifier: Modifier = Modifier
+    modifier: Modifier = Modifier,
+    style: VoiceButtonStyle = VoiceButtonStyle.FILLED
 ) {
     val isListening = voiceState is VoiceState.Listening
     val isSpeaking = voiceState is VoiceState.Speaking
@@ -42,8 +49,8 @@ fun VoiceButton(
         modifier = modifier,
         contentAlignment = Alignment.Center
     ) {
-        // Pulsing background when listening
-        if (isListening) {
+        // Pulsing background when listening (for both styles)
+        if (isListening && style == VoiceButtonStyle.FILLED) {
             Box(
                 modifier = Modifier
                     .size(56.dp)
@@ -55,30 +62,77 @@ fun VoiceButton(
             )
         }
 
-        // Main button
-        FilledIconButton(
-            onClick = {
-                if (isListening) {
-                    onStopRecording()
-                } else if (!isSpeaking) {
-                    onStartRecording()
+        // Main button - different styles
+        when (style) {
+            VoiceButtonStyle.FILLED -> {
+                FilledIconButton(
+                    onClick = {
+                        if (isListening) {
+                            onStopRecording()
+                        } else if (!isSpeaking) {
+                            onStartRecording()
+                        }
+                    },
+                    enabled = !isSpeaking,
+                    modifier = Modifier.size(56.dp),
+                    colors = IconButtonDefaults.filledIconButtonColors(
+                        containerColor = when {
+                            isListening -> MaterialTheme.colorScheme.error
+                            isSpeaking -> MaterialTheme.colorScheme.secondary
+                            else -> MaterialTheme.colorScheme.primary
+                        }
+                    )
+                ) {
+                    Icon(
+                        imageVector = if (isListening) Icons.Default.Stop else Icons.Default.Mic,
+                        contentDescription = if (isListening) "停止" else "録音",
+                        modifier = Modifier.size(24.dp)
+                    )
                 }
-            },
-            enabled = !isSpeaking,
-            modifier = Modifier.size(56.dp),
-            colors = IconButtonDefaults.filledIconButtonColors(
-                containerColor = when {
-                    isListening -> MaterialTheme.colorScheme.error
-                    isSpeaking -> MaterialTheme.colorScheme.secondary
-                    else -> MaterialTheme.colorScheme.primary
+            }
+            VoiceButtonStyle.OUTLINED -> {
+                // More subtle outlined button for modern chat UI
+                OutlinedIconButton(
+                    onClick = {
+                        if (isListening) {
+                            onStopRecording()
+                        } else if (!isSpeaking) {
+                            onStartRecording()
+                        }
+                    },
+                    enabled = !isSpeaking,
+                    modifier = if (isListening) {
+                        modifier.scale(scale) // Apply pulsing when listening
+                    } else {
+                        modifier
+                    },
+                    border = BorderStroke(
+                        width = if (isListening) 2.dp else 1.dp,
+                        color = when {
+                            isListening -> MaterialTheme.colorScheme.error
+                            isSpeaking -> MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.38f)
+                            else -> MaterialTheme.colorScheme.outline.copy(alpha = 0.5f)
+                        }
+                    ),
+                    colors = IconButtonDefaults.outlinedIconButtonColors(
+                        contentColor = when {
+                            isListening -> MaterialTheme.colorScheme.error
+                            isSpeaking -> MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.38f)
+                            else -> MaterialTheme.colorScheme.onSurfaceVariant
+                        },
+                        containerColor = when {
+                            isListening -> MaterialTheme.colorScheme.errorContainer.copy(alpha = 0.1f)
+                            else -> Color.Transparent
+                        }
+                    )
+                ) {
+                    Icon(
+                        imageVector = if (isListening) Icons.Default.Stop else Icons.Default.Mic,
+                        contentDescription = if (isListening) "停止" else "録音",
+                        modifier = Modifier.size(if (modifier == Modifier.size(40.dp)) 18.dp else 20.dp)
+                    )
                 }
-            )
-        ) {
-            Icon(
-                imageVector = if (isListening) Icons.Default.Stop else Icons.Default.Mic,
-                contentDescription = if (isListening) "停止" else "録音",
-                modifier = Modifier.size(24.dp)
-            )
+            }
         }
     }
 }
