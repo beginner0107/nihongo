@@ -115,60 +115,45 @@ fun HomeScreen(
             }
             else -> {
                 LazyColumn(
-                modifier = Modifier
-                    .fillMaxSize()
-                    .padding(padding),
-                verticalArrangement = Arrangement.spacedBy(16.dp),
-                contentPadding = PaddingValues(vertical = 16.dp)
-            ) {
-                // 1. Learning Status Card (~180dp)
-                item {
-                    LearningStatusCard(
-                        streak = uiState.currentStreak,
-                        todayMessages = uiState.todayMessageCount,
-                        dailyGoal = uiState.dailyGoal,
-                        level = uiState.userLevel,
-                        points = uiState.totalPoints,
-                        topQuests = questUiState.quests.take(2)
-                    )
-                }
+                    modifier = Modifier
+                        .fillMaxSize()
+                        .padding(padding),
+                    verticalArrangement = Arrangement.spacedBy(20.dp),
+                    contentPadding = PaddingValues(vertical = 20.dp)
+                ) {
+                    // 1. Hero Card - Main greeting with core metrics (~200dp)
+                    item {
+                        HeroCard(
+                            streak = uiState.currentStreak,
+                            todayMessages = uiState.todayMessageCount,
+                            dailyGoal = uiState.dailyGoal,
+                            level = uiState.userLevel,
+                            points = uiState.totalPoints,
+                            longestStreak = uiState.longestStreak
+                        )
+                    }
 
-                // 2. Compact Streak Card (~100dp) - Phase 1 completion
-                item {
-                    CompactStreakCard(
-                        currentStreak = uiState.currentStreak,
-                        longestStreak = uiState.longestStreak
-                    )
-                }
+                    // 2. Today's Recommendation Card (~180dp)
+                    item {
+                        val recommendation = uiState.todayRecommendation
+                        if (recommendation != null) {
+                            TodayRecommendationCard(
+                                recommendation = recommendation,
+                                onRefresh = { viewModel.refreshRecommendation() },
+                                onStart = { onScenarioSelected(recommendation.scenario.id) }
+                            )
+                        }
+                    }
 
-                // 3. Today's Recommendation Card (~160dp)
-                item {
-                    val recommendation = uiState.todayRecommendation
-                    if (recommendation != null) {
-                        TodayRecommendationCard(
-                            recommendation = recommendation,
-                            onRefresh = { viewModel.refreshRecommendation() },
-                            onStart = { onScenarioSelected(recommendation.scenario.id) }
+                    // 3. Quick Actions Row (~80dp)
+                    item {
+                        QuickActionsRow(
+                            onResume = { viewModel.resumeLastConversation() },
+                            onRandom = { viewModel.startRandomScenario() },
+                            onViewAll = { /* Navigate via bottom nav to Scenarios tab */ }
                         )
                     }
                 }
-
-                // 4. Quick Actions Row (~100dp)
-                item {
-                    QuickActionsRow(
-                        onResume = { viewModel.resumeLastConversation() },
-                        onRandom = { viewModel.startRandomScenario() },
-                        onViewAll = { /* TODO: Navigate to ScenarioListScreen */ }
-                    )
-                }
-
-                // 5. Conversation History Card
-                item {
-                    ConversationHistoryCard(
-                        onViewHistory = onReviewClick
-                    )
-                }
-            }
             }
         }
     }
@@ -179,66 +164,5 @@ fun HomeScreen(
             rewardPoints = questUiState.lastCompletedQuestReward,
             onDismiss = { questViewModel.dismissQuestCompletedDialog() }
         )
-    }
-}
-
-/**
- * Conversation History Card - Navigate to past conversations
- */
-@Composable
-fun ConversationHistoryCard(
-    onViewHistory: () -> Unit
-) {
-    Card(
-        modifier = Modifier
-            .fillMaxWidth()
-            .padding(horizontal = 16.dp),
-        elevation = CardDefaults.cardElevation(defaultElevation = 2.dp)
-    ) {
-        Column(
-            modifier = Modifier
-                .fillMaxWidth()
-                .padding(16.dp),
-            verticalArrangement = Arrangement.spacedBy(12.dp)
-        ) {
-            Row(
-                verticalAlignment = Alignment.CenterVertically,
-                horizontalArrangement = Arrangement.spacedBy(8.dp)
-            ) {
-                Icon(
-                    imageVector = Icons.Default.History,
-                    contentDescription = null,
-                    tint = MaterialTheme.colorScheme.primary,
-                    modifier = Modifier.size(24.dp)
-                )
-                Text(
-                    text = "대화 히스토리",
-                    style = MaterialTheme.typography.titleMedium,
-                    fontWeight = androidx.compose.ui.text.font.FontWeight.Bold
-                )
-            }
-
-            Text(
-                text = "과거 대화를 복습하고 음성 녹음을 다시 들어보세요",
-                style = MaterialTheme.typography.bodyMedium,
-                color = MaterialTheme.colorScheme.onSurfaceVariant
-            )
-
-            Button(
-                onClick = onViewHistory,
-                modifier = Modifier.fillMaxWidth(),
-                colors = ButtonDefaults.buttonColors(
-                    containerColor = MaterialTheme.colorScheme.primary
-                )
-            ) {
-                Icon(
-                    imageVector = Icons.Default.HistoryEdu,
-                    contentDescription = null,
-                    modifier = Modifier.size(20.dp)
-                )
-                Spacer(Modifier.width(8.dp))
-                Text("히스토리 보기")
-            }
-        }
     }
 }
