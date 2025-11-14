@@ -13,7 +13,7 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 
 /**
- * Quick Actions Row - Three primary actions with cute emoji buttons
+ * Quick Actions Row - Four primary actions with cute emoji buttons
  *
  * Cute, colorful design for quick access
  * Height: ~80dp
@@ -21,6 +21,7 @@ import androidx.compose.ui.unit.dp
  * Actions:
  * - ▶ 이어하기 (Resume last conversation)
  * - 🎲 랜덤 (Random scenario)
+ * - 📜 히스토리 (Conversation history)
  * - 📋 전체 (View all scenarios)
  */
 @Composable
@@ -28,92 +29,132 @@ fun QuickActionsRow(
     onResume: () -> Unit,
     onRandom: () -> Unit,
     onViewAll: () -> Unit,
+    onHistory: () -> Unit = {},
     modifier: Modifier = Modifier
 ) {
-    Row(
+    Column(
         modifier = modifier
             .fillMaxWidth()
             .padding(horizontal = 16.dp),
-        horizontalArrangement = Arrangement.spacedBy(12.dp)
+        verticalArrangement = Arrangement.spacedBy(12.dp)
     ) {
-        // Resume button
-        FilledTonalButton(
-            onClick = onResume,
-            modifier = Modifier.weight(1f),
-            contentPadding = PaddingValues(vertical = 20.dp),
-            colors = ButtonDefaults.filledTonalButtonColors(
-                containerColor = Color(0xFFE5F3FF),
-                contentColor = Color(0xFF1976D2)
-            )
+        // First row: Resume + Random
+        Row(
+            modifier = Modifier.fillMaxWidth(),
+            horizontalArrangement = Arrangement.spacedBy(12.dp)
         ) {
-            Column(
-                horizontalAlignment = Alignment.CenterHorizontally,
-                verticalArrangement = Arrangement.spacedBy(6.dp)
+            // Resume button
+            FilledTonalButton(
+                onClick = onResume,
+                modifier = Modifier.weight(1f),
+                contentPadding = PaddingValues(vertical = 20.dp),
+                colors = ButtonDefaults.filledTonalButtonColors(
+                    containerColor = Color(0xFFE5F3FF),
+                    contentColor = Color(0xFF1976D2)
+                )
             ) {
-                Icon(
-                    imageVector = Icons.Default.PlayArrow,
-                    contentDescription = null,
-                    modifier = Modifier.size(28.dp)
+                Column(
+                    horizontalAlignment = Alignment.CenterHorizontally,
+                    verticalArrangement = Arrangement.spacedBy(6.dp)
+                ) {
+                    Icon(
+                        imageVector = Icons.Default.PlayArrow,
+                        contentDescription = null,
+                        modifier = Modifier.size(28.dp)
+                    )
+                    Text(
+                        text = "이어하기",
+                        style = MaterialTheme.typography.labelLarge,
+                        fontWeight = FontWeight.Bold
+                    )
+                }
+            }
+
+            // Random button
+            FilledTonalButton(
+                onClick = onRandom,
+                modifier = Modifier.weight(1f),
+                contentPadding = PaddingValues(vertical = 20.dp),
+                colors = ButtonDefaults.filledTonalButtonColors(
+                    containerColor = Color(0xFFFFF9E5),
+                    contentColor = Color(0xFFF57C00)
                 )
-                Text(
-                    text = "이어하기",
-                    style = MaterialTheme.typography.labelLarge,
-                    fontWeight = FontWeight.Bold
-                )
+            ) {
+                Column(
+                    horizontalAlignment = Alignment.CenterHorizontally,
+                    verticalArrangement = Arrangement.spacedBy(6.dp)
+                ) {
+                    Icon(
+                        imageVector = Icons.Default.Shuffle,
+                        contentDescription = null,
+                        modifier = Modifier.size(28.dp)
+                    )
+                    Text(
+                        text = "랜덤",
+                        style = MaterialTheme.typography.labelLarge,
+                        fontWeight = FontWeight.Bold
+                    )
+                }
             }
         }
 
-        // Random button
-        FilledTonalButton(
-            onClick = onRandom,
-            modifier = Modifier.weight(1f),
-            contentPadding = PaddingValues(vertical = 20.dp),
-            colors = ButtonDefaults.filledTonalButtonColors(
-                containerColor = Color(0xFFFFF9E5),
-                contentColor = Color(0xFFF57C00)
-            )
+        // Second row: History + View All
+        Row(
+            modifier = Modifier.fillMaxWidth(),
+            horizontalArrangement = Arrangement.spacedBy(12.dp)
         ) {
-            Column(
-                horizontalAlignment = Alignment.CenterHorizontally,
-                verticalArrangement = Arrangement.spacedBy(6.dp)
+            // History button
+            FilledTonalButton(
+                onClick = onHistory,
+                modifier = Modifier.weight(1f),
+                contentPadding = PaddingValues(vertical = 20.dp),
+                colors = ButtonDefaults.filledTonalButtonColors(
+                    containerColor = Color(0xFFFFE5EC),
+                    contentColor = Color(0xFFD81B60)
+                )
             ) {
-                Icon(
-                    imageVector = Icons.Default.Shuffle,
-                    contentDescription = null,
-                    modifier = Modifier.size(28.dp)
-                )
-                Text(
-                    text = "랜덤",
-                    style = MaterialTheme.typography.labelLarge,
-                    fontWeight = FontWeight.Bold
-                )
+                Column(
+                    horizontalAlignment = Alignment.CenterHorizontally,
+                    verticalArrangement = Arrangement.spacedBy(6.dp)
+                ) {
+                    Icon(
+                        imageVector = Icons.Default.History,
+                        contentDescription = null,
+                        modifier = Modifier.size(28.dp)
+                    )
+                    Text(
+                        text = "히스토리",
+                        style = MaterialTheme.typography.labelLarge,
+                        fontWeight = FontWeight.Bold
+                    )
+                }
             }
-        }
 
-        // View All button
-        FilledTonalButton(
-            onClick = onViewAll,
-            modifier = Modifier.weight(1f),
-            contentPadding = PaddingValues(vertical = 20.dp),
-            colors = ButtonDefaults.filledTonalButtonColors(
-                containerColor = Color(0xFFE5FFE5),
-                contentColor = Color(0xFF388E3C)
-            )
-        ) {
-            Column(
-                horizontalAlignment = Alignment.CenterHorizontally,
-                verticalArrangement = Arrangement.spacedBy(6.dp)
+            // View All button
+            FilledTonalButton(
+                onClick = onViewAll,
+                modifier = Modifier.weight(1f),
+                contentPadding = PaddingValues(vertical = 20.dp),
+                colors = ButtonDefaults.filledTonalButtonColors(
+                    containerColor = Color(0xFFE5FFE5),
+                    contentColor = Color(0xFF388E3C)
+                )
             ) {
-                Icon(
-                    imageVector = Icons.AutoMirrored.Filled.List,
-                    contentDescription = null,
-                    modifier = Modifier.size(28.dp)
-                )
-                Text(
-                    text = "전체",
-                    style = MaterialTheme.typography.labelLarge,
-                    fontWeight = FontWeight.Bold
-                )
+                Column(
+                    horizontalAlignment = Alignment.CenterHorizontally,
+                    verticalArrangement = Arrangement.spacedBy(6.dp)
+                ) {
+                    Icon(
+                        imageVector = Icons.AutoMirrored.Filled.List,
+                        contentDescription = null,
+                        modifier = Modifier.size(28.dp)
+                    )
+                    Text(
+                        text = "전체",
+                        style = MaterialTheme.typography.labelLarge,
+                        fontWeight = FontWeight.Bold
+                    )
+                }
             }
         }
     }

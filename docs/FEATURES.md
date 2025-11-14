@@ -1,145 +1,326 @@
-# 🌟 주요 기능
+# Features
 
-## 🤖 AI 대화 시스템
-- **AI 대화 파트너**: Gemini 2.5 Flash를 활용한 자연스러운 일본어 대화
-- **맥락 기억**: 이전 대화를 기억하고 관계를 이어가는 친구 같은 AI
-- **AI 힌트 시스템**: 한국어-일본어 번역 힌트, 로마자 표기, 문맥 기반 제안
-- **메시지 컨텍스트 메뉴**: 길게 누르기로 복사/읽기/문법 분석/번역 기능 접근, 외부 앱 연동 가능
-- **문법 설명 기능**: 메시지 길게 누르기로 즉시 문법 분석, 색상별 구문 강조, 캐싱으로 즉시 재로딩
-- **메시지별 번역**: 각 AI 메시지마다 한국어 번역 버튼, 선택적 번역 확인
+Complete feature overview of NihonGo Conversation.
 
-## ✨ 실시간 AI 피드백 시스템 (NEW!)
-- **문법 오류 감지**: 자동 문법 오류 탐지 및 수정 제안
-- **자연스러운 표현 제안**: 직역체 감지 및 네이티브스러운 대안 제안
-- **대화 흐름 분석**: 맥락에 맞는 표현 확인 및 대화 전략 제안
-- **경어 레벨 조정**: 상황에 맞는 존댓말/반말 사용 피드백
-- **실수 패턴 추적**: 반복되는 문법 실수 추적 및 개인화된 약점 분석
-- **피드백 카드**: 5가지 타입 (문법 오류, 부자연스러운 표현, 더 나은 표현, 대화 흐름, 경어 레벨)
+## AI Conversation System
 
-## 🎯 시나리오 시스템 (28개)
+### Natural Dialogue with Gemini 2.5 Flash
+- Context-aware conversations that remember previous messages
+- Natural Japanese responses optimized for learners
+- Streaming responses for low latency (~800ms TTFB)
+- Batch requests for grammar + hints + translation (61% faster)
 
-### 📚 일상 회화 (5개)
-- **레스토랑 주문** (난이도 1): 메뉴 확인, 주문, 계산
-- **쇼핑** (난이도 1): 상품 찾기, 가격 문의, 계산
-- **호텔 체크인** (난이도 2): 예약 확인, 시설 안내
-- **친구 사귀기** (난이도 2): 자기소개, 취미 대화
-- **전화로 예약하기** (난이도 3): 전화 예약, 날짜/시간 확인
+### Real-Time Grammar Feedback
+- Automatic grammar error detection
+- Natural expression suggestions for direct translations
+- Conversation flow analysis
+- Politeness level (keigo) recommendations
+- Pattern tracking for personalized weakness analysis
+- 6 feedback types: grammar errors, unnatural expressions, better alternatives, flow, politeness level
 
-### ✈️ 일본 여행 (7개)
-- **공항 입국 심사** (난이도 1): 여행 목적, 체류 기간, 숙소
-- **지하철/전철 이용** (난이도 1): 노선 찾기, 환승 방법
-- **관광지에서** (난이도 1): 입장권 구매, 사진 촬영 부탁
-- **라멘집/이자카야** (난이도 1): 식권기 사용, 주문
-- **온천 료칸** (난이도 2): 체크인, 온천 이용법, 유카타
-- **기념품 가게** (난이도 1): 면세 절차, 포장 요청
-- **택시 이용** (난이도 2): 목적지 설명, 요금 결제
+### 126+ Learning Scenarios
 
-### 📖 JLPT 레벨별 연습 (5개)
-- **N5 회화 연습** (난이도 1): 자기소개, です/ます형, 기본 조사
-- **N4 회화 연습** (난이도 1): て형/た형, 과거/미래 표현
-- **N3 회화 연습** (난이도 2): 추측/조건 표현, 수동/사역
-- **N2 회화 연습** (난이도 3): 고급 경어, 비즈니스 표현
-- **N1 회화 연습** (난이도 3): 최고급 경어, 사자성어, 학술 토론
+#### Entertainment (27 scenarios)
+K-POP, J-POP, anime, drama discussions
 
-### 💼 비즈니스 (4개)
-- **취업 면접** (난이도 3): 자기소개, 지원동기, 질문 대응
-- **고객 불만 대응** (난이도 3): 사과, 문제 해결, 보상
-- **비즈니스 프레젠테이션** (난이도 3): 아이디어 설명, 질의응답
-- **IT기업 기술 면접** (난이도 3, 커스텀): Spring 개발자 맞춤 면접
+#### Work (14 scenarios)
+Office communication, emails, meetings, code reviews
 
-### 💕 연애/관계 (2개)
-- **데이트 신청하기** (난이도 2): 관계 구축, 제안, 거절 대응
-- **여자친구와 대화하기** (난이도 2): 3가지 분기 (화해/기념일/미래)
+#### Daily Life (15 scenarios)
+Trash disposal, internet setup, package delivery
 
-### 🎭 문화/테마 (3개)
-- **애니메이션 덕후 대화** (난이도 2): 오타쿠 용어 (推し, 沼, 尊い)
-- **일본 대학 입학 면접** (난이도 3): 지원 동기, 연구 계획
-- **일본 부동산 계약** (난이도 3): 敷金, 礼金, 仲介手数料
+#### Travel (13 scenarios)
+- Airport immigration
+- Subway/train navigation
+- Tourist spots
+- Ramen shops, izakaya
+- Onsen ryokan
+- Souvenir shopping
+- Taxi service
 
-### 🚨 기타 (2개)
-- **병원에서** (난이도 3): 증상 설명, 진료
-- **긴급 상황** (난이도 2): 위치 설명, 도움 요청
+#### Technology (9 scenarios)
+Code review, incident response, technical discussions
 
-### 주요 기능
-- **카테고리 탭 네비게이션**: 5개 탭으로 빠른 탐색 (전체/여행/JLPT/비즈니스/기타)
-- **Sticky 섹션 헤더**: 전체 탭에서 카테고리별 그룹화, 스크롤 시 고정
-- **커스텀 시나리오**: 개인 맞춤 시나리오 추가/삭제, "커스텀" 배지 표시
-- **명확한 목표**: 각 시나리오별 학습 목표 (키워드, 경어 유지 등)
-- **리플레이 가치**: 다양한 선택지로 반복 학습 가능
+#### JLPT Practice (5 scenarios)
+- N5: Self-introduction, です/ます forms
+- N4: て-form, た-form, past/future
+- N3: Conditionals, passive/causative
+- N2: Advanced keigo, business expressions
+- N1: Highest-level keigo, idioms, academic discussions
 
-## 🎤 음성 전용 모드 (NEW!)
-- **텍스트 완전 숨김**: 입출력 텍스트 완전 비활성화
-- **음성만으로 대화**: 실제 대화 상황 시뮬레이션
-- **시각적 큐**: 말하기/듣기 상태를 위한 애니메이션 인디케이터
-- **대화 타이머**: 목표 시간 설정 (기본 5분) 및 진행률 표시
-- **대화 후 전사 검토**: 음성 전용 세션 완료 후 전체 대화 텍스트 확인
-- **5가지 음성 상태**: IDLE, LISTENING, PROCESSING, SPEAKING, THINKING
+#### E-Sports (5 scenarios)
+League of Legends, LCK viewing parties
 
-## 🗣️ 향상된 발음 연습 (NEW!)
-- **피치 액센트 분석 (高低アクセント)**:
-  - 모라별 피치 패턴 분석 (H/L)
-  - 4가지 액센트 타입 분류 (平板, 頭高, 中高, 尾高)
-  - 피치 곡선 그래프 시각화
-  - 네이티브 패턴과 비교
-- **억양 패턴 분석 (イントネーション)**:
-  - 문장 타입 인식 (평서문, 의문문, 감탄문, 명령문)
-  - 문말 상승/하강 감지
-  - 문장 레벨 피치 곡선
-  - 상황별 개선 제안
-- **속도/리듬 분석**:
-  - 말하기 속도 평가 (遅すぎる ~ 速すぎる)
-  - 모라 타이밍 일관성 측정
-  - 네이티브 스피커와 DTW 비교
-  - 자연스러움 점수 (0-100)
-- **문제 음소 감지**:
-  - 10가지 일반적 발음 문제 (ら行, つ/ちゅ, 長音, 促音, ん, は/を, が/んが, し/ち, つ/す, ふ)
-  - 심각도 레벨 (중대, 높음, 중간, 낮음)
-  - 구체적인 개선 제안 및 네이티브 예시
-  - 최소 쌍(minimal pairs) 연습
-- **6차원 발음 점수**: 정확성, 피치, 억양, 리듬, 명료성, 자연스러움
-- **등급 시스템**: 초심자 → 네이티브 레벨 (6단계)
+#### Business (4 scenarios)
+Job interviews, customer complaint handling, presentations
 
-## 📚 문장 카드 시스템 (단어 플래시카드 업그레이드!)
-- **실제 대화에서 추출한 전체 문장**: 단어가 아닌 완전한 문장으로 학습
-- **문맥 정보**: 대화 ID, 시나리오 제목, 이전 메시지 포함
-- **문법 패턴 학습**: 〜てください, 〜ことができる 등 10+ 패턴 자동 추출
-- **각 문장마다 오디오**: 네이티브 발음 오디오 지원
-- **4가지 연습 모드**:
-  - 읽기 모드: 문장 보고 의미 회상
-  - 듣기 모드: 오디오 듣고 타이핑
-  - 빈칸 채우기: 조사, 동사, 패턴 빈칸 연습
-  - 말하기 모드: 번역 보고 일본어로 말하기
-- **빈칸 채우기 생성기**:
-  - 자동 조사 빈칸 (は, が, を, に, で)
-  - 동사 탐지 및 빈칸
-  - 문법 패턴 빈칸
-  - 힌트 및 오답 선택지 생성
-- **SM-2 간격 반복 알고리즘**: 최적 복습 스케줄링
-- **연습 모드별 완료 추적**: 4가지 모드 각각 진행도 추적
-- **패턴별 통계**: 강점/약점 문법 패턴 분석
+#### Romance (2 scenarios)
+Asking someone out, girlfriend conversations
 
-## 🎙️ 음성 기능
-- **STT**: 일본어 음성 인식, 재시도 메커니즘
-- **TTS**: AI 응답 자동 재생, 속도 조절 (0.5x-2.0x)
-- **발음 평가**: 0-100 정확도 점수, 레벤슈타인 거리 분석, 색상 피드백, 향상도 표시
-- **발음 히스토리**: 전체 연습 기록, 약점 분석, 마스터 문구, 7일 추세 차트
+#### Other (Culture, Health, Finance, Housing, Emergency)
+Hip-hop culture, hospital visits, US stocks, real estate contracts, earthquake evacuation
 
-## 📚 학습 관리
-- **대화 관리**: 대화 종료 버튼, 히스토리 자동 저장, 새 대화 시작 기능
-- **시나리오**: **28가지 시나리오** (일상 회화 5개, 비즈니스 4개, 여행 7개, JLPT 5개, 문화/테마 3개, 기타 4개)
-- **카테고리 탭 네비게이션**: 5개 탭 (전체/여행/JLPT/비즈니스/기타), Sticky 섹션 헤더
-- **커스텀 시나리오**: 개인 맞춤 시나리오 추가/삭제 가능, 커스텀 배지 표시
-- **대화 이력**: 전체 대화 검색/필터링, 상태별 보기, 빠른 재개, 삭제 관리
-- **복습 모드**: 완료된 대화만 표시, 학습 통계, 중요 문구 추출, TTS 재생
-- **학습 통계**: 일일/주간/월간 진도, 연속 학습일 추적, 시나리오별 진행률, 차트 시각화
+### Custom Scenarios
+- Add personalized scenarios
+- Delete custom scenarios
+- Custom badge display
+- Fully customizable instructions
 
-## 📖 플래시카드 시스템
-- **문장 카드**: 3D 카드 뒤집기 애니메이션, SM-2 알고리즘, 실시간 진행도
-- **통계 대시보드**: 30일 캘린더 히트맵, 정확도 추세, 학습 스트릭, 개인 베스트
-- **커스텀 추가**: 클립보드 임포트, 난이도 설정, 예문 추가, 즉시 복습 큐
+## Voice Features
 
-## ⚙️ 설정 및 사용자
-- **난이도 조절**: JLPT 레벨별 AI 응답 (N5-N4/N3-N2/N1), 어휘 복잡도 분석
-- **사용자 프로필**: 아바타 선택, 학습 목표, 개인화된 AI 응답
-- **멀티 유저**: DataStore 기반 세션 관리, 유저 선택 UI, 자동 로그인, 데이터 격리
-- **UI/UX**: Material 3 디자인, 타이핑 인디케이터, 부드러운 애니메이션, 메시지 타임스탬프
+### Voice-Only Mode
+- Text completely hidden during conversation
+- Real-time visual indicators (listening, thinking, speaking)
+- Conversation timer with progress tracking (default 5 min)
+- Full transcript review after session
+- 5 voice states: IDLE, LISTENING, PROCESSING, SPEAKING, THINKING
+
+### Advanced Pronunciation Analysis
+
+#### Pitch Accent Analysis (高低アクセント)
+- Mora-by-mora pitch pattern (H/L)
+- 4 accent type classification: 平板, 頭高, 中高, 尾高
+- Pitch curve visualization
+- Native pattern comparison
+
+#### Intonation Pattern Analysis (イントネーション)
+- Sentence type recognition (declarative, question, exclamation, command)
+- Rising/falling detection at sentence endings
+- Sentence-level pitch curves
+- Context-appropriate improvement suggestions
+
+#### Speed & Rhythm Analysis
+- Speaking rate evaluation (too slow ~ too fast)
+- Mora timing consistency measurement
+- DTW comparison with native speakers
+- Naturalness score (0-100)
+
+#### Problematic Sound Detection
+- 10 common pronunciation issues:
+  - ら-row sounds
+  - つ/ちゅ distinction
+  - Long vowels (長音)
+  - Geminate consonants (促音)
+  - ん sound variations
+  - は/を particle pronunciation
+  - が/んが distinction
+  - し/ち distinction
+  - つ/す distinction
+  - ふ pronunciation
+- Severity levels: critical, high, medium, low
+- Specific improvement suggestions with native examples
+- Minimal pairs practice
+
+#### 6-Dimensional Pronunciation Scoring
+- Accuracy
+- Pitch
+- Intonation
+- Rhythm
+- Clarity
+- Naturalness
+
+#### Grading System
+6 levels from Beginner to Native
+
+### Speech Recognition & Synthesis
+- **TTS**: Japanese voice with speed control (0.5x - 2.0x)
+- **STT**: Real-time speech recognition
+- Auto-play AI responses
+- Pronunciation accuracy scoring (0-100)
+- Levenshtein distance analysis
+
+## Translation System
+
+### 3-Provider Automatic Fallback
+1. **Cache First**: Permanent cache with unlimited reuse
+2. **Microsoft Translator** (Primary): 2M chars/month free, Korea Central region, 200-400ms
+3. **DeepL** (Fallback): 500K chars/month free, high accuracy, 300-600ms
+4. **ML Kit** (Offline): Unlimited, on-device, 100-200ms
+
+### Features
+- Automatic quota tracking
+- Provider selection based on availability
+- Cached translations (<10ms, ~95% hit rate)
+- Fully offline capable with ML Kit
+- Per-message translation toggle
+- Translation source indicator
+
+## Sentence Card System
+
+### Whole Sentences from Real Conversations
+- Complete sentences instead of isolated words
+- Context information: conversation ID, scenario title, previous messages
+- Grammar pattern extraction: 〜てください, 〜ことができる, 10+ patterns
+- Native pronunciation audio for each sentence
+
+### 4 Practice Modes
+1. **Reading Mode**: See sentence, recall meaning
+2. **Listening Mode**: Hear audio, type what you heard
+3. **Fill-in-the-Blank**: Practice particles, verbs, patterns
+4. **Speaking Mode**: See translation, speak in Japanese
+
+### Fill-in-the-Blank Generator
+- Automatic particle blanks (は, が, を, に, で)
+- Verb detection and blanking
+- Grammar pattern blanks
+- Hints and incorrect answer choices
+
+### SM-2 Spaced Repetition Algorithm
+- Optimal review scheduling
+- Per-mode completion tracking
+- Pattern-based statistics
+- Strength/weakness analysis by grammar pattern
+
+## Learning Management
+
+### Conversation Management
+- End conversation button
+- Auto-save to history
+- Start new conversation
+- Resume previous conversations
+- Search and filter all conversations
+
+### Review Mode
+- Show only completed conversations
+- Learning statistics
+- Extract important phrases
+- TTS playback
+
+### Learning Statistics
+- Daily/weekly/monthly progress
+- Learning streak tracking
+- Per-scenario progress
+- Chart visualization
+- 30-day calendar heatmap
+- Accuracy trends
+- Personal best records
+
+## Message Context Menu
+
+Long-press any message to:
+- Copy text
+- Play with TTS
+- Analyze grammar
+- Translate to Korean
+- Share with external apps
+
+### Grammar Explanation
+- Long-press for instant analysis
+- Color-coded syntax highlighting
+- Cached for instant reload
+- Detailed breakdown of patterns
+
+### Per-Message Translation
+- Korean translation button on each AI message
+- Selective translation view
+- Translation caching
+
+## User & Settings
+
+### Difficulty Adjustment
+- JLPT level-based AI responses (N5-N4 / N3-N2 / N1)
+- Vocabulary complexity analysis
+- Sentence structure adaptation
+
+### User Profiles
+- Avatar selection
+- Learning goals
+- Personalized AI responses
+- Multi-user support with DataStore-based session management
+- Auto-login
+- Data isolation per user
+
+### UI/UX
+- Material 3 design system
+- Typing indicators
+- Smooth animations
+- Message timestamps
+- Auto-scroll to bottom (smart detection)
+- Context menu on all messages
+
+## Furigana Support
+
+### User Messages
+- Kuromoji tokenizer-based automatic furigana
+- Hiragana/katakana conversion
+- Ruby text display above kanji
+- Toggle on/off per message
+
+## Offline Support
+
+### Fully Offline Scenarios
+1. ML Kit model pre-download (~30MB)
+2. 20 common phrases built-in (DataStore)
+3. Recent 50 translations cached (memory)
+
+### When Network Unavailable
+- Automatic offline mode
+- ML Kit translation
+- Cached response playback
+- Review previous conversations
+
+## Performance Optimizations
+
+### Response Caching
+- Common phrases cached
+- 99.7% faster re-requests (300ms → 1ms)
+- 20 built-in phrases + 50 dynamic cache entries
+
+### Payload Optimization
+- Recent 20 messages only
+- 2000 char limit per message
+- System prompt compressed to 500 chars
+- 60% payload reduction (15KB → 6KB)
+
+### Network Optimizations
+- GZIP compression (70-90% size reduction)
+- Connection pooling (50% latency reduction: 600ms → 300ms)
+- Streaming responses for TTFB
+
+### Database Optimizations
+- 11 optimized indexes (including composite)
+- Database views (conversation_stats)
+- Streaming query optimization
+- Queries <50ms
+
+## Categories & Organization
+
+### 9 Category Tabs
+1. All (전체)
+2. Entertainment (엔터)
+3. Work (직장)
+4. Daily Life (일상)
+5. Travel (여행)
+6. Technology (기술)
+7. E-Sports (게임)
+8. JLPT (JLPT)
+9. Other (기타)
+
+### Search & Filter
+- Real-time scenario search
+- Search by title, description, category
+- Difficulty filter
+- Favorites system
+- Custom scenario management
+
+## Data Management
+
+### Conversation History
+- Full conversation search/filtering
+- Status-based view
+- Quick resume
+- Deletion management
+
+### Export & Import
+(Coming soon)
+- Backup conversations
+- Export flashcards
+- Import custom scenarios
+
+## Accessibility
+
+- Full keyboard navigation support
+- Screen reader compatible
+- High contrast mode support
+- Adjustable text sizes
+- Voice-only mode for hands-free learning

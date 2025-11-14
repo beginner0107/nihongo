@@ -1,245 +1,691 @@
-# 🏗️ 아키텍처
+# Architecture
+
+Technical architecture and design decisions for NihonGo Conversation.
+
+## Overview
+
+NihonGo Conversation follows **Clean Architecture** principles with **MVVM** pattern, built entirely with modern Android development practices.
+
+## Tech Stack
+
+### Core
+- **Language**: Kotlin 1.9.0
+- **Build**: Gradle with KSP
+- **Min SDK**: 24 (Android 7.0)
+- **Target SDK**: 34 (Android 14)
+- **Java**: 17
+
+### UI Layer
+- **Jetpack Compose**: 100% declarative UI
+- **Material 3**: Design system
+- **Compose BOM**: 2024.10.00
+- **Navigation**: Compose Navigation
+- **Paging 3**: Lazy loading for large lists
+
+### Architecture Components
+- **ViewModel**: State management
+- **LiveData/Flow**: Reactive data streams
+- **Lifecycle**: Lifecycle-aware components
+- **DataStore**: Preferences and settings
+
+### Dependency Injection
+- **Hilt**: 2.48 (Dagger-based)
+- **5 modules**: App, Database, Network, Voice, Translation
+
+### Data Layer
+- **Room**: 2.6.1 (SQLite abstraction)
+- **Paging 3**: Database pagination
+- **Retrofit**: 2.9.0 (REST client)
+- **OkHttp**: HTTP client with connection pooling
+- **GSON**: JSON serialization
+
+### AI & NLP
+- **Gemini SDK**: 0.9.0 (generative AI)
+- **Kuromoji**: 0.9.0 (Japanese morphological analysis)
+- **ML Kit**: On-device translation
+
+### Voice
+- **Android TTS**: Text-to-speech
+- **SpeechRecognizer**: Speech-to-text
+- Custom VoiceManager for queuing and state
+
+### Charts & Visualization
+- **Vico**: 1.13.1 (Charts library)
+
+### Async Processing
+- **Coroutines**: 1.7.3
+- **Flow**: Reactive streams
+- **StateFlow/SharedFlow**: State management
+
+## Project Structure
 
 ```
-app/
-├── src/main/java/com/nihongo/conversation/
-│   ├── data/                 # 데이터 레이어
-│   │   ├── local/            # Room DB
-│   │   ├── remote/           # API 클라이언트
-│   │   └── repository/       # Repository 구현
-│   ├── domain/               # 도메인 레이어
-│   │   ├── model/            # 데이터 모델
-│   │   │   ├── SentenceCard.kt           # 문장 카드 (NEW!)
-│   │   │   ├── EnhancedPronunciation.kt  # 향상된 발음 (NEW!)
-│   │   │   ├── GrammarFeedback.kt        # 문법 피드백 (NEW!)
-│   │   │   ├── ScenarioGoal.kt           # 시나리오 목표 (NEW!)
-│   │   │   └── VoiceOnlyMode.kt          # 음성 전용 (NEW!)
-│   │   ├── analyzer/         # 음성/발음 분석기 (NEW!)
-│   │   │   ├── PitchAccentAnalyzer.kt
-│   │   │   ├── SpeedRhythmAnalyzer.kt
-│   │   │   └── ProblematicSoundsDetector.kt
-│   │   ├── usecase/          # 비즈니스 로직
-│   │   └── repository/       # Repository 인터페이스
-│   ├── presentation/         # 프레젠테이션 레이어
-│   │   ├── chat/             # 대화 화면
-│   │   │   ├── VoiceOnlyComponents.kt    # 음성 전용 UI (NEW!)
-│   │   │   └── FeedbackCard.kt           # 피드백 카드 (NEW!)
-│   │   ├── pronunciation/    # 발음 분석 UI (NEW!)
-│   │   │   ├── PitchAccentVisualization.kt
-│   │   │   └── IntonationVisualizer.kt
-│   │   ├── study/            # 학습 UI (NEW!)
-│   │   │   └── SentenceCardPracticeSheet.kt
-│   │   ├── flashcard/        # 플래시카드 복습 및 통계
-│   │   ├── vocabulary/       # 커스텀 단어 추가
-│   │   ├── user/             # 유저 선택/관리
-│   │   ├── scenario/         # 시나리오 목록
-│   │   ├── stats/            # 통계 화면
-│   │   ├── review/           # 복습 화면
-│   │   └── theme/            # 테마 설정
-│   └── core/                 # 공통 유틸리티
-│       ├── di/               # Dependency Injection
-│       ├── session/          # 세션 관리 (UserSessionManager)
-│       ├── network/          # 네트워크 모니터링/오프라인
-│       ├── voice/            # STT/TTS
-│       └── util/             # 헬퍼 함수
-│           ├── DataInitializer.kt   # 앱 초기화 오케스트레이션
-│           └── ScenarioSeeds.kt     # 126개 시나리오 데이터 (NEW!)
-└── build.gradle.kts
+app/src/main/java/com/nihongo/conversation/
+├── data/                           # Data Layer
+│   ├── local/                      # Local data sources
+│   │   ├── dao/                    # Room DAOs (12 DAOs)
+│   │   ├── entity/                 # Room entities (15+ entities)
+│   │   └── AppDatabase.kt          # Room database definition
+│   ├── remote/                     # Remote data sources
+│   │   ├── GeminiApiService.kt     # Gemini API client
+│   │   ├── MicrosoftTranslator.kt  # Microsoft Translator API
+│   │   └── DeepLApiService.kt      # DeepL API client
+│   ├── repository/                 # Repository implementations (12 repos)
+│   │   ├── ConversationRepository.kt
+│   │   ├── TranslationRepository.kt
+│   │   ├── ScenarioRepository.kt
+│   │   └── ...
+│   └── seed/                       # Database seeding
+│       └── ScenarioSeeds.kt        # 126 scenarios (2,837 lines)
+│
+├── domain/                         # Domain Layer
+│   ├── model/                      # Business models
+│   │   ├── Conversation.kt
+│   │   ├── Message.kt
+│   │   ├── Scenario.kt
+│   │   ├── User.kt
+│   │   ├── SentenceCard.kt
+│   │   ├── GrammarFeedback.kt
+│   │   ├── PronunciationAnalysis.kt
+│   │   └── ...
+│   ├── analyzer/                   # Analysis components
+│   │   ├── PitchAccentAnalyzer.kt
+│   │   ├── SpeedRhythmAnalyzer.kt
+│   │   └── ProblematicSoundsDetector.kt
+│   └── repository/                 # Repository interfaces
+│
+├── presentation/                   # Presentation Layer
+│   ├── chat/                       # Chat feature
+│   │   ├── ChatScreen.kt
+│   │   ├── ChatViewModel.kt
+│   │   ├── MessageBubble.kt
+│   │   ├── FeedbackCard.kt
+│   │   └── VoiceOnlyComponents.kt
+│   ├── scenario/                   # Scenario browser
+│   │   ├── ScenarioListScreen.kt
+│   │   ├── ScenarioViewModel.kt
+│   │   └── CategoryTabs.kt
+│   ├── pronunciation/              # Pronunciation analysis
+│   │   ├── PronunciationScreen.kt
+│   │   ├── PitchVisualization.kt
+│   │   └── IntonationVisualizer.kt
+│   ├── study/                      # Sentence card practice
+│   │   ├── PracticeScreen.kt
+│   │   └── SentenceCardSheet.kt
+│   ├── flashcard/                  # Flashcard review
+│   ├── stats/                      # Statistics dashboard
+│   ├── profile/                    # User profile
+│   ├── settings/                   # App settings
+│   └── ...                         # 35+ screens total
+│
+└── core/                           # Cross-cutting Concerns
+    ├── di/                         # Dependency injection modules
+    │   ├── AppModule.kt
+    │   ├── DatabaseModule.kt
+    │   ├── NetworkModule.kt
+    │   ├── VoiceModule.kt
+    │   └── TranslationModule.kt
+    ├── voice/                      # Voice management
+    │   └── VoiceManager.kt
+    ├── translation/                # Translation orchestration
+    │   └── TranslationManager.kt
+    ├── grammar/                    # Grammar analysis
+    │   ├── LocalGrammarAnalyzer.kt
+    │   └── GeminiGrammarAnalyzer.kt
+    ├── cache/                      # Caching layer
+    │   ├── ResponseCache.kt
+    │   └── TranslationCache.kt
+    ├── network/                    # Network monitoring
+    │   └── NetworkMonitor.kt
+    └── util/                       # Utilities
+        ├── DataInitializer.kt      # App initialization
+        └── Extensions.kt
 ```
 
-## 🛠️ 기술 스택
+## Layer Responsibilities
 
-- **UI**: Jetpack Compose + Material 3
-- **Architecture**: MVVM + Clean Architecture
-- **DI**: Hilt (Dagger)
-- **Database**: Room (SQLite) + Paging 3
-  - 11개 최적화 인덱스 (복합 인덱스 포함)
-  - 데이터베이스 뷰 (conversation_stats)
-  - 스트리밍 쿼리 최적화
-- **Persistence**: DataStore Preferences (Settings, User Session, Offline Cache)
-- **Network**: Retrofit + OkHttp
-- **Async**: Coroutines + Flow
-- **AI**: Gemini 2.5 Flash API (스트리밍 지원)
-- **Voice**: Android SpeechRecognizer (STT) + TextToSpeech (TTS)
-- **Performance**:
-  - Response caching (common phrases)
-  - Lazy loading (Paging 3)
-  - Database indexing (5-10x faster queries)
+### Data Layer
+- **Responsibilities**:
+  - Data persistence (Room)
+  - Network communication (Retrofit)
+  - Data transformation (Entity ↔ Model)
+  - Caching strategies
+- **Key Components**:
+  - DAOs for database access
+  - Repository implementations
+  - API service interfaces
+  - Database seeding
 
-## 📚 시나리오 관리 시스템 (2025-11-02 업데이트)
+### Domain Layer
+- **Responsibilities**:
+  - Business logic
+  - Domain models (pure Kotlin)
+  - Use case definitions
+  - Repository contracts
+- **Key Components**:
+  - Data models without Android dependencies
+  - Analyzers for pronunciation/grammar
+  - Repository interfaces
 
-### 개요
-126개의 시나리오를 효율적으로 관리하기 위한 2단계 구조:
-1. **ScenarioSeeds.kt** - 시나리오 데이터 (2,837줄)
-2. **DataInitializer.kt** - 초기화 오케스트레이션 (57줄)
+### Presentation Layer
+- **Responsibilities**:
+  - UI rendering (Compose)
+  - User interaction handling
+  - State management (ViewModel)
+  - Navigation
+- **Key Components**:
+  - Composable screens
+  - ViewModels with StateFlow
+  - UI state classes
 
-### 구조
+## Database Design
+
+### Room Database (22 Migrations)
+
+#### Core Tables
+```sql
+-- Conversations
+CREATE TABLE conversations (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    userId INTEGER NOT NULL,
+    scenarioId INTEGER,
+    title TEXT NOT NULL,
+    status TEXT NOT NULL,
+    createdAt INTEGER NOT NULL,
+    updatedAt INTEGER NOT NULL,
+    FOREIGN KEY(userId) REFERENCES users(id),
+    FOREIGN KEY(scenarioId) REFERENCES scenarios(id)
+)
+
+-- Messages
+CREATE TABLE messages (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    conversationId INTEGER NOT NULL,
+    content TEXT NOT NULL,
+    isFromUser INTEGER NOT NULL,
+    timestamp INTEGER NOT NULL,
+    grammarFeedback TEXT,
+    translationKo TEXT,
+    FOREIGN KEY(conversationId) REFERENCES conversations(id)
+)
+
+-- Scenarios (126+ entries)
+CREATE TABLE scenarios (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    slug TEXT UNIQUE NOT NULL,
+    category TEXT NOT NULL,
+    titleKo TEXT NOT NULL,
+    titleJa TEXT NOT NULL,
+    descriptionKo TEXT NOT NULL,
+    difficulty INTEGER NOT NULL,
+    coreInstruction TEXT NOT NULL,
+    promptVersion INTEGER NOT NULL DEFAULT 1,
+    isCustom INTEGER NOT NULL DEFAULT 0,
+    createdAt INTEGER NOT NULL
+)
+
+-- Sentence Cards
+CREATE TABLE sentence_cards (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    messageId INTEGER,
+    conversationId INTEGER,
+    japanese TEXT NOT NULL,
+    korean TEXT NOT NULL,
+    grammarPattern TEXT,
+    nextReviewDate INTEGER NOT NULL,
+    easinessFactor REAL NOT NULL DEFAULT 2.5,
+    interval INTEGER NOT NULL DEFAULT 0,
+    repetitions INTEGER NOT NULL DEFAULT 0,
+    FOREIGN KEY(messageId) REFERENCES messages(id),
+    FOREIGN KEY(conversationId) REFERENCES conversations(id)
+)
+
+-- Translation Cache (permanent)
+CREATE TABLE translation_cache (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    sourceText TEXT NOT NULL,
+    translatedText TEXT NOT NULL,
+    provider TEXT NOT NULL,
+    timestamp INTEGER NOT NULL,
+    UNIQUE(sourceText, sourceLang, targetLang)
+)
+
+-- Users
+CREATE TABLE users (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    name TEXT NOT NULL,
+    difficultyLevel INTEGER NOT NULL DEFAULT 2,
+    avatar TEXT,
+    createdAt INTEGER NOT NULL
+)
+```
+
+#### Indexes (11 optimized)
+```sql
+-- Composite indexes for common queries
+CREATE INDEX idx_messages_conversation_timestamp
+ON messages(conversationId, timestamp DESC)
+
+CREATE INDEX idx_conversations_user_updated
+ON conversations(userId, updatedAt DESC)
+
+CREATE INDEX idx_sentence_cards_review
+ON sentence_cards(nextReviewDate ASC, userId)
+
+CREATE INDEX idx_translation_cache_lookup
+ON translation_cache(sourceText, sourceLang, targetLang)
+
+-- Single-column indexes
+CREATE INDEX idx_scenarios_category ON scenarios(category)
+CREATE INDEX idx_scenarios_difficulty ON scenarios(difficulty)
+CREATE INDEX idx_messages_conversation ON messages(conversationId)
+```
+
+#### Database Views
+```sql
+CREATE VIEW conversation_stats AS
+SELECT
+    c.id,
+    c.userId,
+    COUNT(m.id) as messageCount,
+    MAX(m.timestamp) as lastMessageTime
+FROM conversations c
+LEFT JOIN messages m ON c.id = m.conversationId
+GROUP BY c.id
+```
+
+### Migration Strategy
+
+**Upsert Pattern for Scenarios**:
+```kotlin
+@Transaction
+suspend fun upsertBySlug(scenario: Scenario) {
+    val existing = getScenarioBySlugSync(scenario.slug)
+    when {
+        existing == null -> insertScenario(scenario)
+        existing.promptVersion < scenario.promptVersion -> {
+            updateScenario(scenario.copy(
+                id = existing.id,
+                createdAt = existing.createdAt
+            ))
+        }
+        else -> { /* skip - same version */ }
+    }
+}
+```
+
+## Scenario Management
+
+### 126 Scenarios Across 16 Categories
+
+| Category | Count | UI Tab |
+|----------|-------|--------|
+| ENTERTAINMENT | 27 | 🎵 엔터 |
+| WORK | 14 | 💼 직장 |
+| DAILY_LIFE | 15 | 🏠 일상 |
+| TRAVEL | 13 | ✈️ 여행 |
+| TECH | 9 | 💻 기술 |
+| ESPORTS | 5 | 🎮 게임 |
+| JLPT_PRACTICE | 5 | 📖 JLPT |
+| CULTURE | 9 | 🎭 기타 |
+| HEALTH | 7 | 🎭 기타 |
+| FINANCE | 6 | 🎭 기타 |
+| STUDY | 5 | 🎭 기타 |
+| BUSINESS | 4 | 🎭 기타 |
+| HOUSING | 3 | 🎭 기타 |
+| ROMANCE | 2 | 🎭 기타 |
+| EMERGENCY | 1 | 🎭 기타 |
+| DAILY_CONVERSATION | 1 | 🎭 기타 |
+
+### Data Initialization
 
 ```kotlin
-// DataInitializer.kt - 앱 초기화 조율
+// DataInitializer.kt - Orchestration
 @Singleton
 class DataInitializer @Inject constructor(
     private val scenarioDao: ScenarioDao,
     private val scenarioSeeds: ScenarioSeeds,
-    // ...
+    private val userDao: UserDao,
+    private val cacheInitializer: CacheInitializer
 ) {
     suspend fun initializeDefaultData() {
-        // 1. 기본 사용자 생성
+        // 1. Create default user
         createDefaultUser()
-        
-        // 2. 시나리오 시드 (upsert)
+
+        // 2. Seed scenarios (upsert 126 scenarios)
         scenarioSeeds.seedAll(scenarioDao)
-        
-        // 3. 응답 캐시 초기화
+
+        // 3. Initialize response cache
         cacheInitializer.initializeCache()
     }
 }
 
-// ScenarioSeeds.kt - 시나리오 데이터
+// ScenarioSeeds.kt - Data (2,837 lines)
 @Singleton
 class ScenarioSeeds @Inject constructor() {
     private val scenarios = listOf(
         Scenario(
             slug = "restaurant_ordering",
-            promptVersion = 3,
             category = "DAILY_LIFE",
+            titleKo = "레스토랑 주문",
+            titleJa = "レストランでの注文",
+            difficulty = 1,
+            promptVersion = 3,
+            coreInstruction = "あなたは日本のレストランの店員です...",
             // ...
         ),
-        // ... 126개
+        // ... 126 scenarios
     )
-    
+
     suspend fun seedAll(scenarioDao: ScenarioDao) {
         scenarios.forEach { scenario ->
             scenarioDao.upsertBySlug(scenario)
         }
     }
 }
+```
 
-// ScenarioDao.kt - Upsert 로직
-@Dao
-interface ScenarioDao {
-    @Transaction
-    suspend fun upsertBySlug(scenario: Scenario) {
-        val existing = getScenarioBySlugSync(scenario.slug)
-        when {
-            existing == null -> insertScenario(scenario)
-            existing.promptVersion < scenario.promptVersion -> {
-                updateScenario(scenario.copy(
-                    id = existing.id,
-                    createdAt = existing.createdAt
-                ))
+## API Integration
+
+### Gemini 2.5 Flash
+```kotlin
+interface GeminiApiService {
+    // Streaming conversation
+    fun sendMessageStream(
+        message: String,
+        conversationHistory: List<Message>,
+        systemPrompt: String
+    ): Flow<String>
+
+    // Batch requests (grammar + hints + translation)
+    suspend fun batchRequests(
+        sentence: String,
+        context: ConversationContext,
+        requestTypes: Set<BatchRequestType>
+    ): BatchResponse
+}
+```
+
+### Translation Services
+```kotlin
+interface TranslationRepository {
+    suspend fun translate(
+        text: String,
+        provider: TranslationProvider,
+        useCache: Boolean = true,
+        fallbackChain: List<TranslationProvider> = emptyList()
+    ): TranslationResult
+}
+
+// Automatic fallback chain
+sealed class TranslationResult {
+    data class Success(
+        val translatedText: String,
+        val provider: TranslationProvider,
+        val fromCache: Boolean,
+        val elapsed: Long
+    ) : TranslationResult()
+
+    data class Error(val message: String) : TranslationResult()
+}
+```
+
+## State Management
+
+### ViewModel Pattern
+```kotlin
+@HiltViewModel
+class ChatViewModel @Inject constructor(
+    private val conversationRepository: ConversationRepository,
+    private val geminiService: GeminiApiService,
+    private val translationRepository: TranslationRepository,
+    savedStateHandle: SavedStateHandle
+) : ViewModel() {
+
+    // UI state with immutable collections
+    data class ChatUiState(
+        val messages: ImmutableList<Message> = ImmutableList.empty(),
+        val isLoading: Boolean = false,
+        val error: String? = null,
+        val userTranslations: ImmutableMap<Long, String> = ImmutableMap.empty(),
+        val grammarFeedback: ImmutableMap<Long, ImmutableList<GrammarFeedback>> = ImmutableMap.empty(),
+        // ... 30+ state fields
+    )
+
+    private val _uiState = MutableStateFlow(ChatUiState())
+    val uiState: StateFlow<ChatUiState> = _uiState.asStateFlow()
+
+    // Events channel
+    private val _events = Channel<ChatEvent>()
+    val events: Flow<ChatEvent> = _events.receiveAsFlow()
+}
+```
+
+## Performance Optimizations
+
+### Network Layer
+- **GZIP compression**: 70-90% payload reduction
+- **Connection pooling**: 50% latency reduction (600ms → 300ms)
+- **Request batching**: 61% faster (grammar + hints + translation in one call)
+- **Streaming responses**: Low TTFB (~800ms)
+
+### Database Layer
+- **11 optimized indexes**: 5-10x faster queries
+- **Paging 3**: Lazy loading for large datasets
+- **Database views**: Pre-aggregated statistics
+- **Transaction batching**: Bulk inserts for seeding
+
+### Caching Layer
+- **Response cache**: 99.7% faster (300ms → 1ms)
+- **Translation cache**: 95% hit rate, <10ms
+- **Permanent cache**: No expiration for translations
+- **20 built-in phrases**: Instant offline access
+
+### UI Layer
+- **LazyColumn**: Efficient list rendering
+- **Compose recomposition optimization**: Only changed items
+- **Image loading**: Coil with caching
+- **No AnimatedVisibility on messages**: Performance improvement
+
+## Dependency Injection
+
+### Hilt Modules
+
+```kotlin
+// AppModule.kt
+@InstallIn(SingletonComponent::class)
+@Module
+object AppModule {
+    @Provides @Singleton
+    fun provideContext(@ApplicationContext context: Context) = context
+
+    @Provides @Named("GeminiApiKey")
+    fun provideGeminiApiKey() = BuildConfig.GEMINI_API_KEY
+
+    @Provides @Named("MicrosoftApiKey")
+    fun provideMicrosoftApiKey() = BuildConfig.MICROSOFT_TRANSLATOR_KEY
+
+    @Provides @Named("DeepLApiKey")
+    fun provideDeepLApiKey() = BuildConfig.DEEPL_API_KEY
+}
+
+// DatabaseModule.kt
+@InstallIn(SingletonComponent::class)
+@Module
+object DatabaseModule {
+    @Provides @Singleton
+    fun provideDatabase(@ApplicationContext context: Context): AppDatabase {
+        return Room.databaseBuilder(
+            context,
+            AppDatabase::class.java,
+            "nihongo_database"
+        )
+        .addMigrations(*ALL_MIGRATIONS)
+        .build()
+    }
+
+    @Provides fun provideConversationDao(db: AppDatabase) = db.conversationDao()
+    @Provides fun provideMessageDao(db: AppDatabase) = db.messageDao()
+    // ... 12 DAOs
+}
+
+// NetworkModule.kt
+@InstallIn(SingletonComponent::class)
+@Module
+object NetworkModule {
+    @Provides @Singleton
+    fun provideOkHttpClient(): OkHttpClient {
+        return OkHttpClient.Builder()
+            .addInterceptor(HttpLoggingInterceptor().apply {
+                level = HttpLoggingInterceptor.Level.BODY
+            })
+            .addInterceptor { chain ->
+                val request = chain.request().newBuilder()
+                    .addHeader("Accept-Encoding", "gzip")
+                    .build()
+                chain.proceed(request)
             }
-            else -> { /* skip - 동일 버전 */ }
+            .connectTimeout(30, TimeUnit.SECONDS)
+            .readTimeout(30, TimeUnit.SECONDS)
+            .build()
+    }
+
+    @Provides @Singleton
+    fun provideRetrofit(okHttpClient: OkHttpClient): Retrofit {
+        return Retrofit.Builder()
+            .baseUrl("https://api.cognitive.microsofttranslator.com/")
+            .client(okHttpClient)
+            .addConverterFactory(GsonConverterFactory.create())
+            .build()
+    }
+}
+```
+
+## Testing Strategy
+
+### Unit Tests
+- **ViewModels**: State transitions, business logic
+- **Repositories**: Data operations, caching
+- **Analyzers**: Pronunciation/grammar analysis
+
+### Integration Tests
+- **Database**: Migrations, complex queries
+- **API**: Network layer, serialization
+
+### UI Tests
+- **Compose**: Screen rendering, user interactions
+- **Navigation**: Flow between screens
+
+## Build Configuration
+
+```kotlin
+// build.gradle.kts
+android {
+    compileSdk = 34
+
+    defaultConfig {
+        minSdk = 24
+        targetSdk = 34
+        versionCode = 1
+        versionName = "1.0.0"
+    }
+
+    buildFeatures {
+        compose = true
+        buildConfig = true
+    }
+
+    composeOptions {
+        kotlinCompilerExtensionVersion = "1.5.14"
+    }
+
+    buildTypes {
+        release {
+            isMinifyEnabled = true
+            proguardFiles(
+                getDefaultProguardFile("proguard-android-optimize.txt"),
+                "proguard-rules.pro"
+            )
         }
     }
 }
-```
 
-### Upsert 로직 흐름
+dependencies {
+    // Compose BOM (manages versions)
+    implementation(platform("androidx.compose:compose-bom:2024.10.00"))
 
-```mermaid
-graph TD
-    A[ScenarioSeeds.seedAll] --> B{slug로 조회}
-    B -->|없음| C[INSERT 새 시나리오]
-    B -->|있음| D{promptVersion 비교}
-    D -->|증가| E[UPDATE 기존 ID 유지]
-    D -->|동일| F[SKIP 변경 없음]
-    
-    C --> G[로그: ✨ Inserted]
-    E --> H[로그: 🔄 Updated]
-    F --> I[로그: ⏭️ Skipped]
-```
+    // Room
+    implementation("androidx.room:room-runtime:2.6.1")
+    implementation("androidx.room:room-ktx:2.6.1")
+    ksp("androidx.room:room-compiler:2.6.1")
 
-### 카테고리 시스템
+    // Hilt
+    implementation("com.google.dagger:hilt-android:2.48")
+    ksp("com.google.dagger:hilt-compiler:2.48")
 
-#### 16개 전체 카테고리
-| 카테고리 | 개수 | UI 탭 | 설명 |
-|---------|------|--------|------|
-| ENTERTAINMENT | 27 | 🎵 엔터 | K-POP, J-POP, 애니/드라마 |
-| WORK | 14 | 💼 직장 | 회사 업무, 이메일, 미팅 |
-| DAILY_LIFE | 15 | 🏠 일상 | 쓰레기, 인터넷, 택배 |
-| TRAVEL | 13 | ✈️ 여행 | 공항, 전철, 관광지 |
-| TECH | 9 | 💻 기술 | 코드 리뷰, 장애 대응 |
-| ESPORTS | 5 | 🎮 게임 | LoL, LCK 시청 |
-| JLPT_PRACTICE | 5 | 📖 JLPT | N5~N1 연습 |
-| CULTURE | 9 | 🎭 기타 | 힙합, 레코드 가게 |
-| HEALTH | 7 | 🎭 기타 | 병원, 치과, 예방접종 |
-| FINANCE | 6 | 🎭 기타 | 미국 주식, ETF |
-| STUDY | 5 | 🎭 기타 | 언어교환, 교재 |
-| BUSINESS | 4 | 🎭 기타 | 비즈니스 미팅 |
-| HOUSING | 3 | 🎭 기타 | 부동산 계약 |
-| ROMANCE | 2 | 🎭 기타 | 데이트, 연애 |
-| EMERGENCY | 1 | 🎭 기타 | 지진 대피 |
-| DAILY_CONVERSATION | 1 | 🎭 기타 | 친구 사귀기 |
+    // Gemini SDK
+    implementation("com.google.ai.client.generativeai:generativeai:0.9.0")
 
-#### 탭 필터링 로직 (ScenarioViewModel)
+    // Network
+    implementation("com.squareup.retrofit2:retrofit:2.9.0")
+    implementation("com.squareup.retrofit2:converter-gson:2.9.0")
+    implementation("com.squareup.okhttp3:logging-interceptor:4.11.0")
 
-```kotlin
-private fun filterScenarios(scenarios: List<Scenario>, category: String?): List<Scenario> {
-    // 주요 탭 카테고리 정의 (7개)
-    val mainCategories = setOf(
-        "ENTERTAINMENT", "WORK", "DAILY_LIFE", "TRAVEL",
-        "TECH", "ESPORTS", "JLPT_PRACTICE"
-    )
+    // ML Kit
+    implementation("com.google.mlkit:translate:17.0.1")
 
-    return when (category) {
-        null -> scenarios  // "전체" 탭
-        "OTHER" -> scenarios.filter { it.category !in mainCategories }  // "기타" 탭
-        else -> scenarios.filter { it.category == category }  // 특정 카테고리
-    }
+    // Kuromoji (Japanese NLP)
+    implementation("com.atilika.kuromoji:kuromoji-ipadic:0.9.0")
+
+    // Charts
+    implementation("com.patrykandpatrick.vico:compose:1.13.1")
 }
 ```
 
-### 향후 확장 계획
+## Security Considerations
 
-#### Phase 1: 현재 구조 유지 (Kotlin 코드)
-- ✅ 시나리오 200개까지 확장 가능
-- ✅ 타입 안전성 유지
-- ✅ IDE 지원 (자동완성, 리팩토링)
+### API Key Management
+- Keys stored in `local.properties` (Git ignored)
+- Accessed via BuildConfig at compile time
+- Never logged or exposed
 
-#### Phase 2: JSON 마이그레이션 (조건부)
-**전환 조건** (2개 이상 충족 시):
-- [ ] 시나리오 200개 돌파
-- [ ] 다국어 지원 (일본어/영어 UI)
-- [ ] 비개발자 콘텐츠 관리 필요
-- [ ] 사용자 커스텀 시나리오 import
+### ProGuard Rules
+```proguard
+# Gemini SDK
+-keep class com.google.ai.client.generativeai.** { *; }
 
-**마이그레이션 계획**:
-1. `assets/scenarios.json` 생성
-2. `ScenarioLoader.kt` 추가 (JSON 파싱)
-3. `ScenarioSeeds.kt` 교체
-4. `DataInitializer.kt` 유지 (변경 없음)
+# Retrofit
+-keepattributes Signature
+-keepattributes *Annotation*
+-keep class retrofit2.** { *; }
 
-```json
-// assets/scenarios.json (예시)
-{
-  "scenarios": [
-    {
-      "slug": "restaurant_ordering",
-      "promptVersion": 3,
-      "category": "DAILY_LIFE",
-      "title": {
-        "ko": "레스토랑 주문",
-        "ja": "レストラン注文",
-        "en": "Restaurant Ordering"
-      },
-      "coreInstruction": "あなたは...",
-      "extendedContext": "メニュー: ラーメン800円..."
-    }
-  ]
-}
+# Room
+-keep class * extends androidx.room.RoomDatabase
+-dontwarn androidx.room.paging.**
 ```
 
-### 장점 및 트레이드오프
+## Design Patterns
 
-| 항목 | Kotlin (현재) | JSON (향후) |
-|------|--------------|-------------|
-| 타입 안전성 | ⭐⭐⭐⭐⭐ | ⭐⭐⭐ |
-| IDE 지원 | ⭐⭐⭐⭐⭐ | ⭐⭐ |
-| 비개발자 편집 | ⭐ | ⭐⭐⭐⭐⭐ |
-| 다국어 지원 | ⭐⭐ | ⭐⭐⭐⭐⭐ |
-| Git diff | ⭐⭐⭐⭐ | ⭐⭐⭐⭐⭐ |
-| 컴파일 검증 | ⭐⭐⭐⭐⭐ | ⭐⭐ |
-| 런타임 성능 | ⭐⭐⭐⭐⭐ | ⭐⭐⭐⭐ |
-| 확장성 (500+) | ⭐⭐ | ⭐⭐⭐⭐⭐ |
+- **Repository Pattern**: Data abstraction
+- **Factory Pattern**: ViewModel creation
+- **Observer Pattern**: StateFlow/Flow
+- **Singleton Pattern**: Database, API clients
+- **Strategy Pattern**: Translation provider selection
+- **Builder Pattern**: Complex object construction
+- **Adapter Pattern**: Entity ↔ Model mapping
 
+## Future Scalability
+
+### Planned Improvements
+- **Offline AI**: Gemini Nano integration
+- **Multiplatform**: Kotlin Multiplatform for web/iOS
+- **Modularization**: Feature modules for faster builds
+- **JSON scenarios**: Migrate from Kotlin to JSON for 200+ scenarios
+- **Remote config**: Dynamic scenario updates
+
+### Architecture Evolution
+Current Kotlin-based approach works well up to 200 scenarios. Beyond that:
+- Move scenarios to `assets/scenarios.json`
+- Add `ScenarioLoader.kt` for JSON parsing
+- Support multi-language scenario titles
+- Enable non-developer content management

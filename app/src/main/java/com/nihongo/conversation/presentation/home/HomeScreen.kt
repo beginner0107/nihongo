@@ -145,11 +145,12 @@ fun HomeScreen(
                         }
                     }
 
-                    // 3. Quick Actions Row (~80dp)
+                    // 3. Quick Actions Row (~160dp with 2 rows)
                     item {
                         QuickActionsRow(
                             onResume = { viewModel.resumeLastConversation() },
                             onRandom = { viewModel.startRandomScenario() },
+                            onHistory = onReviewClick,
                             onViewAll = { /* Navigate via bottom nav to Scenarios tab */ }
                         )
                     }
