@@ -7,6 +7,7 @@ import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.launch
+import java.io.File
 import javax.inject.Inject
 import javax.inject.Singleton
 
@@ -31,6 +32,14 @@ class VoicePlaybackManager @Inject constructor() {
     fun playFile(path: String) {
         stop()
         _state.value = PlaybackState.Loading
+
+        // Check if file exists before trying to play
+        val file = File(path)
+        if (!file.exists()) {
+            _state.value = PlaybackState.Error("음성 파일이 존재하지 않습니다")
+            return
+        }
+
         try {
             val mp = MediaPlayer()
             mediaPlayer = mp
@@ -46,7 +55,7 @@ class VoicePlaybackManager @Inject constructor() {
             }
             mp.prepareAsync()
         } catch (e: Exception) {
-            _state.value = PlaybackState.Error("再生エラー: ${e.message}")
+            _state.value = PlaybackState.Error("재생 오류: ${e.message}")
             stop()
         }
     }

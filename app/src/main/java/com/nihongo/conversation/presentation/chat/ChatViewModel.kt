@@ -840,11 +840,21 @@ class ChatViewModel @Inject constructor(
 
     fun playVoice(recordingId: Long) {
         viewModelScope.launch {
-            val rec = voiceRecordingRepository.getById(recordingId)
-            if (rec != null) {
-                voicePlaybackManager.playFile(rec.filePath)
-            } else {
-                _uiState.update { it.copy(error = "음성 파일을 찾을 수 없습니다") }
+            try {
+                val rec = voiceRecordingRepository.getById(recordingId)
+                if (rec != null) {
+                    // Check if file exists
+                    val file = java.io.File(rec.filePath)
+                    if (file.exists()) {
+                        voicePlaybackManager.playFile(rec.filePath)
+                    } else {
+                        _uiState.update { it.copy(error = "음성 파일이 존재하지 않습니다. 음성 녹음 기능을 활성화하고 다시 녹음해주세요.") }
+                    }
+                } else {
+                    _uiState.update { it.copy(error = "녹음 정보를 찾을 수 없습니다") }
+                }
+            } catch (e: Exception) {
+                _uiState.update { it.copy(error = "음성 재생 중 오류가 발생했습니다: ${e.message}") }
             }
         }
     }
