@@ -1561,67 +1561,133 @@ fun MessageInput(
     Column(
         modifier = Modifier.fillMaxWidth()
     ) {
-        // Voice language toggle button
-        VoiceLanguageToggle(
-            selectedLanguage = selectedVoiceLanguage,
-            onToggle = onToggleVoiceLanguage,
-            modifier = Modifier.padding(start = 8.dp, bottom = 4.dp)
-        )
-
+        // Voice language toggle and hint buttons in a horizontal row
         Row(
             modifier = Modifier
                 .fillMaxWidth()
-                .padding(8.dp),
-            verticalAlignment = Alignment.CenterVertically,
-            horizontalArrangement = Arrangement.spacedBy(8.dp)
+                .padding(horizontal = 12.dp, vertical = 4.dp),
+            horizontalArrangement = Arrangement.spacedBy(12.dp)
         ) {
-            // Voice button
-            VoiceButton(
-                voiceState = voiceState,
-                onStartRecording = onStartRecording,
-                onStopRecording = onStopRecording
+            // Voice language toggle button
+            VoiceLanguageToggle(
+                selectedLanguage = selectedVoiceLanguage,
+                onToggle = onToggleVoiceLanguage,
+                modifier = Modifier.weight(1f)
             )
 
-            // Text input
-            OutlinedTextField(
-                value = text,
-                onValueChange = onTextChange,
-                modifier = Modifier.weight(1f),
-                placeholder = { Text("일본어 또는 한국어로 입력하세요 💬") },
-                enabled = enabled,
-                maxLines = 4,
-                keyboardOptions = KeyboardOptions(imeAction = ImeAction.Send),
-                keyboardActions = KeyboardActions(
-                    onSend = {
-                        if (text.isNotBlank()) {
-                            onSend()
-                        }
-                    }
-                )
-            )
-
-            // Send button
-            Button(
-                onClick = onSend,
-                enabled = enabled && text.isNotBlank()
-            ) {
-                Text("전송")
+            // Hint button - more prominent with FilledTonalButton
+            if (enabled) {
+                FilledTonalButton(
+                    onClick = onRequestHint,
+                    modifier = Modifier.height(44.dp),
+                    colors = ButtonDefaults.filledTonalButtonColors(
+                        containerColor = MaterialTheme.colorScheme.tertiaryContainer,
+                        contentColor = MaterialTheme.colorScheme.onTertiaryContainer
+                    ),
+                    elevation = ButtonDefaults.filledTonalButtonElevation(
+                        defaultElevation = 2.dp,
+                        pressedElevation = 4.dp,
+                        hoveredElevation = 3.dp
+                    )
+                ) {
+                    Icon(
+                        imageVector = Icons.Default.Lightbulb,
+                        contentDescription = null,
+                        modifier = Modifier.size(20.dp),
+                        tint = Color(0xFFFFC107) // Amber/yellow for prominence
+                    )
+                    Spacer(modifier = Modifier.width(6.dp))
+                    Text(
+                        text = "힌트",
+                        style = MaterialTheme.typography.labelLarge,
+                        fontWeight = FontWeight.Bold
+                    )
+                }
             }
         }
 
-        // Hint button
-        TextButton(
-            onClick = onRequestHint,
-            modifier = Modifier.padding(horizontal = 8.dp),
-            enabled = enabled
+        // Modern input container with rounded surface
+        Surface(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(horizontal = 12.dp, vertical = 8.dp),
+            shape = RoundedCornerShape(24.dp),
+            color = MaterialTheme.colorScheme.surfaceVariant,
+            tonalElevation = 2.dp
         ) {
-            Icon(
-                imageVector = Icons.Default.Lightbulb,
-                contentDescription = null,
-                modifier = Modifier.size(18.dp)
-            )
-            Spacer(modifier = Modifier.width(4.dp))
-            Text("힌트 요청 (Korean-Japanese)")
+            Row(
+                modifier = Modifier.padding(horizontal = 4.dp, vertical = 2.dp),
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                // Redesigned voice button - smaller and more subtle
+                VoiceButton(
+                    voiceState = voiceState,
+                    onStartRecording = onStartRecording,
+                    onStopRecording = onStopRecording,
+                    style = VoiceButtonStyle.OUTLINED,
+                    modifier = Modifier.size(40.dp)
+                )
+
+                // Borderless text field
+                TextField(
+                    value = text,
+                    onValueChange = onTextChange,
+                    modifier = Modifier.weight(1f),
+                    placeholder = {
+                        Text(
+                            "메시지 입력...",
+                            style = MaterialTheme.typography.bodyMedium,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.6f)
+                        )
+                    },
+                    enabled = enabled,
+                    colors = TextFieldDefaults.colors(
+                        focusedContainerColor = Color.Transparent,
+                        unfocusedContainerColor = Color.Transparent,
+                        disabledContainerColor = Color.Transparent,
+                        focusedIndicatorColor = Color.Transparent,
+                        unfocusedIndicatorColor = Color.Transparent,
+                        disabledIndicatorColor = Color.Transparent,
+                        errorIndicatorColor = Color.Transparent,
+                        cursorColor = MaterialTheme.colorScheme.primary,
+                        focusedTextColor = MaterialTheme.colorScheme.onSurface,
+                        unfocusedTextColor = MaterialTheme.colorScheme.onSurface
+                    ),
+                    maxLines = 4,
+                    keyboardOptions = KeyboardOptions(imeAction = ImeAction.Send),
+                    keyboardActions = KeyboardActions(
+                        onSend = {
+                            if (text.isNotBlank()) {
+                                onSend()
+                            }
+                        }
+                    ),
+                    singleLine = false
+                )
+
+                // Send icon button - animated visibility
+                AnimatedVisibility(
+                    visible = text.isNotBlank(),
+                    enter = fadeIn() + slideInVertically(),
+                    exit = fadeOut() + slideOutVertically()
+                ) {
+                    IconButton(
+                        onClick = onSend,
+                        enabled = enabled,
+                        modifier = Modifier.size(40.dp),
+                        colors = IconButtonDefaults.iconButtonColors(
+                            contentColor = if (enabled) MaterialTheme.colorScheme.primary
+                                          else MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.38f)
+                        )
+                    ) {
+                        Icon(
+                            imageVector = Icons.Default.Send,
+                            contentDescription = "전송",
+                            modifier = Modifier.size(20.dp)
+                        )
+                    }
+                }
+            }
         }
     }
 }
@@ -1832,36 +1898,39 @@ fun VoiceLanguageToggle(
     onToggle: () -> Unit,
     modifier: Modifier = Modifier
 ) {
-    Surface(
-        modifier = modifier.clickable { onToggle() },
-        shape = MaterialTheme.shapes.small,
-        color = MaterialTheme.colorScheme.surfaceVariant
+    FilledTonalButton(
+        onClick = onToggle,
+        modifier = modifier.height(44.dp),
+        colors = ButtonDefaults.filledTonalButtonColors(
+            containerColor = MaterialTheme.colorScheme.primaryContainer,
+            contentColor = MaterialTheme.colorScheme.onPrimaryContainer
+        ),
+        elevation = ButtonDefaults.filledTonalButtonElevation(
+            defaultElevation = 2.dp,
+            pressedElevation = 4.dp,
+            hoveredElevation = 3.dp
+        )
     ) {
-        Row(
-            modifier = Modifier.padding(horizontal = 8.dp, vertical = 4.dp),
-            verticalAlignment = Alignment.CenterVertically,
-            horizontalArrangement = Arrangement.spacedBy(4.dp)
-        ) {
-            Icon(
-                imageVector = Icons.Default.Language,
-                contentDescription = null,
-                modifier = Modifier.size(16.dp)
-            )
-            Text(
-                text = when (selectedLanguage) {
-                    com.nihongo.conversation.core.voice.VoiceLanguage.JAPANESE -> "🎤 일본어"
-                    com.nihongo.conversation.core.voice.VoiceLanguage.KOREAN -> "🎤 한국어"
-                },
-                style = MaterialTheme.typography.labelMedium,
-                fontWeight = FontWeight.Bold,
-                color = MaterialTheme.colorScheme.primary
-            )
-            Icon(
-                imageVector = Icons.Default.SwapHoriz,
-                contentDescription = "언어 전환",
-                modifier = Modifier.size(14.dp)
-            )
-        }
+        Icon(
+            imageVector = Icons.Default.Language,
+            contentDescription = null,
+            modifier = Modifier.size(20.dp)
+        )
+        Spacer(modifier = Modifier.width(6.dp))
+        Text(
+            text = when (selectedLanguage) {
+                com.nihongo.conversation.core.voice.VoiceLanguage.JAPANESE -> "🎤 일본어"
+                com.nihongo.conversation.core.voice.VoiceLanguage.KOREAN -> "🎤 한국어"
+            },
+            style = MaterialTheme.typography.bodyMedium,
+            fontWeight = FontWeight.Bold
+        )
+        Spacer(modifier = Modifier.width(4.dp))
+        Icon(
+            imageVector = Icons.Default.SwapHoriz,
+            contentDescription = "언어 전환",
+            modifier = Modifier.size(18.dp)
+        )
     }
 }
 
