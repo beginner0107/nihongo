@@ -30,7 +30,5 @@ data class Message(
     val timestamp: Long = System.currentTimeMillis(),
     val hasError: Boolean = false,
     val complexityScore: Int = 0, // 0 = not analyzed, 1-5 = vocabulary complexity
-    // Voice recording support
-    val voiceRecordingId: Long? = null,
     val inputType: String = "text" // 'text' | 'voice'
 )

@@ -450,7 +450,6 @@ class ChatViewModel @Inject constructor(
                 conversationHistory = conversationHistory,
                 systemPrompt = enhancedPrompt,
                 inputType = "text",
-                voiceRecordingId = null,
                 preInsertedUserMessageId = userMessageId
             ).collect { result ->
                 when (result) {

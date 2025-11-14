@@ -45,12 +45,13 @@ object DatabaseModule {
                 NihongoDatabase.MIGRATION_16_17,  // Phase 5: Message bookmarking
                 NihongoDatabase.MIGRATION_17_18,  // Phase 5단계 난이도 세분화
                 NihongoDatabase.MIGRATION_18_19,  // AI 성격 선택 기능
-                NihongoDatabase.MIGRATION_19_20,   // 시나리오별 성격 유연성
-                NihongoDatabase.MIGRATION_20_21    // 음성 녹음/재생
+                NihongoDatabase.MIGRATION_19_20,  // 시나리오별 성격 유연성
+                NihongoDatabase.MIGRATION_20_21,  // 음성 녹음/재생
+                NihongoDatabase.MIGRATION_21_22   // 음성 녹음 기능 제거 (TTS-only)
             )
             // All migrations provided - no destructive migration needed
             // This prevents user data loss in production
-            // Complete migration path: 1→2→3→4→5→6→7→8→9→10→11→12→13→14→15→16→17→18→19→20
+            // Complete migration path: 1→2→3→4→5→6→7→8→9→10→11→12→13→14→15→16→17→18→19→20→21→22
             .build()
     }
 
@@ -125,8 +126,4 @@ object DatabaseModule {
     @Provides
     fun provideSavedMessageDao(database: NihongoDatabase): SavedMessageDao =
         database.savedMessageDao()
-
-    @Provides
-    fun provideVoiceRecordingDao(database: NihongoDatabase): VoiceRecordingDao =
-        database.voiceRecordingDao()
 }

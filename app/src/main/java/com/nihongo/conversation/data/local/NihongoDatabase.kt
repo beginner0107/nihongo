@@ -47,13 +47,12 @@ import com.nihongo.conversation.data.local.SavedMessageDao
         GrammarFeedbackCacheEntity::class,
         DailyQuestEntity::class,
         UserPointsEntity::class,
-        SavedMessageEntity::class,  // Phase 5: Message bookmarking
-        com.nihongo.conversation.domain.model.VoiceRecording::class
+        SavedMessageEntity::class  // Phase 5: Message bookmarking
     ],
     views = [
         ConversationStats::class
     ],
-    version = 21,  // 음성 녹음/재생 스키마 추가
+    version = 22,  // 음성 녹음 기능 제거
     exportSchema = false
 )
 abstract class NihongoDatabase : RoomDatabase() {
@@ -76,7 +75,6 @@ abstract class NihongoDatabase : RoomDatabase() {
     abstract fun dailyQuestDao(): DailyQuestDao
     abstract fun userPointsDao(): UserPointsDao
     abstract fun savedMessageDao(): SavedMessageDao  // Phase 5: Message bookmarking
-    abstract fun voiceRecordingDao(): VoiceRecordingDao
 
     companion object {
         val MIGRATION_1_2 = object : Migration(1, 2) {
@@ -700,6 +698,48 @@ abstract class NihongoDatabase : RoomDatabase() {
                 // Add columns to messages
                 database.execSQL("ALTER TABLE messages ADD COLUMN voiceRecordingId INTEGER")
                 database.execSQL("ALTER TABLE messages ADD COLUMN inputType TEXT NOT NULL DEFAULT 'text'")
+            }
+        }
+
+        val MIGRATION_21_22 = object : Migration(21, 22) {
+            override fun migrate(database: SupportSQLiteDatabase) {
+                // Drop voice_recordings table (TTS-only review mode)
+                database.execSQL("DROP TABLE IF EXISTS voice_recordings")
+
+                // Remove voiceRecordingId column from messages table
+                // Note: SQLite doesn't support DROP COLUMN directly
+                // Create new table without voiceRecordingId, copy data, drop old table, rename new table
+                database.execSQL(
+                    """
+                    CREATE TABLE messages_new (
+                        id INTEGER PRIMARY KEY AUTOINCREMENT NOT NULL,
+                        conversationId INTEGER NOT NULL,
+                        content TEXT NOT NULL,
+                        isUser INTEGER NOT NULL,
+                        timestamp INTEGER NOT NULL,
+                        inputType TEXT NOT NULL DEFAULT 'text',
+                        FOREIGN KEY (conversationId) REFERENCES conversations(id) ON DELETE CASCADE
+                    )
+                    """.trimIndent()
+                )
+
+                // Copy data (excluding voiceRecordingId)
+                database.execSQL(
+                    """
+                    INSERT INTO messages_new (id, conversationId, content, isUser, timestamp, inputType)
+                    SELECT id, conversationId, content, isUser, timestamp, inputType FROM messages
+                    """.trimIndent()
+                )
+
+                // Drop old table
+                database.execSQL("DROP TABLE messages")
+
+                // Rename new table
+                database.execSQL("ALTER TABLE messages_new RENAME TO messages")
+
+                // Recreate indices
+                database.execSQL("CREATE INDEX IF NOT EXISTS idx_messages_conversation ON messages(conversationId)")
+                database.execSQL("CREATE INDEX IF NOT EXISTS idx_messages_timestamp ON messages(timestamp)")
             }
         }
     }

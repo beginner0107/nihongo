@@ -19,7 +19,6 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
 import com.nihongo.conversation.domain.model.Message
-import com.nihongo.conversation.domain.model.VoiceRecording
 
 /**
  * Phase 2: 대화 복습 모드 화면
