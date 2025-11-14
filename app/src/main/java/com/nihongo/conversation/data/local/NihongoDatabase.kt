@@ -717,7 +717,9 @@ abstract class NihongoDatabase : RoomDatabase() {
                         content TEXT NOT NULL,
                         isUser INTEGER NOT NULL,
                         timestamp INTEGER NOT NULL,
-                        inputType TEXT NOT NULL DEFAULT 'text',
+                        hasError INTEGER NOT NULL,
+                        complexityScore INTEGER NOT NULL,
+                        inputType TEXT NOT NULL,
                         FOREIGN KEY (conversationId) REFERENCES conversations(id) ON DELETE CASCADE
                     )
                     """.trimIndent()
@@ -726,8 +728,8 @@ abstract class NihongoDatabase : RoomDatabase() {
                 // Copy data (excluding voiceRecordingId)
                 database.execSQL(
                     """
-                    INSERT INTO messages_new (id, conversationId, content, isUser, timestamp, inputType)
-                    SELECT id, conversationId, content, isUser, timestamp, inputType FROM messages
+                    INSERT INTO messages_new (id, conversationId, content, isUser, timestamp, hasError, complexityScore, inputType)
+                    SELECT id, conversationId, content, isUser, timestamp, hasError, complexityScore, inputType FROM messages
                     """.trimIndent()
                 )
 
@@ -737,9 +739,10 @@ abstract class NihongoDatabase : RoomDatabase() {
                 // Rename new table
                 database.execSQL("ALTER TABLE messages_new RENAME TO messages")
 
-                // Recreate indices
-                database.execSQL("CREATE INDEX IF NOT EXISTS idx_messages_conversation ON messages(conversationId)")
-                database.execSQL("CREATE INDEX IF NOT EXISTS idx_messages_timestamp ON messages(timestamp)")
+                // Recreate indices (must match Entity @Index annotations)
+                database.execSQL("CREATE INDEX IF NOT EXISTS index_messages_conversationId ON messages(conversationId)")
+                database.execSQL("CREATE INDEX IF NOT EXISTS idx_msg_conv_time ON messages(conversationId, timestamp)")
+                database.execSQL("CREATE INDEX IF NOT EXISTS idx_msg_timestamp ON messages(timestamp)")
             }
         }
     }
