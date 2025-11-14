@@ -140,12 +140,6 @@ class SettingsViewModel @Inject constructor(
         }
     }
 
-    fun updateEnableVoiceRecording(enabled: Boolean) {
-        viewModelScope.launch {
-            settingsDataStore.updateEnableVoiceRecording(enabled)
-        }
-    }
-
     fun loadCacheSize() {
         viewModelScope.launch {
             try {

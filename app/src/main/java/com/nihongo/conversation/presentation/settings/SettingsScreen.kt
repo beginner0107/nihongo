@@ -71,16 +71,6 @@ fun SettingsScreen(
                     checked = settings.autoSpeak,
                     onCheckedChange = { viewModel.updateAutoSpeak(it) }
                 )
-
-                Spacer(modifier = Modifier.height(16.dp))
-
-                // Voice Recording Toggle
-                SettingsToggle(
-                    label = "음성 녹음 저장",
-                    description = "음성 인식 후 자동으로 음성 파일을 저장합니다 (일본어만, 복습용)",
-                    checked = settings.enableVoiceRecording,
-                    onCheckedChange = { viewModel.updateEnableVoiceRecording(it) }
-                )
             }
 
             HorizontalDivider()
@@ -118,15 +108,6 @@ fun SettingsScreen(
                     )
                 }
 
-                Spacer(modifier = Modifier.height(16.dp))
-
-                // Voice Recording Toggle
-                SettingsToggle(
-                    label = "음성 녹음 저장",
-                    description = "STT 후 발음 연습용 음성 파일을 저장합니다 (10초)",
-                    checked = settings.enableVoiceRecording,
-                    onCheckedChange = { viewModel.updateEnableVoiceRecording(it) }
-                )
             }
 
             HorizontalDivider()
