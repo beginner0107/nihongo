@@ -19,6 +19,7 @@ import androidx.compose.ui.input.nestedscroll.NestedScrollConnection
 import androidx.compose.ui.input.nestedscroll.NestedScrollSource
 import androidx.compose.ui.input.nestedscroll.nestedScroll
 import androidx.compose.ui.unit.Velocity
+import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.launch
 import kotlin.math.abs
 import com.nihongo.conversation.presentation.home.HomeScreen
@@ -129,6 +130,9 @@ fun MainScreen(
                             scope.launch {
                                 try {
                                     pagerState.animateScrollToPage(index)
+                                } catch (e: CancellationException) {
+                                    // Ignore cancellation - it's normal when user taps rapidly
+                                    throw e  // Re-throw to propagate cancellation
                                 } catch (e: Exception) {
                                     errorMessage = "페이지 이동 실패: ${e.message}"
                                 }
